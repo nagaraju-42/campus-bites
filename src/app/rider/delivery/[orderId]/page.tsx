@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Phone, MapPin, CheckCircle2 } from 'lucide-react'
+import { Phone, MapPin, CheckCircle2, MessageSquare, X, Send } from 'lucide-react'
 import { useRiderStore } from '@/store/riderStore'
 import { completeDelivery } from '@/lib/supabase/queries/rider'
 import SwipeButton from '@/components/rider/SwipeButton'
@@ -13,16 +13,20 @@ import { Order } from '@/types'
 export default function ActiveDeliveryPage() {
   const router = useRouter()
   const { orderId } = useParams()
-  const { activeDelivery, setActiveDelivery } = useRiderStore()
+  const { activeDeliveries, setActiveDeliveries, removeActiveDelivery } = useRiderStore()
   
   const [order, setOrder] = useState<Order | null>(null)
   const [step, setStep] = useState<'pickup' | 'dropoff'>('pickup')
   const [isLoading, setIsLoading] = useState(true)
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
+  const [messageText, setMessageText] = useState('')
+  const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     // If the active delivery in store matches the URL, use it immediately
-    if (activeDelivery && activeDelivery.id === orderId) {
-      setOrder(activeDelivery)
+    const storeDelivery = activeDeliveries.find(d => d.id === orderId)
+    if (storeDelivery) {
+      setOrder(storeDelivery)
       setIsLoading(false)
       return
     }
@@ -33,13 +37,13 @@ export default function ActiveDeliveryPage() {
         const supabase = createClient()
         const { data, error } = await supabase
           .from('orders')
-          .select(`*, shops(name, description)`)
+          .select(`*, shops(name, description), profiles!student_id(phone)`)
           .eq('id', orderId)
           .single()
         
         if (error) throw error
         setOrder(data)
-        setActiveDelivery(data)
+        // Optionally we could add it to activeDeliveries here, but we'll skip modifying the store if it's already complete
       } catch (err) {
         toast.error('Delivery not found')
         router.replace('/rider/pool')
@@ -48,7 +52,7 @@ export default function ActiveDeliveryPage() {
       }
     }
     load()
-  }, [orderId, activeDelivery, setActiveDelivery, router])
+  }, [orderId, activeDeliveries, router])
 
   if (isLoading) return <div className="p-10 text-center font-bold text-green-700">Loading delivery details...</div>
   if (!order) return null
@@ -61,7 +65,7 @@ export default function ActiveDeliveryPage() {
   const handleDelivered = async () => {
     try {
       await completeDelivery(order.id)
-      setActiveDelivery(null)
+      removeActiveDelivery(order.id)
       toast.success('Delivery Completed! ₹' + order.delivery_fee + ' earned.', { icon: '💰' })
       router.replace('/rider/earnings')
     } catch (err) {
@@ -148,9 +152,20 @@ export default function ActiveDeliveryPage() {
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Customer</p>
                 <p className="font-bold text-gray-900">Student</p>
               </div>
-              <button className="w-12 h-12 bg-[#16A34A] rounded-full flex items-center justify-center text-white shadow-md shadow-green-200 active:scale-95 transition">
-                <Phone size={20} />
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsMessageModalOpen(true)}
+                  className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shadow-sm active:scale-95 transition"
+                >
+                  <MessageSquare size={20} />
+                </button>
+                <a 
+                  href={`tel:+91${(order as any).profiles?.phone || ''}`}
+                  className="w-12 h-12 bg-[#16A34A] rounded-full flex items-center justify-center text-white shadow-md shadow-green-200 active:scale-95 transition"
+                >
+                  <Phone size={20} />
+                </a>
+              </div>
             </div>
             
             <div className="mt-6 flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100 text-amber-800">
@@ -180,6 +195,53 @@ export default function ActiveDeliveryPage() {
         </div>
         
       </div>
+
+      {/* Message Modal */}
+      {isMessageModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">Message Student</h3>
+              <button onClick={() => setIsMessageModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+            <textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder="e.g. I have reached the hostel gate."
+              className="w-full border border-gray-200 rounded-xl p-3 h-24 mb-4 focus:outline-none focus:border-green-500 resize-none"
+            />
+            <button
+              onClick={async () => {
+                if (!messageText.trim()) return
+                setIsSending(true)
+                try {
+                  const supabase = createClient()
+                  await supabase.from('notifications').insert({
+                    user_id: order.student_id,
+                    title: 'Message from Rider',
+                    message: messageText,
+                    type: 'message'
+                  })
+                  toast.success('Message sent!')
+                  setMessageText('')
+                  setIsMessageModalOpen(false)
+                } catch (err) {
+                  toast.error('Failed to send message')
+                } finally {
+                  setIsSending(false)
+                }
+              }}
+              disabled={isSending || !messageText.trim()}
+              className="w-full bg-[#16A34A] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Send size={18} />
+              {isSending ? 'Sending...' : 'Send Message'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

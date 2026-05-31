@@ -14,7 +14,7 @@ const NAV_ITEMS = [
 
 export default function RiderBottomNav() {
   const pathname = usePathname()
-  const { activeDelivery, availableOrders } = useRiderStore()
+  const { activeDeliveries, availableOrders } = useRiderStore()
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-gray-100 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] z-50">
@@ -22,12 +22,10 @@ export default function RiderBottomNav() {
         {NAV_ITEMS.map(({ href, label, Icon }) => {
           // Special logic for Active route
           const isCurrentDeliveryRoute = label === 'Active'
-          const actualHref = isCurrentDeliveryRoute && activeDelivery 
-            ? `/rider/delivery/${activeDelivery.id}` 
-            : href
+          const actualHref = isCurrentDeliveryRoute ? '/rider/active' : href
 
-          const isActive = pathname.startsWith(isCurrentDeliveryRoute ? '/rider/delivery' : href)
-          const isDisabled = isCurrentDeliveryRoute && !activeDelivery
+          const isActive = pathname.startsWith(isCurrentDeliveryRoute ? '/rider/active' : href) || pathname.startsWith('/rider/delivery')
+          const isDisabled = isCurrentDeliveryRoute && activeDeliveries.length === 0
           const showBadge = label === 'Pool' && availableOrders.length > 0
 
           return (

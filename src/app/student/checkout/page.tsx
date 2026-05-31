@@ -9,6 +9,7 @@ import { placeOrder } from '@/lib/supabase/queries/orders'
 import { formatCurrency } from '@/lib/utils'
 import { PaymentMethod } from '@/types'
 import toast from 'react-hot-toast'
+import { getPromotionByCode, Promotion } from '@/lib/supabase/queries/promotions'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -20,6 +21,35 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI')
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
 
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null)
+  const [couponError, setCouponError] = useState('')
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
+
+  const subtotal = getGrandTotal() - getDeliveryFee() - getPlatformFee()
+  const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount_percent) / 100 : 0
+  const finalTotal = getGrandTotal() - discountAmount
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
+    setIsApplyingCoupon(true)
+    setCouponError('')
+    try {
+      const promo = await getPromotionByCode(couponCode)
+      if (promo) {
+        setAppliedPromo(promo)
+        toast.success(`Coupon applied! ${promo.discount_percent}% OFF`)
+      } else {
+        setCouponError('Invalid or expired coupon code.')
+        setAppliedPromo(null)
+      }
+    } catch (err) {
+      setCouponError('Failed to verify coupon.')
+    } finally {
+      setIsApplyingCoupon(false)
+    }
+  }
+
   const handlePlaceOrder = async () => {
     if (!user || !shopId) return
     setIsPlacingOrder(true)
@@ -28,7 +58,7 @@ export default function CheckoutPage() {
         studentId: user.id,
         shopId,
         cartItems: items,
-        totalAmount: getGrandTotal(),
+        totalAmount: finalTotal,
         deliveryFee: getDeliveryFee(),
         platformFee: getPlatformFee(),
         paymentMethod,
@@ -94,13 +124,55 @@ export default function CheckoutPage() {
           </div>
         </div>
 
+        {/* Promo Code */}
+        <div>
+          <h3 className="font-bold text-gray-900 text-sm mb-3">Apply Coupon</h3>
+          <div className="bg-white rounded-3xl p-3 shadow-sm border border-gray-100 flex gap-2 items-start">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Enter coupon code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F766E]/20"
+                disabled={!!appliedPromo}
+              />
+              {couponError && <p className="text-red-500 text-xs font-medium mt-1 ml-2">{couponError}</p>}
+            </div>
+            {appliedPromo ? (
+              <button
+                onClick={() => {
+                  setAppliedPromo(null)
+                  setCouponCode('')
+                }}
+                className="bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl text-sm transition hover:bg-red-100"
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                onClick={handleApplyCoupon}
+                disabled={isApplyingCoupon || !couponCode}
+                className="bg-[#0F766E] text-white font-bold px-5 py-3 rounded-xl text-sm shadow-md shadow-teal-200 transition active:scale-95 disabled:opacity-50"
+              >
+                {isApplyingCoupon ? '...' : 'Apply'}
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Order Summary */}
         <div>
           <h3 className="font-bold text-gray-900 text-sm mb-3">Order Summary</h3>
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
             <div className="flex justify-between text-sm font-medium text-gray-600">
-              <span>Item Total</span><span>{formatCurrency(getGrandTotal() - getDeliveryFee() - getPlatformFee())}</span>
+              <span>Item Total</span><span>{formatCurrency(subtotal)}</span>
             </div>
+            {appliedPromo && (
+              <div className="flex justify-between text-sm font-bold text-green-600">
+                <span>Coupon ({appliedPromo.code})</span><span>-{formatCurrency(discountAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm font-medium text-gray-600">
               <span>Delivery Fee</span><span>{formatCurrency(getDeliveryFee())}</span>
             </div>
@@ -110,7 +182,7 @@ export default function CheckoutPage() {
             <div className="border-t border-dashed border-gray-200 pt-3 mt-1">
               <div className="flex justify-between font-bold text-gray-900 text-base">
                 <span>Total Amount</span>
-                <span>{formatCurrency(getGrandTotal())}</span>
+                <span>{formatCurrency(finalTotal)}</span>
               </div>
             </div>
           </div>

@@ -22,7 +22,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const [shopOwnerId, setShopOwnerId] = useState<string | null>(null)
   
   // Realtime notification sound
-  const [playAlert] = useSound('https://actions.google.com/sounds/v1/alarms/beep_short.ogg', { volume: 0.8 })
+  const [playAlert] = useSound('https://actions.google.com/sounds/v1/alarms/beep_short.ogg', { volume: 1.0 })
 
   // 1. Auth Guard
   useEffect(() => {
@@ -55,7 +55,6 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       }
 
       if (profile.status === 'suspended') {
-        await supabase.auth.signOut()
         setLoading(false)
         toast.error('Your account has been suspended by the admin.')
         if (!isLoginRoute) {
@@ -74,7 +73,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       }
     }
     checkAuth()
-  }, [router, setUser, setLoading])
+  }, [router, pathname, setUser, setLoading])
 
   // 2. Fetch Shop Details & Setup Realtime
   useEffect(() => {
@@ -126,11 +125,21 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${sid}` },
           async (payload) => {
-            const { data: fullOrder } = await supabase
-              .from('orders')
-              .select(`*, order_items(*)`)
-              .eq('id', payload.new.id)
-              .single()
+            // Poll up to 5 times (2.5 seconds) to ensure order_items are inserted
+            let fullOrder;
+            for (let i = 0; i < 5; i++) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+              const { data } = await supabase
+                .from('orders')
+                .select(`*, order_items(*)`)
+                .eq('id', payload.new.id)
+                .single()
+              
+              fullOrder = data;
+              if (fullOrder && fullOrder.order_items && fullOrder.order_items.length > 0) {
+                break;
+              }
+            }
 
             if (fullOrder) {
               addOrder(fullOrder)

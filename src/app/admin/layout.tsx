@@ -36,7 +36,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       if (error || !profile || profile.role !== 'admin') {
         // Strict blocking
-        await supabase.auth.signOut()
         setLoading(false)
         if (!isLoginRoute) {
           router.replace('/admin/login')
@@ -53,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
     }
     checkAuth()
-  }, [router, setUser, setLoading])
+  }, [router, pathname, setUser, setLoading])
 
   if (isLoading) {
     return (

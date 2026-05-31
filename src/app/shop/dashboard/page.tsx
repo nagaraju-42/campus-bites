@@ -57,8 +57,11 @@ export default function ShopDashboardPage() {
     loadData()
   }, [user, shopId, setLiveStatus, setOrders])
 
+  const [isToggling, setIsToggling] = useState(false)
+
   const toggleStatus = async () => {
-    if (!shopId) return
+    if (!shopId || isToggling) return
+    setIsToggling(true)
     const newStatus = !isLive
     try {
       await updateShopStatusDB(shopId, newStatus)
@@ -66,6 +69,8 @@ export default function ShopDashboardPage() {
       toast.success(`Shop is now ${newStatus ? 'OPEN' : 'CLOSED'}`)
     } catch (err) {
       toast.error('Failed to update shop status')
+    } finally {
+      setIsToggling(false)
     }
   }
 
@@ -90,11 +95,13 @@ export default function ShopDashboardPage() {
             <span className="font-bold text-sm text-gray-700">{isLive ? 'Accepting Orders' : 'Closed'}</span>
             <button 
               onClick={toggleStatus}
+              disabled={isToggling}
               className={`ml-2 px-3 py-1 text-xs font-bold rounded-lg transition ${
+                isToggling ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500' :
                 isLive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'
               }`}
             >
-              {isLive ? 'Close Shop' : 'Open Shop'}
+              {isToggling ? 'Updating...' : isLive ? 'Close Shop' : 'Open Shop'}
             </button>
           </div>
         </div>

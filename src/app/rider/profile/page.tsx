@@ -10,10 +10,10 @@ import toast from 'react-hot-toast'
 export default function RiderProfilePage() {
   const router = useRouter()
   const { user, setUser } = useAuthStore()
-  const { activeDelivery } = useRiderStore()
+  const { activeDeliveries } = useRiderStore()
 
   const handleLogout = async () => {
-    if (activeDelivery) {
+    if (activeDeliveries.length > 0) {
       toast.error("You can't log out while you have an active delivery!")
       return
     }

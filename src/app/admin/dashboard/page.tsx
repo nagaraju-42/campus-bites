@@ -8,16 +8,6 @@ import AdminMetricCard from '@/components/admin/AdminMetricCard'
 import { formatCurrency } from '@/lib/utils'
 import { PlatformMetrics } from '@/types'
 
-// Mock chart data for MVP
-const chartData = [
-  { day: 'Mon', revenue: 4000 },
-  { day: 'Tue', revenue: 3000 },
-  { day: 'Wed', revenue: 5000 },
-  { day: 'Thu', revenue: 2780 },
-  { day: 'Fri', revenue: 8900 },
-  { day: 'Sat', revenue: 12000 },
-  { day: 'Sun', revenue: 10500 },
-]
 
 export default function AdminDashboardPage() {
   const [metrics, setMetrics] = useState<PlatformMetrics | null>(null)
@@ -81,7 +71,7 @@ export default function AdminDashboardPage() {
         <h2 className="text-lg font-bold text-white mb-6">7-Day Revenue Trend</h2>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={metrics.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#F97316" stopOpacity={0.3}/>

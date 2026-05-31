@@ -1,22 +1,25 @@
 import { createClient } from '@/lib/supabase/client'
-import { PlatformMetrics } from '@/types'
+import { PlatformMetrics, Promotion } from '@/types'
 
 export async function getPlatformMetrics(): Promise<PlatformMetrics> {
   const supabase = createClient()
   
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  
+  const sevenDaysAgo = new Date(today)
+  sevenDaysAgo.setDate(today.getDate() - 6)
 
   // 1. Total Revenue & Fees (from all delivered orders today)
-  const { data: ordersData } = await supabase
+  const { data: todayOrdersData } = await supabase
     .from('orders')
     .select('total_amount, platform_fee')
     .eq('status', 'delivered')
     .gte('delivered_at', today.toISOString())
   
-  const totalRevenue = ordersData?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0
-  const platformFeesEarned = ordersData?.reduce((sum, o) => sum + (o.platform_fee || 0), 0) || 0
-  const totalDeliveriesToday = ordersData?.length || 0
+  const totalRevenue = todayOrdersData?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0
+  const platformFeesEarned = todayOrdersData?.reduce((sum, o) => sum + (o.platform_fee || 0), 0) || 0
+  const totalDeliveriesToday = todayOrdersData?.length || 0
 
   // 2. Active Shops
   const { count: activeShops } = await supabase
@@ -24,11 +27,36 @@ export async function getPlatformMetrics(): Promise<PlatformMetrics> {
     .select('*', { count: 'exact', head: true })
     .eq('is_open', true)
 
+  // 3. 7-Day Chart Data
+  const { data: recentOrders } = await supabase
+    .from('orders')
+    .select('total_amount, delivered_at')
+    .eq('status', 'delivered')
+    .gte('delivered_at', sevenDaysAgo.toISOString())
+
+  const chartData = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sevenDaysAgo)
+    d.setDate(sevenDaysAgo.getDate() + i)
+    const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' })
+    const dayStart = d.getTime()
+    const dayEnd = dayStart + 24 * 60 * 60 * 1000
+    
+    const dayRevenue = recentOrders?.filter(o => {
+      if (!o.delivered_at) return false
+      const time = new Date(o.delivered_at).getTime()
+      return time >= dayStart && time < dayEnd
+    }).reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0
+
+    chartData.push({ day: dayStr, revenue: dayRevenue })
+  }
+
   return {
     totalRevenue,
     platformFeesEarned,
     activeShops: activeShops || 0,
-    totalDeliveriesToday
+    totalDeliveriesToday,
+    chartData
   }
 }
 
@@ -44,6 +72,12 @@ export async function updateShopApproval(shopId: string, is_approved: boolean) {
   // NOTE: Assuming we add an `is_approved` boolean to shops table. If not, we can toggle `is_open`.
   // For MVP, we will just force toggle is_open for them if we don't have is_approved.
   const { error } = await supabase.from('shops').update({ is_open: is_approved }).eq('id', shopId)
+  if (error) throw new Error(error.message)
+}
+
+export async function updateShopDetails(shopId: string, updates: { name: string, address: string }) {
+  const supabase = createClient()
+  const { error } = await supabase.from('shops').update(updates).eq('id', shopId)
   if (error) throw new Error(error.message)
 }
 
@@ -70,5 +104,30 @@ export async function updateUserStatus(userId: string, status: string) {
 export async function hardDeleteUser(userId: string) {
   const supabase = createClient()
   const { error } = await supabase.rpc('admin_delete_user', { target_user_id: userId })
+  if (error) throw new Error(error.message)
+}
+
+export async function getAllPromotions() {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('promotions').select('*').order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function createPromotion(promo: Omit<Promotion, 'id' | 'created_at'>) {
+  const supabase = createClient()
+  const { error } = await supabase.from('promotions').insert(promo)
+  if (error) throw new Error(error.message)
+}
+
+export async function updatePromotion(id: string, updates: Partial<Promotion>) {
+  const supabase = createClient()
+  const { error } = await supabase.from('promotions').update(updates).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deletePromotion(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('promotions').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }

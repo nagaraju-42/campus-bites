@@ -8,15 +8,13 @@ import { getOrderById } from '@/lib/supabase/queries/orders'
 import { Order, OrderStatus } from '@/types'
 import { formatCurrency, getOrderStatusStep } from '@/lib/utils'
 import { motion } from 'framer-motion'
-import { insertNotification } from '@/lib/supabase/queries/notifications'
-import toast from 'react-hot-toast'
 
 const STATUS_STEPS = [
-  { step: 1, label: 'Order Placed', time: '12 May, 4:30 PM', status: 'pending' },
-  { step: 2, label: 'Preparing', time: '12 May, 4:35 PM', status: 'preparing' },
-  { step: 3, label: 'Ready', time: '12 May, 4:45 PM', status: 'ready' },
-  { step: 4, label: 'Out for Delivery', time: 'Rider is on the way', status: 'out_for_delivery' },
-  { step: 5, label: 'Delivered', time: 'Upcoming', status: 'delivered' },
+  { step: 1, label: 'Order Placed', time: '12 May, 4:30 PM', status: 'pending', color: 'text-gray-600' },
+  { step: 2, label: 'Preparing', time: '12 May, 4:35 PM', status: 'preparing', color: 'text-orange-500' },
+  { step: 3, label: 'Ready', time: '12 May, 4:45 PM', status: 'ready', color: 'text-green-500' },
+  { step: 4, label: 'Out for Delivery', time: 'Rider is on the way', status: 'out_for_delivery', color: 'text-blue-500' },
+  { step: 5, label: 'Delivered', time: 'Upcoming', status: 'delivered', color: 'text-[#16A34A]' },
 ]
 
 export default function TrackOrderPage() {
@@ -73,25 +71,27 @@ export default function TrackOrderPage() {
           {/* Vertical Line */}
           <div className="absolute top-4 left-[11px] bottom-12 w-0.5 bg-gray-100 z-0"></div>
           
-          {STATUS_STEPS.map(({ step, label, time }) => {
+          {STATUS_STEPS.map(({ step, label, time, color }) => {
             const isCompleted = currentStep >= step
             const isActive = currentStep === step
+            const iconColor = isActive ? color : isCompleted ? 'text-[#16A34A]' : 'text-gray-300'
+            
             return (
               <div key={step} className="flex items-start gap-4 pb-8 relative z-10">
                 <div className="flex flex-col items-center bg-white py-1">
                   {isCompleted ? (
                     <motion.div animate={isActive ? { scale: [1, 1.1, 1] } : {}} transition={{ repeat: Infinity, duration: 1.5 }}>
-                      <CheckCircle2 size={24} className="text-[#16A34A] bg-white rounded-full" fill="currentColor" stroke="white" />
+                      <CheckCircle2 size={24} className={`${iconColor} bg-white rounded-full`} fill="currentColor" stroke="white" />
                     </motion.div>
                   ) : (
                     <Circle size={24} className="text-gray-300 bg-white rounded-full" />
                   )}
                 </div>
                 <div className="pt-1.5">
-                  <p className={`text-sm font-bold ${isCompleted ? 'text-gray-900' : 'text-gray-400'}`}>
+                  <p className={`text-sm font-bold ${isActive ? 'text-gray-900' : isCompleted ? 'text-gray-700' : 'text-gray-400'}`}>
                     {label}
                   </p>
-                  <p className={`text-xs mt-0.5 font-medium ${isActive ? 'text-[#16A34A]' : 'text-gray-400'}`}>
+                  <p className={`text-xs mt-0.5 font-medium ${isActive ? iconColor : 'text-gray-400'}`}>
                     {time}
                   </p>
                 </div>
@@ -111,33 +111,6 @@ export default function TrackOrderPage() {
             <div className="flex-1">
               <p className="font-bold text-gray-900 text-sm">{order.rider.full_name}</p>
               <p className="text-gray-500 text-xs font-medium">Your delivery partner</p>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => {
-                  window.location.href = `tel:${order.rider?.phone || '0000000000'}`
-                }}
-                className="w-10 h-10 bg-green-50 hover:bg-green-100 rounded-full flex items-center justify-center text-[#16A34A] transition"
-              >
-                📞
-              </button>
-              <button 
-                onClick={async () => {
-                  const msg = prompt('Send a quick message to your rider:')
-                  if (msg && msg.trim()) {
-                    await insertNotification({
-                      userId: order.rider_id!,
-                      title: 'Message from Student',
-                      message: msg,
-                      type: 'message'
-                    })
-                    toast.success('Message sent to rider!')
-                  }
-                }}
-                className="w-10 h-10 bg-green-50 hover:bg-green-100 rounded-full flex items-center justify-center text-[#16A34A] transition"
-              >
-                💬
-              </button>
             </div>
           </div>
         </div>

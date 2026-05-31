@@ -178,4 +178,14 @@ export interface PlatformMetrics {
   platformFeesEarned: number
   activeShops: number
   totalDeliveriesToday: number
+  chartData: { day: string; revenue: number }[]
+}
+
+export interface Promotion {
+  id: string
+  code: string
+  discount_percent: number
+  is_active: boolean
+  banner_text: string
+  created_at?: string
 }

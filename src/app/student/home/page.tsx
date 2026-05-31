@@ -9,6 +9,10 @@ import ShopCard from '@/components/student/ShopCard'
 import CategoryChip from '@/components/student/CategoryChip'
 import { useAuthStore } from '@/store/authStore'
 import NotificationsTray from '@/components/shared/NotificationsTray'
+import { getActivePromotions, Promotion } from '@/lib/supabase/queries/promotions'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
+import Link from 'next/link'
+import { ShoppingCart, ClipboardList, User, LogOut } from 'lucide-react'
 
 const CATEGORIES = ['All', 'Biryani', 'Snacks', 'Combos', 'Drinks', 'Chinese']
 
@@ -20,20 +24,25 @@ export default function StudentHomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [promotions, setPromotions] = useState<Promotion[]>([])
 
   useEffect(() => {
-    async function fetchShops() {
+    async function fetchData() {
       try {
-        const data = await getApprovedShops()
-        setShops(data)
-        setFilteredShops(data)
+        const [shopsData, promosData] = await Promise.all([
+          getApprovedShops(),
+          getActivePromotions()
+        ])
+        setShops(shopsData)
+        setFilteredShops(shopsData)
+        setPromotions(promosData)
       } catch (err) {
-        console.error('Failed to load shops:', err)
+        console.error('Failed to load data:', err)
       } finally {
         setIsLoading(false)
       }
     }
-    fetchShops()
+    fetchData()
   }, [])
 
   useEffect(() => {
@@ -51,7 +60,40 @@ export default function StudentHomePage() {
       {/* Header */}
       <div className="bg-[#EAB308] px-5 pt-12 pb-6 rounded-b-3xl">
         <div className="flex items-center justify-between mb-4">
-          <button className="text-gray-900"><Menu size={24} /></button>
+          <Sheet>
+            <SheetTrigger>
+              <div className="text-gray-900 hover:opacity-70 transition cursor-pointer"><Menu size={24} /></div>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[80%] max-w-[300px] sm:max-w-[300px] p-0 bg-gray-50">
+              <div className="bg-[#EAB308] p-6 pb-8 rounded-br-3xl">
+                <h2 className="text-2xl font-display font-bold text-gray-900 mt-4">CampusBites</h2>
+                <p className="text-yellow-900 text-sm font-medium">Hello, {user?.full_name || 'Student'}!</p>
+              </div>
+              <div className="flex flex-col gap-2 p-6 mt-2">
+                <SheetClose>
+                  <Link href="/student/profile" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
+                    <User size={20} /> <span className="font-bold">Profile</span>
+                  </Link>
+                </SheetClose>
+                <SheetClose>
+                  <Link href="/student/orders" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
+                    <ClipboardList size={20} /> <span className="font-bold">My Orders</span>
+                  </Link>
+                </SheetClose>
+                <SheetClose>
+                  <Link href="/student/cart" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
+                    <ShoppingCart size={20} /> <span className="font-bold">Cart</span>
+                  </Link>
+                </SheetClose>
+                <div className="h-px bg-gray-200 my-2" />
+                <SheetClose>
+                  <button onClick={() => useAuthStore.getState().setUser(null)} className="flex items-center gap-4 text-red-500 hover:bg-red-50 p-3 rounded-2xl transition w-full text-left">
+                    <LogOut size={20} /> <span className="font-bold">Logout</span>
+                  </button>
+                </SheetClose>
+              </div>
+            </SheetContent>
+          </Sheet>
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-1.5 text-gray-900 font-bold">
               <MapPin size={14} />
@@ -125,16 +167,34 @@ export default function StudentHomePage() {
           )}
         </div>
 
-        {/* Promo Banner */}
-        <div className="bg-[#18181B] rounded-3xl p-5 flex items-center justify-between shadow-xl mt-4 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#EAB308] rounded-full opacity-10 blur-2xl"></div>
-          <div className="z-10">
-            <p className="text-[#EAB308] font-bold text-xl font-display mb-1">Flat 10% OFF</p>
-            <p className="text-gray-300 text-xs font-medium">On your first order 🎉</p>
-            <button className="mt-3 text-xs bg-[#EAB308] text-gray-900 font-bold px-3 py-1.5 rounded-lg">ORDER NOW</button>
+        {/* Promo Banners */}
+        {promotions.length > 0 ? (
+          <div className="space-y-4 mt-4">
+            {promotions.map((promo) => (
+              <div key={promo.id} className="bg-[#18181B] rounded-3xl p-5 flex items-center justify-between shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#EAB308] rounded-full opacity-10 blur-2xl"></div>
+                <div className="z-10">
+                  <p className="text-[#EAB308] font-bold text-xl font-display mb-1">Flat {promo.discount_percent}% OFF</p>
+                  <p className="text-gray-300 text-xs font-medium">{promo.banner_text}</p>
+                  <div className="mt-3 inline-block bg-white/10 px-3 py-1.5 rounded-lg border border-white/20">
+                    <span className="text-xs text-white font-mono font-bold tracking-wider">CODE: {promo.code}</span>
+                  </div>
+                </div>
+                <span className="text-6xl z-10 drop-shadow-xl relative right-2">🥘</span>
+              </div>
+            ))}
           </div>
-          <span className="text-6xl z-10 drop-shadow-xl relative right-2">🥘</span>
-        </div>
+        ) : (
+          <div className="bg-[#18181B] rounded-3xl p-5 flex items-center justify-between shadow-xl mt-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#EAB308] rounded-full opacity-10 blur-2xl"></div>
+            <div className="z-10">
+              <p className="text-[#EAB308] font-bold text-xl font-display mb-1">Flat 10% OFF</p>
+              <p className="text-gray-300 text-xs font-medium">On your first order 🎉</p>
+              <button className="mt-3 text-xs bg-[#EAB308] text-gray-900 font-bold px-3 py-1.5 rounded-lg">ORDER NOW</button>
+            </div>
+            <span className="text-6xl z-10 drop-shadow-xl relative right-2">🥘</span>
+          </div>
+        )}
       </div>
       
       <NotificationsTray isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />

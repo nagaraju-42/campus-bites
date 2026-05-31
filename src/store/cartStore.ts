@@ -86,7 +86,7 @@ export const useCartStore = create<CartState>()(
 
       getDeliveryFee: () => 10,
 
-      getPlatformFee: () => 5,
+      getPlatformFee: () => 0,
 
       getGrandTotal: () =>
         get().getTotalPrice() + get().getDeliveryFee() + get().getPlatformFee(),

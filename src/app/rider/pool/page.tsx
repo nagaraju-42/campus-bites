@@ -14,16 +14,22 @@ import toast from 'react-hot-toast'
 export default function RiderPoolPage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const { availableOrders, activeDelivery, removeAvailableOrder, setActiveDelivery } = useRiderStore()
+  const { availableOrders, activeDeliveries, removeAvailableOrder, addActiveDelivery, isOnline, setIsOnline } = useRiderStore()
   const [claimingId, setClaimingId] = useState<string | null>(null)
-  const [isOnline, setIsOnline] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   const handleClaim = async (orderId: string) => {
     if (!user) return
-    if (activeDelivery) {
-      toast.error('You already have an active delivery! Complete it first.')
-      router.push(`/rider/delivery/${activeDelivery.id}`)
+    const orderToClaim = availableOrders.find(o => o.id === orderId)
+    const currentShopLockId = activeDeliveries.length > 0 ? activeDeliveries[0].shop_id : null
+    
+    if (activeDeliveries.length >= 3) {
+      toast.error('You can only hold a maximum of 3 active deliveries at a time!')
+      return
+    }
+
+    if (currentShopLockId && orderToClaim && orderToClaim.shop_id !== currentShopLockId) {
+      toast.error('You are currently locked to picking up orders from a single shop. Finish active deliveries first!')
       return
     }
 
@@ -34,11 +40,10 @@ export default function RiderPoolPage() {
       const claimedOrder = availableOrders.find(o => o.id === orderId)
       if (claimedOrder) {
         removeAvailableOrder(orderId)
-        setActiveDelivery({ ...claimedOrder, status: 'out_for_delivery', rider_id: user.id })
+        addActiveDelivery({ ...claimedOrder, status: 'out_for_delivery', rider_id: user.id })
       }
       
-      toast.success('Delivery Claimed! Drive safely. 🛵')
-      router.push(`/rider/delivery/${orderId}`)
+      toast.success('Delivery Claimed! Build your batch or start delivering. 🛵')
     } catch (err: any) {
       toast.error('Someone else might have claimed this order already!')
       removeAvailableOrder(orderId) // Remove it from UI just in case
@@ -85,6 +90,20 @@ export default function RiderPoolPage() {
         </div>
         </div>
       </div>
+
+      {/* Smart Batching Warnings */}
+      {isOnline && activeDeliveries.length >= 3 && (
+        <div className="mb-6 p-4 bg-orange-100 border border-orange-200 rounded-2xl text-orange-800 text-sm font-medium flex items-start gap-3">
+          <span className="text-xl">⚠️</span>
+          <p>You have reached the maximum batch size of 3 active deliveries. Please deliver an order before accepting more.</p>
+        </div>
+      )}
+      {isOnline && activeDeliveries.length > 0 && activeDeliveries.length < 3 && (
+        <div className="mb-6 p-4 bg-blue-100 border border-blue-200 rounded-2xl text-blue-800 text-sm font-medium flex items-start gap-3">
+          <span className="text-xl">🔒</span>
+          <p>Smart Batching: You are currently locked to <strong>{activeDeliveries[0].shops?.name || 'this shop'}</strong>. You can only claim additional orders from this shop.</p>
+        </div>
+      )}
 
       {/* Pool Feed */}
       {!isOnline ? (

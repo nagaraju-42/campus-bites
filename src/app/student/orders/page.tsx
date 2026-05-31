@@ -87,12 +87,16 @@ export default function MyOrdersPage() {
                     <p className="font-bold text-gray-900 text-sm">{order.order_number}</p>
                     <p className="text-gray-500 text-xs font-medium">{order.shops?.name}</p>
                   </div>
-                  <span className={`text-xs font-bold ${
-                    order.status === 'delivered' ? 'text-[#16A34A]' :
-                    order.status === 'cancelled' ? 'text-red-500' : 'text-[#2563EB]'
+                  <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                    order.status === 'pending' ? 'text-gray-600 bg-gray-100' :
+                    order.status === 'preparing' ? 'text-orange-600 bg-orange-100' :
+                    order.status === 'ready' ? 'text-green-600 bg-green-100' :
+                    order.status === 'assigned' ? 'text-blue-600 bg-blue-100' :
+                    order.status === 'out_for_delivery' ? 'text-purple-600 bg-purple-100' :
+                    order.status === 'delivered' ? 'text-[#16A34A] bg-green-50' :
+                    order.status === 'cancelled' ? 'text-red-600 bg-red-50' : 'text-gray-600 bg-gray-100'
                   }`}>
-                    {order.status === 'delivered' ? 'Delivered' :
-                     order.status === 'cancelled' ? 'Cancelled' : 'Out for Delivery'}
+                    {order.status.replace(/_/g, ' ')}
                   </span>
                 </div>
                 

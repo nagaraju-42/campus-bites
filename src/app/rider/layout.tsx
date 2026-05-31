@@ -8,7 +8,7 @@ import useSound from 'use-sound'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 import { useRiderStore } from '@/store/riderStore'
-import { getAvailableDeliveries, getActiveDelivery } from '@/lib/supabase/queries/rider'
+import { getAvailableDeliveries, getActiveDeliveries } from '@/lib/supabase/queries/rider'
 import RiderBottomNav from '@/components/rider/RiderBottomNav'
 import { Order } from '@/types'
 
@@ -16,11 +16,11 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const pathname = usePathname()
   const { setUser, setLoading, isLoading } = useAuthStore()
-  const { setAvailableOrders, addAvailableOrder, setActiveDelivery } = useRiderStore()
+  const { setAvailableOrders, addAvailableOrder, setActiveDeliveries, checkAutoOffline, setIsOnline } = useRiderStore()
   const [riderId, setRiderId] = useState<string | null>(null)
   
   // Realtime notification sound for new ready orders
-  const [playAlert] = useSound('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg', { volume: 0.8 })
+  const [playAlert] = useSound('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg', { volume: 1.0 })
 
   // 1. Auth Guard
   useEffect(() => {
@@ -32,6 +32,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
       if (!session) {
         setLoading(false)
+        setIsOnline(false) // Reset online status on logout
         if (!isLoginRoute) {
           router.replace('/rider/login')
         }
@@ -53,7 +54,6 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
       }
 
       if (profile.status === 'suspended') {
-        await supabase.auth.signOut()
         setLoading(false)
         toast.error('Your account has been suspended by the admin.')
         if (!isLoginRoute) {
@@ -64,6 +64,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
       setUser(profile)
       setRiderId(session.user.id)
+      checkAutoOffline() // Check if 30 mins passed
       
       // If they are on login page but already logged in, send to pool
       if (isLoginRoute) {
@@ -82,10 +83,10 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
       try {
         const [available, active] = await Promise.all([
           getAvailableDeliveries(),
-          getActiveDelivery(riderId!)
+          getActiveDeliveries(riderId!)
         ])
         setAvailableOrders(available)
-        setActiveDelivery(active)
+        setActiveDeliveries(active)
       } catch (err) {
         console.error("Failed to load rider data", err)
       } finally {
@@ -121,7 +122,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [riderId, setAvailableOrders, setActiveDelivery, addAvailableOrder, playAlert, setLoading])
+  }, [riderId, setAvailableOrders, setActiveDeliveries, addAvailableOrder, playAlert, setLoading])
 
   if (isLoading) {
     return (

@@ -54,15 +54,14 @@ export async function getRiderEarnings(riderId: string) {
   return { deliveriesCompleted, totalEarned }
 }
 
-export async function getActiveDelivery(riderId: string): Promise<Order | null> {
+export async function getActiveDeliveries(riderId: string): Promise<Order[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('orders')
     .select(`*, shops(name)`)
     .eq('rider_id', riderId)
     .eq('status', 'out_for_delivery')
-    .single()
 
   if (error && error.code !== 'PGRST116') throw new Error(error.message)
-  return data || null
+  return data || []
 }

@@ -11,16 +11,35 @@ import toast from 'react-hot-toast'
 
 export default function KDSPage() {
   const router = useRouter()
-  const { getNewOrders, getPreparingOrders } = useShopOrdersStore()
+  const { shopId, orders, setOrders, getNewOrders, getPreparingOrders, getReadyOrders } = useShopOrdersStore()
   const [time, setTime] = useState(new Date().toLocaleTimeString())
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  // Combine new and preparing for the kitchen view
-  const activeTickets = [...getNewOrders(), ...getPreparingOrders()]
+  useEffect(() => {
+    if (!shopId) return
+    async function fetchInitial() {
+      try {
+        const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
+        const data = await getShopActiveOrders(shopId!)
+        setOrders(data)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    if (orders.length === 0) {
+      fetchInitial()
+    } else {
+      setIsLoading(false)
+    }
+  }, [shopId, orders.length, setOrders])
+
+  // Combine new, preparing, and ready for the kitchen view
+  const activeTickets = [...getNewOrders(), ...getPreparingOrders(), ...getReadyOrders()]
     .sort((a, b) => new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime())
 
   const handleStatusChange = async (orderId: string, status: string) => {
@@ -59,7 +78,12 @@ export default function KDSPage() {
       
       {/* Grid */}
       <div className="flex-1 overflow-auto">
-        {activeTickets.length === 0 ? (
+        {isLoading ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-500">
+            <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="font-bold">Loading kitchen tickets...</p>
+          </div>
+        ) : activeTickets.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-500">
             <p className="text-6xl mb-4">👨‍🍳</p>
             <p className="text-2xl font-bold">Kitchen is clear. Waiting for orders...</p>
