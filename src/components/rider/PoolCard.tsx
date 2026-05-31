@@ -42,9 +42,10 @@ export default function PoolCard({ order, onClaim, isClaiming }: PoolCardProps) 
         {/* Dropoff */}
         <div className="relative">
           <div className="absolute -left-[23px] top-1 w-4 h-4 bg-white border-4 border-[#16A34A] rounded-full z-10"></div>
-          <p className="text-xs font-bold text-[#16A34A] uppercase tracking-wider">Drop-off</p>
-          <p className="text-sm font-bold text-gray-900 mt-0.5">{order.hostel_name}</p>
-          <p className="text-xs text-gray-500 font-medium">Room {order.room_number}</p>
+          <p className="text-xs font-bold text-[#16A34A] uppercase tracking-wider mb-1">Drop-off / Address</p>
+          <p className="text-sm font-bold text-gray-900 leading-snug line-clamp-2">
+            📍 {order.hostel_name}
+          </p>
         </div>
       </div>
 

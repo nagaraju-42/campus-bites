@@ -25,6 +25,7 @@ interface CartState {
   getDeliveryFee: () => number
   getPlatformFee: () => number
   getGrandTotal: () => number
+  setCart: (shopId: string, items: CartItem[]) => void
 }
 
 export const useCartStore = create<CartState>()(
@@ -75,6 +76,10 @@ export const useCartStore = create<CartState>()(
             i.id === itemId ? { ...i, quantity } : i
           ),
         })
+      },
+
+      setCart: (shopId, items) => {
+        set({ shopId, items })
       },
 
       clearCart: () => set({ items: [], shopId: null }),

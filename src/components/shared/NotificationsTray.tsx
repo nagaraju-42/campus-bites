@@ -121,11 +121,13 @@ export default function NotificationsTray({ isOpen, onClose }: Props) {
                 notifications.map(n => (
                   <div key={n.id} className={`flex gap-3 p-3 rounded-2xl transition ${n.is_read ? 'opacity-70' : 'bg-blue-50/50'}`}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                      n.type === 'broadcast' ? 'bg-[#EAB308] text-white shadow-md' :
                       n.type === 'message' ? 'bg-green-100 text-green-600' :
                       n.type === 'alert' ? 'bg-amber-100 text-amber-600' :
                       'bg-blue-100 text-blue-600'
                     }`}>
-                      {n.type === 'message' ? <MessageSquare size={18} /> :
+                      {n.type === 'broadcast' ? <span className="text-xl">📢</span> :
+                       n.type === 'message' ? <MessageSquare size={18} /> :
                        n.type === 'alert' ? <AlertCircle size={18} /> :
                        <Info size={18} />}
                     </div>

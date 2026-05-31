@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { createClient } from '@/lib/supabase/client'
 
 interface UserProfile {
   id: string
@@ -14,6 +15,8 @@ interface StudentProfile {
   college_name: string
   hostel_name: string
   room_number: string
+  block?: string
+  floor?: string
 }
 
 interface AuthState {

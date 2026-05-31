@@ -28,6 +28,9 @@ export interface Profile {
   phone: string | null
   email: string
   avatar_url: string | null
+  college_name: string | null
+  hostel_name: string | null
+  room_number: string | null
   created_at: string
 }
 
@@ -36,6 +39,8 @@ export interface StudentProfile {
   college_name: string
   hostel_name: string
   room_number: string
+  block?: string
+  floor?: string
 }
 
 export interface FullStudentProfile extends Profile {
@@ -105,6 +110,9 @@ export interface Order {
   payment_method: PaymentMethod
   hostel_name: string
   room_number: string
+  block: string | null
+  floor: string | null
+  delivery_otp: string
   special_note: string | null
   placed_at: string
   delivered_at: string | null

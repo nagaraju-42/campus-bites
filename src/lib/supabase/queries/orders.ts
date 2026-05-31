@@ -45,6 +45,8 @@ export async function placeOrder(params: {
   paymentMethod: PaymentMethod
   hostelName: string
   roomNumber: string
+  block?: string
+  floor?: string
   specialNote: string
 }): Promise<{ orderId: string; orderNumber: string }> {
   const supabase = createClient()
@@ -68,6 +70,8 @@ export async function placeOrder(params: {
       payment_method: params.paymentMethod,
       hostel_name: params.hostelName,
       room_number: params.roomNumber,
+      block: params.block || null,
+      floor: params.floor || null,
       special_note: params.specialNote || null,
       delivery_otp: deliveryOtp,
     })

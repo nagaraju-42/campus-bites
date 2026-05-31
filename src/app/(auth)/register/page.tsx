@@ -58,8 +58,8 @@ export default function RegisterPage() {
   }
 
   const handleRegister = async () => {
-    if (!formData.college_name || !formData.hostel_name || !formData.room_number) {
-      toast.error('Please fill all hostel details')
+    if (!formData.hostel_name) {
+      toast.error('Please provide your full delivery address')
       return
     }
     setIsLoading(true)
@@ -87,9 +87,9 @@ export default function RegisterPage() {
 
       await supabase.from('student_profiles').insert({
         id: data.user.id,
-        college_name: formData.college_name,
+        college_name: 'Campus',
         hostel_name: formData.hostel_name,
-        room_number: formData.room_number,
+        room_number: 'N/A',
       })
 
       toast.success('Account created! Welcome to CampusBites 🎉')
@@ -167,14 +167,18 @@ export default function RegisterPage() {
               className="space-y-4"
             >
               <p className="text-gray-600 text-sm mb-4 font-medium">
-                These details help restaurants deliver to you faster 🏠
+                Provide your exact delivery location so riders can find you fast 📍
               </p>
-              <InputField label="College Name" name="college_name" type="text"
-                placeholder="Anurag University" value={formData.college_name} onChange={handleChange} />
-              <InputField label="Hostel Name" name="hostel_name" type="text"
-                placeholder="Boys Hostel Block A" value={formData.hostel_name} onChange={handleChange} />
-              <InputField label="Room Number" name="room_number" type="text"
-                placeholder="Room 203" value={formData.room_number} onChange={handleChange} />
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-1.5">Full Delivery Address</label>
+                <textarea
+                  name="hostel_name"
+                  placeholder="e.g. Anurag University, Boys Hostel, Block B, 3rd Floor, Room 312"
+                  value={formData.hostel_name}
+                  onChange={(e: any) => handleChange(e)}
+                  className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#EAB308] focus:ring-0 shadow-sm transition-all h-32 resize-none"
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

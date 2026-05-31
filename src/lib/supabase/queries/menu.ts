@@ -39,6 +39,26 @@ export async function addMenuItem(item: Partial<MenuItem>) {
 }
 
 
+export async function searchMenuItems(query: string): Promise<any[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('menu_items')
+    .select(`
+      *,
+      shops!inner(name, is_open)
+    `)
+    .ilike('name', `%${query}%`)
+    .eq('is_available', true)
+    .eq('shops.is_open', true)
+    .limit(20)
+
+  if (error) {
+    console.error("Search error:", error)
+    return []
+  }
+  return data ?? []
+}
+
 // Groups items by category
 export function groupMenuByCategory(items: MenuItem[]) {
   return items.reduce((acc, item) => {

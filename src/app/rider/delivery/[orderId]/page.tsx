@@ -76,6 +76,7 @@ export default function ActiveDeliveryPage() {
     }
     try {
       await completeDelivery(order.id)
+      
       removeActiveDelivery(order.id)
       toast.success('Delivery Completed! ₹' + order.delivery_fee + ' earned.', { icon: '💰' })
       router.replace('/rider/earnings')
@@ -163,10 +164,12 @@ export default function ActiveDeliveryPage() {
           </div>
         ) : (
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{order.hostel_name}</h2>
-            <p className="text-[#16A34A] font-bold text-lg flex items-center gap-2 mb-6 bg-green-50 w-max px-4 py-2 rounded-xl">
-              Room {order.room_number}
+            <p className="text-[#16A34A] font-bold text-xs uppercase tracking-wider mb-2">
+              Delivery Address
             </p>
+            <h2 className="text-xl font-bold text-gray-900 mb-6 leading-relaxed whitespace-pre-line bg-green-50 p-4 rounded-xl border border-green-100">
+              📍 {order.hostel_name}
+            </h2>
 
             <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 flex items-center justify-between">
               <div>

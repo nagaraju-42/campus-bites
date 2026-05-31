@@ -10,9 +10,10 @@ import { getShopDetailsByOwner, updateShopStatusDB, getShopActiveOrders, getShop
 import StatCard from '@/components/shop/StatCard'
 import NotificationsTray from '@/components/shared/NotificationsTray'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Bell } from 'lucide-react'
+import { Bell, Send } from 'lucide-react'
 import { Order } from '@/types'
 import toast from 'react-hot-toast'
+import { broadcastNotification } from '@/lib/supabase/queries/notifications'
 
 // Mock chart data for now
 const chartData = [
@@ -30,29 +31,42 @@ export default function ShopDashboardPage() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   
+  // Broadcast State
+  const [broadcastMessage, setBroadcastMessage] = useState('')
+  const [isBroadcasting, setIsBroadcasting] = useState(false)
+  
   // Stats
   const [stats, setStats] = useState({ revenue: 0, orders: 0, avgValue: 0 })
 
   useEffect(() => {
     if (!user || !shopId) return
     async function loadData() {
-      const [shop, activeOrders, completed] = await Promise.all([
-        getShopDetailsByOwner(user!.id),
-        getShopActiveOrders(shopId!),
-        getShopCompletedOrders(shopId!)
-      ])
-      
-      setShopName(shop.name)
-      setLiveStatus(shop.is_open)
-      setOrders(activeOrders)
-      setRecentOrders(completed)
+      try {
+        const shop = await getShopDetailsByOwner(user!.id)
+        if (!shop) {
+          toast.error("Shop profile not found. Please create one.")
+          return
+        }
 
-      const totalRevenue = completed.reduce((sum, o) => sum + o.total_amount, 0)
-      setStats({
-        revenue: totalRevenue,
-        orders: completed.length,
-        avgValue: completed.length > 0 ? totalRevenue / completed.length : 0
-      })
+        const [activeOrders, completed] = await Promise.all([
+          getShopActiveOrders(shopId!),
+          getShopCompletedOrders(shopId!)
+        ])
+        
+        setShopName(shop.name)
+        setLiveStatus(shop.is_open)
+        setOrders(activeOrders)
+        setRecentOrders(completed)
+
+        const totalRevenue = completed.reduce((sum, o) => sum + o.total_amount, 0)
+        setStats({
+          revenue: totalRevenue,
+          orders: completed.length,
+          avgValue: completed.length > 0 ? totalRevenue / completed.length : 0
+        })
+      } catch (err) {
+        console.error("Failed to load shop dashboard data:", err)
+      }
     }
     loadData()
   }, [user, shopId, setLiveStatus, setOrders])
@@ -73,6 +87,27 @@ export default function ShopDashboardPage() {
       setIsToggling(false)
     }
   }
+
+  const handleBroadcast = async () => {
+    if (!broadcastMessage.trim() || !shopId) return
+    setIsBroadcasting(true)
+    try {
+      await broadcastNotification(shopId, shopName, broadcastMessage.trim())
+      toast.success('Broadcast sent to all students! 🚀')
+      setBroadcastMessage('')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send broadcast')
+    } finally {
+      setIsBroadcasting(false)
+    }
+  }
+
+  const broadcastPresets = [
+    "🔥 Fresh snacks are ready! Order now.",
+    "🕛 We are open for Midnight Cravings!",
+    "🎉 Get 20% off all rolls for the next hour!",
+    "🥤 Cold drinks restocked."
+  ]
 
   return (
     <div className="space-y-6">
@@ -116,7 +151,7 @@ export default function ShopDashboardPage() {
       </div>
 
       {/* Charts & Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         {/* Revenue Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -145,6 +180,43 @@ export default function ShopDashboardPage() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+        </div>
+
+        {/* Broadcast Notification Widget */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <h2 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+              📢 Broadcast Message
+            </h2>
+            <p className="text-gray-500 text-xs font-medium mb-4">Send an instant alert to all students on the platform.</p>
+            
+            <textarea 
+              value={broadcastMessage}
+              onChange={(e) => setBroadcastMessage(e.target.value)}
+              placeholder="e.g. Fresh Samosas are ready! Grab them before they are gone."
+              className="w-full border border-gray-200 rounded-xl p-3 h-24 mb-3 focus:outline-none focus:border-blue-500 resize-none text-sm font-medium"
+            />
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              {broadcastPresets.map((preset, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => setBroadcastMessage(preset)}
+                  className="bg-gray-50 text-gray-600 border border-gray-200 text-[10px] font-bold px-2 py-1 rounded-md hover:bg-gray-100 transition text-left"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button 
+            onClick={handleBroadcast}
+            disabled={isBroadcasting || !broadcastMessage.trim()}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Send size={16} /> {isBroadcasting ? 'Broadcasting...' : 'Send to All Students'}
+          </button>
         </div>
 
         {/* Recent Activity */}

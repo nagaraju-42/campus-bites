@@ -59,3 +59,29 @@ export async function markNotificationsAsRead(userId: string) {
     console.error("Failed to mark notifications as read:", error)
   }
 }
+
+export async function broadcastNotification(shopId: string, shopName: string, message: string) {
+  const supabase = createClient()
+  const channel = supabase.channel('campus-broadcasts')
+  
+  return new Promise((resolve, reject) => {
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        try {
+          await channel.send({
+            type: 'broadcast',
+            event: 'announcement',
+            payload: {
+              title: `📢 Update from ${shopName}`,
+              message: message
+            }
+          })
+          await supabase.removeChannel(channel)
+          resolve(true)
+        } catch (err) {
+          reject(err)
+        }
+      }
+    })
+  })
+}

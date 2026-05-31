@@ -3,28 +3,39 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { MapPin, Bell, Search, Menu } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { getApprovedShops } from '@/lib/supabase/queries/shops'
-import { Shop } from '@/types'
+import { getStudentOrders } from '@/lib/supabase/queries/orders'
+import { Shop, Order } from '@/types'
 import ShopCard from '@/components/student/ShopCard'
 import CategoryChip from '@/components/student/CategoryChip'
 import { useAuthStore } from '@/store/authStore'
+import { useCartStore } from '@/store/cartStore'
 import NotificationsTray from '@/components/shared/NotificationsTray'
 import { getActivePromotions, Promotion } from '@/lib/supabase/queries/promotions'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import Link from 'next/link'
-import { ShoppingCart, ClipboardList, User, LogOut } from 'lucide-react'
+import { ShoppingCart, ClipboardList, User, LogOut, RotateCcw } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
+import SearchOverlay from '@/components/student/SearchOverlay'
 
 const CATEGORIES = ['All', 'Biryani', 'Snacks', 'Combos', 'Drinks', 'Chinese']
 
 export default function StudentHomePage() {
   const { user } = useAuthStore()
+  const router = useRouter()
+  const { setCart } = useCartStore()
+  
   const [shops, setShops] = useState<Shop[]>([])
   const [filteredShops, setFilteredShops] = useState<Shop[]>([])
   const [activeCategory, setActiveCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [lastOrder, setLastOrder] = useState<Order | null>(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -36,6 +47,15 @@ export default function StudentHomePage() {
         setShops(shopsData)
         setFilteredShops(shopsData)
         setPromotions(promosData)
+
+        // Fetch last order for Magic Reorder
+        if (user?.id) {
+          const orders = await getStudentOrders(user.id)
+          const latestDelivered = orders.find(o => o.status === 'delivered')
+          if (latestDelivered) {
+            setLastOrder(latestDelivered)
+          }
+        }
       } catch (err) {
         console.error('Failed to load data:', err)
       } finally {
@@ -43,7 +63,64 @@ export default function StudentHomePage() {
       }
     }
     fetchData()
-  }, [])
+  }, [user?.id])
+
+  const handleMagicReorder = () => {
+    if (!lastOrder || !lastOrder.order_items) return
+    const cartItems = lastOrder.order_items.map(item => ({
+      id: item.menu_item_id,
+      shopId: lastOrder.shop_id,
+      shopName: lastOrder.shops?.name || 'Shop',
+      name: item.item_name,
+      price: item.unit_price,
+      quantity: item.quantity
+    }))
+    setCart(lastOrder.shop_id, cartItems)
+    router.push('/student/checkout')
+  }
+
+  // Realtime Broadcast Listener
+  useEffect(() => {
+    if (!user?.id) return
+    const supabase = createClient()
+    
+    const channel = supabase
+      .channel(`student-broadcasts-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const notification = payload.new as any
+          if (notification.type === 'broadcast') {
+            toast.custom((t) => (
+              <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white shadow-lg rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-[#EAB308]`}>
+                <div className="flex-1 w-0 p-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 pt-0.5">
+                      <span className="text-2xl">📢</span>
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm font-bold text-gray-900">{notification.title}</p>
+                      <p className="mt-1 text-sm text-gray-500 font-medium">{notification.message}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex border-l border-gray-200">
+                  <button onClick={() => toast.dismiss(t.id)} className="w-full border border-transparent rounded-none rounded-r-2xl p-4 flex items-center justify-center text-sm font-medium text-gray-400 hover:text-gray-500 focus:outline-none">
+                    Close
+                  </button>
+                </div>
+              </div>
+            ), { duration: 8000, position: 'top-center' })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id])
 
   useEffect(() => {
     let result = shops
@@ -108,15 +185,11 @@ export default function StudentHomePage() {
         </div>
 
         {/* Search Bar */}
-        <div className="mt-6 relative">
+        <div className="mt-6 relative" onClick={() => setIsSearchOpen(true)}>
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search for food or shops..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none shadow-sm font-medium"
-          />
+          <div className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white text-sm text-gray-400 shadow-sm font-medium cursor-text flex items-center">
+            Search for food or shops...
+          </div>
         </div>
       </div>
 
@@ -132,6 +205,40 @@ export default function StudentHomePage() {
             </div>
           ))}
         </div>
+
+        {/* Magic 1-Click Reorder */}
+        {lastOrder && (
+          <div className="bg-[#18181B] rounded-3xl p-5 shadow-xl relative overflow-hidden border border-gray-800">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-[#EAB308] rounded-full opacity-10 blur-3xl"></div>
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl">✨</span>
+                  <h3 className="text-[#EAB308] font-bold text-lg font-display">Order it again!</h3>
+                </div>
+                <p className="text-gray-300 text-sm font-medium mb-3">Your last meal from <span className="font-bold text-white">{lastOrder.shops?.name}</span></p>
+                <div className="flex gap-2 flex-wrap mb-4">
+                  {lastOrder.order_items?.slice(0, 2).map((item, idx) => (
+                    <span key={idx} className="bg-white/10 text-gray-200 text-xs font-bold px-2 py-1 rounded-md">
+                      {item.quantity}x {item.item_name}
+                    </span>
+                  ))}
+                  {lastOrder.order_items && lastOrder.order_items.length > 2 && (
+                    <span className="bg-white/10 text-gray-200 text-xs font-bold px-2 py-1 rounded-md">
+                      +{lastOrder.order_items.length - 2} more
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button 
+                onClick={handleMagicReorder}
+                className="w-full bg-[#EAB308] text-gray-900 font-bold py-3 rounded-xl shadow-lg shadow-yellow-500/20 transition active:scale-95 flex items-center justify-center gap-2"
+              >
+                <RotateCcw size={18} /> Add to Cart
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Nearby Shops Section */}
         <div>
@@ -197,6 +304,7 @@ export default function StudentHomePage() {
         )}
       </div>
       
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <NotificationsTray isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
     </div>
   )

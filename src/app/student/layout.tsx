@@ -58,6 +58,28 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       }
     }
     checkAuth()
+
+    // Optimistic Realtime Broadcast Listener
+    const supabase = createClient()
+    const channel = supabase.channel('campus-broadcasts')
+      .on('broadcast', { event: 'announcement' }, (payload) => {
+        import('react-hot-toast').then(({ default: toast }) => {
+          toast(payload.payload.message, {
+            icon: '📢',
+            duration: 15000,
+            style: {
+              borderRadius: '16px',
+              background: '#FEFCE8',
+              color: '#854D0E',
+              border: '1px solid #FEF08A',
+              fontWeight: 'bold'
+            }
+          })
+        })
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [router, pathname, setUser, setStudentProfile, setLoading])
 
   if (isLoading && !user) {

@@ -23,6 +23,18 @@ export default function CheckoutPage() {
   const [hasActiveOrder, setHasActiveOrder] = useState(false)
   const [isCheckingActive, setIsCheckingActive] = useState(true)
 
+  const [isEditingLocation, setIsEditingLocation] = useState(false)
+  const [fullAddress, setFullAddress] = useState('')
+
+  useEffect(() => {
+    if (studentProfile) {
+      setFullAddress(studentProfile.hostel_name || '')
+      if (!studentProfile.hostel_name) {
+        setIsEditingLocation(true)
+      }
+    }
+  }, [studentProfile])
+
   const [couponCode, setCouponCode] = useState('')
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null)
   const [couponError, setCouponError] = useState('')
@@ -69,8 +81,39 @@ export default function CheckoutPage() {
     }
   }
 
+  const handleSaveLocation = async () => {
+    if (!fullAddress.trim()) {
+      toast.error('Please enter your full delivery address')
+      return
+    }
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      await supabase.from('student_profiles').update({
+        hostel_name: fullAddress.trim(),
+        college_name: 'Campus',
+        room_number: 'N/A'
+      }).eq('id', user?.id)
+      
+      setIsEditingLocation(false)
+      toast.success('Location saved!')
+      
+      // Update local store so it reflects immediately
+      const { setStudentProfile } = useAuthStore.getState()
+      setStudentProfile({ ...studentProfile, hostel_name: fullAddress.trim() } as any)
+      
+    } catch (err) {
+      toast.error('Failed to save location')
+    }
+  }
+
   const handlePlaceOrder = async () => {
     if (!user || !shopId || hasActiveOrder) return
+    if (!fullAddress.trim()) {
+      toast.error('Please enter your full delivery address')
+      setIsEditingLocation(true)
+      return
+    }
     setIsPlacingOrder(true)
     try {
       const { orderId } = await placeOrder({
@@ -81,8 +124,8 @@ export default function CheckoutPage() {
         deliveryFee: getDeliveryFee(),
         platformFee: getPlatformFee(),
         paymentMethod,
-        hostelName: studentProfile?.hostel_name ?? 'Unknown Hostel',
-        roomNumber: studentProfile?.room_number ?? 'N/A',
+        hostelName: fullAddress.trim(),
+        roomNumber: 'N/A',
         specialNote,
       })
       clearCart()
@@ -117,19 +160,43 @@ export default function CheckoutPage() {
 
         {/* Delivery Address */}
         <div>
-          <h3 className="font-bold text-gray-900 text-sm mb-3">Deliver to</h3>
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-            <div className="flex items-start justify-between mb-1">
-              <p className="text-gray-900 font-bold">{studentProfile?.college_name || 'Anurag University'}</p>
-              <button className="text-[#0F766E] text-xs font-bold">Change &gt;</button>
+          <h3 className="font-bold text-gray-900 text-sm mb-3">Delivery Location (Required)</h3>
+          
+          {isEditingLocation ? (
+            <div className="bg-amber-50 rounded-3xl p-5 shadow-sm border border-amber-200 space-y-4">
+              <div className="flex items-center gap-2 mb-2 text-amber-800">
+                <span className="text-xl">📍</span>
+                <p className="text-sm font-bold">Provide exact details for faster delivery</p>
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold text-amber-800 mb-1 block">Full Delivery Address *</label>
+                <textarea 
+                  value={fullAddress} 
+                  onChange={e => setFullAddress(e.target.value)} 
+                  placeholder="e.g. Anurag University, Boys Hostel, Block B, 3rd Floor, Room 312" 
+                  className="w-full px-4 py-3 rounded-xl bg-white border-none shadow-sm focus:ring-2 focus:ring-amber-400 font-bold text-sm h-28 resize-none" 
+                />
+              </div>
+              <button onClick={handleSaveLocation} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 text-sm">
+                Save Location
+              </button>
             </div>
-            <p className="text-gray-600 text-sm font-medium">
-              {studentProfile?.room_number && studentProfile?.hostel_name 
-                ? `Room No. ${studentProfile.room_number}, ${studentProfile.hostel_name}` 
-                : 'Hostel Details (Defaulting to Main Gate)'}
-            </p>
-            <p className="text-gray-400 text-xs mt-1">Jodimetla, Hyderabad</p>
-          </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#0F766E]/20 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#0F766E]/5 rounded-full blur-xl"></div>
+              <div className="flex items-start justify-between mb-2 relative z-10">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 shrink-0">📍</div>
+                  <h4 className="font-bold text-gray-900">Delivery Address</h4>
+                </div>
+                <button onClick={() => setIsEditingLocation(true)} className="text-gray-400 hover:text-gray-600 text-xs font-bold bg-gray-50 px-3 py-1.5 rounded-full transition">Edit</button>
+              </div>
+              <p className="text-gray-700 text-sm font-medium pl-10 relative z-10 leading-relaxed whitespace-pre-line">
+                {studentProfile?.hostel_name || fullAddress}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Payment Method */}
