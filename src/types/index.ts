@@ -109,7 +109,7 @@ export interface Order {
   placed_at: string
   delivered_at: string | null
   // Joined
-  shops?: Pick<Shop, 'id' | 'name' | 'logo_url' | 'phone'>
+  shops?: Pick<Shop, 'id' | 'name' | 'logo_url' | 'phone' | 'description' | 'address'>
   order_items?: OrderItem[]
   rider?: Pick<Profile, 'full_name' | 'phone'>
 }
