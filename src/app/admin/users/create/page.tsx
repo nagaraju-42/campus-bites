@@ -24,8 +24,8 @@ export default function AdminCreateUserPage() {
     try {
       // Create a temporary Supabase client that does NOT persist the session.
       // This prevents the Admin from being instantly logged out when creating a new user!
-      const { createClient } = await import('@supabase/supabase-js')
-      const tempSupabase = createClient(
+      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+      const tempSupabase = createSupabaseClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         { auth: { persistSession: false, autoRefreshToken: false } }
