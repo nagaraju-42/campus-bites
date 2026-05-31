@@ -58,7 +58,7 @@ export async function getActiveDeliveries(riderId: string): Promise<Order[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('orders')
-    .select(`*, shops(name)`)
+    .select(`*, shops(name), profiles!student_id(full_name, phone)`)
     .eq('rider_id', riderId)
     .eq('status', 'out_for_delivery')
 

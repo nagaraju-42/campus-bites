@@ -100,6 +100,12 @@ export default function LoginPage() {
           New to CampusBites?{' '}
           <Link href="/register" className="text-[#CA8A04] font-bold hover:underline">Create Account</Link>
         </p>
+
+        <div className="text-center mt-6">
+          <Link href="/contact" className="text-xs text-gray-400 font-bold hover:text-gray-600 transition underline underline-offset-4">
+            Need Help? Contact Support
+          </Link>
+        </div>
       </motion.form>
     </div>
   )

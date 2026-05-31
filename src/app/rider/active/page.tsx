@@ -11,11 +11,7 @@ export default function ActiveDeliveriesPage() {
   const router = useRouter()
   const { activeDeliveries } = useRiderStore()
 
-  useEffect(() => {
-    if (activeDeliveries.length === 1) {
-      router.replace(`/rider/delivery/${activeDeliveries[0].id}`)
-    }
-  }, [activeDeliveries, router])
+  // Removed auto-redirect to allow riders to view batch management page
 
   if (activeDeliveries.length === 0) {
     return (
@@ -36,8 +32,7 @@ export default function ActiveDeliveriesPage() {
     )
   }
 
-  // If there's 1, it will render an empty div momentarily while useEffect redirects.
-  if (activeDeliveries.length === 1) return null;
+  // Allow rendering even if there is only 1 delivery
 
   return (
     <div className="px-5 pt-8 pb-4">

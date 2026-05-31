@@ -51,6 +51,8 @@ export async function placeOrder(params: {
 
   // Generate order number like #CB123456
   const orderNumber = `#CB${Date.now().toString().slice(-6)}`
+  // Generate random 4-digit OTP
+  const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString()
 
   // 1. Insert the order
   const { data: order, error: orderError } = await supabase
@@ -67,6 +69,7 @@ export async function placeOrder(params: {
       hostel_name: params.hostelName,
       room_number: params.roomNumber,
       special_note: params.specialNote || null,
+      delivery_otp: deliveryOtp,
     })
     .select()
     .single()

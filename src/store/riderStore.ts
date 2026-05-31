@@ -70,3 +70,33 @@ export const useRiderStore = create<RiderState>()(
     }
   )
 )
+
+// Global Audio Controller for Rider
+export let activeRiderAudio: HTMLAudioElement | null = null;
+
+export const playRiderAlarm = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (activeRiderAudio) {
+      activeRiderAudio.pause();
+      activeRiderAudio.currentTime = 0;
+    }
+    activeRiderAudio = new Audio('/sounds/bell-alarm.mp3');
+    activeRiderAudio.volume = 1.0;
+    activeRiderAudio.loop = true;
+    activeRiderAudio.play().catch(e => console.log("Audio blocked:", e));
+    
+    // Auto stop after 20 seconds
+    setTimeout(() => {
+      stopRiderAlarm();
+    }, 20000);
+  } catch (e) {}
+}
+
+export const stopRiderAlarm = () => {
+  if (activeRiderAudio) {
+    activeRiderAudio.pause();
+    activeRiderAudio.currentTime = 0;
+    activeRiderAudio = null;
+  }
+}

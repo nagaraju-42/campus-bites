@@ -44,3 +44,33 @@ export const useShopOrdersStore = create<ShopOrdersState>((set, get) => ({
   getPreparingOrders: () => get().orders.filter(o => o.status === 'preparing'),
   getReadyOrders: () => get().orders.filter(o => o.status === 'ready'),
 }))
+
+// Global Audio Controller for KDS
+export let activeKdsAudio: HTMLAudioElement | null = null;
+
+export const playShopAlarm = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (activeKdsAudio) {
+      activeKdsAudio.pause();
+      activeKdsAudio.currentTime = 0;
+    }
+    activeKdsAudio = new Audio('/sounds/bell-alarm.mp3');
+    activeKdsAudio.volume = 1.0;
+    activeKdsAudio.loop = true;
+    activeKdsAudio.play().catch(e => console.log("Audio blocked:", e));
+    
+    // Auto stop after 20 seconds
+    setTimeout(() => {
+      stopShopAlarm();
+    }, 20000);
+  } catch (e) {}
+}
+
+export const stopShopAlarm = () => {
+  if (activeKdsAudio) {
+    activeKdsAudio.pause();
+    activeKdsAudio.currentTime = 0;
+    activeKdsAudio = null;
+  }
+}

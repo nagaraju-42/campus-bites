@@ -17,12 +17,9 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname()
   const isKDS = pathname === '/shop/kds'
   
-  const { setUser, setLoading, isLoading } = useAuthStore()
+  const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
   const { setShopId, addOrder, updateOrderStatus } = useShopOrdersStore()
   const [shopOwnerId, setShopOwnerId] = useState<string | null>(null)
-  
-  // Realtime notification sound
-  const [playAlert] = useSound('https://actions.google.com/sounds/v1/alarms/beep_short.ogg', { volume: 1.0 })
 
   // 1. Auth Guard
   useEffect(() => {
@@ -33,6 +30,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       const isLoginRoute = pathname.includes('/login')
 
       if (!session) {
+        clearAuth()
         setLoading(false)
         if (!isLoginRoute) {
           router.replace('/shop/login')
@@ -77,13 +75,20 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
   // 2. Fetch Shop Details & Setup Realtime
   useEffect(() => {
-    if (!shopOwnerId) return
+    if (!shopOwnerId && !user?.id) return
+    const targetOwnerId = shopOwnerId || user?.id
 
     async function loadShop() {
       try {
-        const shopData = await getShopDetailsByOwner(shopOwnerId!)
+        const shopData = await getShopDetailsByOwner(targetOwnerId!)
         if (shopData) {
           setShopId(shopData.id)
+          
+          // Fix: Fetch initial orders so they don't disappear on direct page load
+          const { getShopActiveOrders } = require('@/lib/supabase/queries/shop-dashboard')
+          const activeOrders = await getShopActiveOrders(shopData.id)
+          useShopOrdersStore.getState().setOrders(activeOrders)
+
           setupRealtime(shopData.id)
         } else {
           // AUTO-HEAL: If they are a shop owner but don't have a shop yet, create one for them instantly
@@ -91,7 +96,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           const { data: newShop, error: autoCreateError } = await supabase
             .from('shops')
             .insert({
-              owner_id: shopOwnerId,
+              owner_id: targetOwnerId,
               name: 'My New Shop',
               description: 'A newly registered shop',
               address: 'Campus',
@@ -143,8 +148,15 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
             if (fullOrder) {
               addOrder(fullOrder)
-              playAlert()
-              toast.success(`New order received: ${fullOrder.order_number}`, { icon: '🔔', duration: 5000 })
+              // Play loud alarm for KDS
+              const { playShopAlarm } = require('@/store/shopOrdersStore')
+              playShopAlarm()
+              
+              toast.success(`New order received: ${fullOrder.order_number}`, { 
+                id: `order-${fullOrder.id}`, 
+                icon: '🔔', 
+                duration: 45000 
+              })
             }
           }
         )
@@ -161,9 +173,9 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
         supabase.removeChannel(channel)
       }
     }
-  }, [shopOwnerId, setShopId, addOrder, updateOrderStatus, playAlert, setLoading])
+  }, [shopOwnerId, user?.id, setShopId, addOrder, updateOrderStatus, setLoading])
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#EFF6FF]">
         <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mb-4" />

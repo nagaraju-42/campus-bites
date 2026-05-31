@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface UserProfile {
   id: string
@@ -25,12 +26,20 @@ interface AuthState {
   clearAuth: () => void
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  studentProfile: null,
-  isLoading: true,
-  setUser: (user) => set({ user }),
-  setStudentProfile: (profile) => set({ studentProfile: profile }),
-  setLoading: (loading) => set({ isLoading: loading }),
-  clearAuth: () => set({ user: null, studentProfile: null }),
-}))
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      studentProfile: null,
+      isLoading: true,
+      setUser: (user) => set({ user }),
+      setStudentProfile: (profile) => set({ studentProfile: profile }),
+      setLoading: (loading) => set({ isLoading: loading }),
+      clearAuth: () => set({ user: null, studentProfile: null }),
+    }),
+    {
+      name: 'campus-bites-auth',
+      partialize: (state) => ({ user: state.user, studentProfile: state.studentProfile }),
+    }
+  )
+)

@@ -15,12 +15,9 @@ import { Order } from '@/types'
 export default function RiderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { setUser, setLoading, isLoading } = useAuthStore()
+  const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
   const { setAvailableOrders, addAvailableOrder, setActiveDeliveries, checkAutoOffline, setIsOnline } = useRiderStore()
   const [riderId, setRiderId] = useState<string | null>(null)
-  
-  // Realtime notification sound for new ready orders
-  const [playAlert] = useSound('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg', { volume: 1.0 })
 
   // 1. Auth Guard
   useEffect(() => {
@@ -31,6 +28,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
       const isLoginRoute = pathname.includes('/login')
 
       if (!session) {
+        clearAuth()
         setLoading(false)
         setIsOnline(false) // Reset online status on logout
         if (!isLoginRoute) {
@@ -77,13 +75,14 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
   // 2. Load Data & Setup Realtime Listener
   useEffect(() => {
-    if (!riderId) return
+    if (!riderId && !user?.id) return
+    const targetRiderId = riderId || user?.id
 
     async function loadData() {
       try {
         const [available, active] = await Promise.all([
           getAvailableDeliveries(),
-          getActiveDeliveries(riderId!)
+          getActiveDeliveries(targetRiderId!)
         ])
         setAvailableOrders(available)
         setActiveDeliveries(active)
@@ -97,7 +96,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
     const supabase = createClient()
     const channel = supabase
-      .channel('public:orders-ready')
+      .channel(`public:orders-ready-${Math.random()}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `status=eq.ready` },
@@ -112,8 +111,15 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
           if (fullOrder && !fullOrder.rider_id) {
             addAvailableOrder(fullOrder)
-            playAlert()
-            toast.success('New delivery available!', { icon: '🛵', duration: 4000 })
+            // Play loud alarm for Rider
+            const { playRiderAlarm } = require('@/store/riderStore')
+            playRiderAlarm()
+            
+            toast.success('New delivery available!', { 
+              id: `order-ready-${fullOrder.id}`, 
+              icon: '🛵', 
+              duration: 45000 
+            })
           }
         }
       )
@@ -122,9 +128,9 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [riderId, setAvailableOrders, setActiveDeliveries, addAvailableOrder, playAlert, setLoading])
+  }, [riderId, user?.id, setAvailableOrders, setActiveDeliveries, addAvailableOrder, setLoading])
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#F0FDF4]">
         <div className="w-12 h-12 border-4 border-[#16A34A] border-t-transparent rounded-full animate-spin mb-4" />

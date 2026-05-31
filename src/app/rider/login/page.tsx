@@ -101,6 +101,12 @@ export default function RiderLoginPage() {
               {isLoading ? 'Connecting...' : 'Go Online'}
             </button>
           </div>
+
+          <div className="text-center mt-4">
+            <a href="/contact" className="text-xs text-gray-400 font-bold hover:text-gray-600 transition underline underline-offset-4">
+              Need Help? Contact Support
+            </a>
+          </div>
         </form>
       </motion.div>
     </div>

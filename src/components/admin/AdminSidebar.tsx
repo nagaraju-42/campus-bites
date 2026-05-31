@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart, Store, Users, Banknote, LogOut, Tag } from 'lucide-react'
+import { BarChart, Store, Users, Banknote, LogOut, Tag, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/admin/users', label: 'User Management', Icon: Users },
   { href: '/admin/promotions', label: 'Promotions', Icon: Tag },
   { href: '/admin/payouts', label: 'Financials', Icon: Banknote },
+  { href: '/admin/support', label: 'Support Inbox', Icon: MessageSquare },
 ]
 
 export default function AdminSidebar() {

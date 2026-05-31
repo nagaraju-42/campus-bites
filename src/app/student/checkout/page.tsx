@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, Circle } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
-import { placeOrder } from '@/lib/supabase/queries/orders'
+import { placeOrder, getStudentOrders } from '@/lib/supabase/queries/orders'
 import { formatCurrency } from '@/lib/utils'
 import { PaymentMethod } from '@/types'
 import toast from 'react-hot-toast'
@@ -20,6 +20,8 @@ export default function CheckoutPage() {
   const { items, shopId, getDeliveryFee, getPlatformFee, getGrandTotal, clearCart } = useCartStore()
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI')
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  const [hasActiveOrder, setHasActiveOrder] = useState(false)
+  const [isCheckingActive, setIsCheckingActive] = useState(true)
 
   const [couponCode, setCouponCode] = useState('')
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null)
@@ -29,6 +31,23 @@ export default function CheckoutPage() {
   const subtotal = getGrandTotal() - getDeliveryFee() - getPlatformFee()
   const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount_percent) / 100 : 0
   const finalTotal = getGrandTotal() - discountAmount
+
+  // Check for existing active orders
+  useEffect(() => {
+    if (!user) return
+    async function checkActive() {
+      try {
+        const orders = await getStudentOrders(user!.id)
+        const active = orders.some(o => ['pending', 'preparing', 'ready', 'assigned', 'out_for_delivery'].includes(o.status))
+        setHasActiveOrder(active)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setIsCheckingActive(false)
+      }
+    }
+    checkActive()
+  }, [user])
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return
@@ -51,7 +70,7 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = async () => {
-    if (!user || !shopId) return
+    if (!user || !shopId || hasActiveOrder) return
     setIsPlacingOrder(true)
     try {
       const { orderId } = await placeOrder({
@@ -88,6 +107,14 @@ export default function CheckoutPage() {
 
       <div className="px-5 py-6 space-y-6">
         
+        {/* Active Order Warning */}
+        {hasActiveOrder && (
+          <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl mb-4 text-orange-800 text-sm font-medium flex items-center gap-3 shadow-sm">
+            <span className="text-2xl">⚠️</span>
+            <p>You already have an active order. Please wait until it is delivered before placing a new one.</p>
+          </div>
+        )}
+
         {/* Delivery Address */}
         <div>
           <h3 className="font-bold text-gray-900 text-sm mb-3">Deliver to</h3>
@@ -135,7 +162,7 @@ export default function CheckoutPage() {
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
                 className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F766E]/20"
-                disabled={!!appliedPromo}
+                disabled={!!appliedPromo || hasActiveOrder}
               />
               {couponError && <p className="text-red-500 text-xs font-medium mt-1 ml-2">{couponError}</p>}
             </div>
@@ -152,7 +179,7 @@ export default function CheckoutPage() {
             ) : (
               <button
                 onClick={handleApplyCoupon}
-                disabled={isApplyingCoupon || !couponCode}
+                disabled={isApplyingCoupon || !couponCode || hasActiveOrder}
                 className="bg-[#0F766E] text-white font-bold px-5 py-3 rounded-xl text-sm shadow-md shadow-teal-200 transition active:scale-95 disabled:opacity-50"
               >
                 {isApplyingCoupon ? '...' : 'Apply'}
@@ -194,10 +221,14 @@ export default function CheckoutPage() {
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-30">
         <button
           onClick={handlePlaceOrder}
-          disabled={isPlacingOrder}
-          className="w-full bg-[#0F766E] text-white py-4 rounded-2xl font-bold text-base shadow-xl shadow-teal-200 hover:bg-teal-800 transition active:scale-95 disabled:opacity-70 flex justify-center"
+          disabled={isPlacingOrder || hasActiveOrder || isCheckingActive}
+          className={`w-full text-white py-4 rounded-2xl font-bold text-base shadow-xl flex justify-center transition active:scale-95 ${
+            hasActiveOrder || isCheckingActive 
+            ? 'bg-gray-400 cursor-not-allowed shadow-none' 
+            : 'bg-[#0F766E] shadow-teal-200 hover:bg-teal-800'
+          }`}
         >
-          {isPlacingOrder ? 'Processing...' : 'Place Order'}
+          {isCheckingActive ? 'Checking...' : isPlacingOrder ? 'Processing...' : 'Place Order'}
         </button>
       </div>
     </div>

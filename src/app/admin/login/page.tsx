@@ -104,6 +104,12 @@ export default function AdminLoginPage() {
               {isLoading ? 'Verifying...' : 'Initialize Session'}
             </button>
           </div>
+
+          <div className="text-center mt-4 pb-2">
+            <a href="/contact" className="text-xs text-slate-500 font-bold hover:text-slate-300 transition underline underline-offset-4">
+              System Issue? Contact Support
+            </a>
+          </div>
         </form>
       </motion.div>
     </div>

@@ -43,6 +43,10 @@ export default function KDSPage() {
     .sort((a, b) => new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime())
 
   const handleStatusChange = async (orderId: string, status: string) => {
+    if (status === 'preparing') {
+      const { stopShopAlarm } = require('@/store/shopOrdersStore')
+      stopShopAlarm()
+    }
     try {
       await updateOrderStatusDB(orderId, status)
       if (status === 'ready') {

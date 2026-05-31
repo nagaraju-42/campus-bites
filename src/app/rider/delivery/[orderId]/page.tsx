@@ -21,6 +21,9 @@ export default function ActiveDeliveryPage() {
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
   const [messageText, setMessageText] = useState('')
   const [isSending, setIsSending] = useState(false)
+  
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
+  const [otpInput, setOtpInput] = useState('')
 
   useEffect(() => {
     // If the active delivery in store matches the URL, use it immediately
@@ -37,7 +40,7 @@ export default function ActiveDeliveryPage() {
         const supabase = createClient()
         const { data, error } = await supabase
           .from('orders')
-          .select(`*, shops(name, description), profiles!student_id(phone)`)
+          .select(`*, shops(name, description), profiles!student_id(full_name, phone)`)
           .eq('id', orderId)
           .single()
         
@@ -62,7 +65,15 @@ export default function ActiveDeliveryPage() {
     toast.success('Navigating to student!')
   }
 
-  const handleDelivered = async () => {
+  const handleDeliveredClick = () => {
+    setIsOtpModalOpen(true)
+  }
+
+  const handleConfirmOtp = async () => {
+    if (otpInput !== (order as any).delivery_otp) {
+      toast.error('Invalid OTP. Please check with the student.')
+      return
+    }
     try {
       await completeDelivery(order.id)
       removeActiveDelivery(order.id)
@@ -106,9 +117,19 @@ export default function ActiveDeliveryPage() {
         
         {/* Header Badges */}
         <div className="flex justify-between items-center mb-6">
-          <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">
-            Order {order.order_number}
-          </span>
+          <div className="flex gap-2">
+            <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">
+              Order {order.order_number}
+            </span>
+            {activeDeliveries.length > 1 && (
+              <button 
+                onClick={() => router.push('/rider/active')}
+                className="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider active:scale-95 transition"
+              >
+                Batch ({activeDeliveries.length})
+              </button>
+            )}
+          </div>
           <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-lg">
             Earn ₹{order.delivery_fee}
           </span>
@@ -150,7 +171,8 @@ export default function ActiveDeliveryPage() {
             <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Customer</p>
-                <p className="font-bold text-gray-900">Student</p>
+                <p className="font-bold text-gray-900 text-lg">{(order as any).profiles?.full_name || 'Student'}</p>
+                <p className="text-sm font-medium text-gray-500">Order #{order.order_number}</p>
               </div>
               <div className="flex gap-2">
                 <button 
@@ -186,10 +208,10 @@ export default function ActiveDeliveryPage() {
             </button>
           ) : (
             <button 
-              onClick={handleDelivered} 
+              onClick={handleDeliveredClick} 
               className="w-full bg-[#16A34A] hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-500/30 transition-all active:scale-95 text-lg flex items-center justify-center gap-2"
             >
-              <CheckCircle2 size={24} /> Mark as Delivered
+              <CheckCircle2 size={24} /> Enter OTP to Deliver
             </button>
           )}
         </div>
@@ -239,6 +261,44 @@ export default function ActiveDeliveryPage() {
               <Send size={18} />
               {isSending ? 'Sending...' : 'Send Message'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* OTP Modal */}
+      {isOtpModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl flex flex-col items-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-3xl mb-4">
+              🔐
+            </div>
+            <h3 className="font-display font-bold text-xl text-gray-900 mb-1">Enter Delivery OTP</h3>
+            <p className="text-gray-500 text-sm text-center mb-6">Ask the student for their 4-digit PIN to confirm handover.</p>
+            
+            <input
+              type="text"
+              maxLength={4}
+              value={otpInput}
+              onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="0000"
+              className="text-center text-4xl font-mono font-bold tracking-[0.5em] w-full border-2 border-gray-200 rounded-2xl py-4 mb-6 focus:outline-none focus:border-[#16A34A] transition"
+            />
+            
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => { setIsOtpModalOpen(false); setOtpInput(''); }}
+                className="flex-1 bg-gray-100 text-gray-600 font-bold py-4 rounded-xl hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmOtp}
+                disabled={otpInput.length !== 4}
+                className="flex-1 bg-[#16A34A] text-white font-bold py-4 rounded-xl shadow-lg shadow-green-200 disabled:opacity-50 transition active:scale-95"
+              >
+                Verify
+              </button>
+            </div>
           </div>
         </div>
       )}

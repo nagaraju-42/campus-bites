@@ -82,12 +82,12 @@ export default function StudentProfilePage() {
         <div>
           <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Support & Legal</h2>
           <div className="bg-white rounded-2xl border border-yellow-100 shadow-sm overflow-hidden">
-            <button className="w-full flex items-center justify-between p-4 border-b border-gray-50 hover:bg-yellow-50 transition text-left">
+            <button onClick={() => router.push('/contact')} className="w-full flex items-center justify-between p-4 border-b border-gray-50 hover:bg-yellow-50 transition text-left">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center">
                   <HelpCircle size={20} />
                 </div>
-                <span className="font-bold text-gray-900">Help Center</span>
+                <span className="font-bold text-gray-900">Contact Support</span>
               </div>
               <ChevronRight size={18} className="text-gray-400" />
             </button>

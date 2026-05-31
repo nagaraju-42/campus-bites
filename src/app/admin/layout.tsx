@@ -10,7 +10,7 @@ import AdminSidebar from '@/components/admin/AdminSidebar'
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { setUser, setLoading, isLoading } = useAuthStore()
+  const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
 
   // Auth Guard
   useEffect(() => {
@@ -21,6 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const isLoginRoute = pathname.includes('/login')
 
       if (!session) {
+        clearAuth()
         setLoading(false)
         if (!isLoginRoute) {
           router.replace('/admin/login')
@@ -54,7 +55,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     checkAuth()
   }, [router, pathname, setUser, setLoading])
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0F172A]">
         <div className="w-12 h-12 border-4 border-[#F97316] border-t-transparent rounded-full animate-spin mb-4" />

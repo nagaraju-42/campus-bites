@@ -18,10 +18,24 @@ export default function RiderPoolPage() {
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
+  const currentShopLockId = activeDeliveries.length > 0 ? activeDeliveries[0].shop_id : null
+
+  // Calculate 5-minute batch window
+  const firstActiveOrder = activeDeliveries.length > 0 ? activeDeliveries[0] : null
+  const firstOrderTime = firstActiveOrder ? new Date(firstActiveOrder.placed_at).getTime() : null
+  const isBatchWindowExpired = firstOrderTime ? (Date.now() - firstOrderTime > 5 * 60 * 1000) : false
+
+  // Optimistic Filtering: Hide all other shops if locked
+  const displayedOrders = currentShopLockId 
+    ? availableOrders.filter(o => o.shop_id === currentShopLockId)
+    : availableOrders
+
   const handleClaim = async (orderId: string) => {
     if (!user) return
+    const { stopRiderAlarm } = require('@/store/riderStore')
+    stopRiderAlarm()
+
     const orderToClaim = availableOrders.find(o => o.id === orderId)
-    const currentShopLockId = activeDeliveries.length > 0 ? activeDeliveries[0].shop_id : null
     
     if (activeDeliveries.length >= 3) {
       toast.error('You can only hold a maximum of 3 active deliveries at a time!')
@@ -30,6 +44,11 @@ export default function RiderPoolPage() {
 
     if (currentShopLockId && orderToClaim && orderToClaim.shop_id !== currentShopLockId) {
       toast.error('You are currently locked to picking up orders from a single shop. Finish active deliveries first!')
+      return
+    }
+
+    if (currentShopLockId && isBatchWindowExpired) {
+      toast.error('Your 5-minute batching window has expired! Please deliver your current orders so they don\'t get cold.')
       return
     }
 
@@ -99,9 +118,13 @@ export default function RiderPoolPage() {
         </div>
       )}
       {isOnline && activeDeliveries.length > 0 && activeDeliveries.length < 3 && (
-        <div className="mb-6 p-4 bg-blue-100 border border-blue-200 rounded-2xl text-blue-800 text-sm font-medium flex items-start gap-3">
-          <span className="text-xl">🔒</span>
-          <p>Smart Batching: You are currently locked to <strong>{activeDeliveries[0].shops?.name || 'this shop'}</strong>. You can only claim additional orders from this shop.</p>
+        <div className={`mb-6 p-4 border rounded-2xl text-sm font-medium flex items-start gap-3 ${isBatchWindowExpired ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-100 border-blue-200 text-blue-800'}`}>
+          <span className="text-xl">{isBatchWindowExpired ? '⏳' : '🔒'}</span>
+          <p>
+            {isBatchWindowExpired 
+              ? "Your 5-minute batching window has expired! Proceed to delivery to keep the food hot."
+              : `Smart Batching: You are locked to ${activeDeliveries[0].shops?.name || 'this shop'}. You have 5 minutes to batch more orders.`}
+          </p>
         </div>
       )}
 
@@ -112,7 +135,7 @@ export default function RiderPoolPage() {
           <h3 className="font-bold text-gray-900 text-lg mb-2">You're Offline</h3>
           <p className="text-gray-500 text-sm">Go online to start receiving delivery requests.</p>
         </div>
-      ) : availableOrders.length === 0 ? (
+      ) : displayedOrders.length === 0 ? (
         <div className="text-center py-20">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
             <span className="text-3xl text-green-600">📡</span>
@@ -123,7 +146,7 @@ export default function RiderPoolPage() {
       ) : (
         <div className="space-y-4 relative">
           <AnimatePresence>
-            {availableOrders.map(order => (
+            {displayedOrders.map(order => (
               <motion.div
                 key={order.id}
                 initial={{ opacity: 0, y: -20, scale: 0.95 }}

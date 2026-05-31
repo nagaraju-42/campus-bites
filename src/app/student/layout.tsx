@@ -10,15 +10,21 @@ import StudentBottomNav from '@/components/student/StudentBottomNav'
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { setUser, setStudentProfile, setLoading, isLoading } = useAuthStore()
+  const { user, setUser, setStudentProfile, setLoading, isLoading, clearAuth } = useAuthStore()
 
   useEffect(() => {
     async function checkAuth() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
 
+      const isLoginRoute = pathname.includes('/login')
+
       if (!session) {
-        router.replace('/login')
+        clearAuth()
+        setLoading(false)
+        if (!isLoginRoute) {
+          router.replace('/student/login')
+        }
         return
       }
 
@@ -29,7 +35,10 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         .single()
 
       if (!profile || profile.role !== 'student') {
-        router.replace('/login')
+        setLoading(false)
+        if (!isLoginRoute) {
+          router.replace('/student/login')
+        }
         return
       }
 
@@ -42,11 +51,16 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       setUser(profile)
       setStudentProfile(studentProfile)
       setLoading(false)
+      
+      // If they are on login page but already logged in, send to home
+      if (isLoginRoute) {
+        router.replace('/student/home')
+      }
     }
     checkAuth()
-  }, [router, setUser, setStudentProfile, setLoading])
+  }, [router, pathname, setUser, setStudentProfile, setLoading])
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-purple-50">
         <div className="text-center">

@@ -101,9 +101,20 @@ export default function TrackOrderPage() {
         </div>
       </div>
 
-      {/* Rider Info Card (Dynamic) */}
-      {order.rider_id && order.rider ? (
-        <div className="px-5 mt-auto fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-30">
+      {/* Bottom Info Section (Fixed) */}
+      <div className="px-5 mt-auto fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-30 space-y-3">
+        
+        {/* OTP Delivery Box */}
+        {order.status !== 'delivered' && order.status !== 'cancelled' && (
+          <div className="bg-gray-900 rounded-2xl p-4 text-center shadow-2xl">
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Delivery OTP</p>
+            <p className="text-white text-3xl font-mono font-bold tracking-[0.25em]">{(order as any).delivery_otp || '----'}</p>
+            <p className="text-gray-500 text-[10px] mt-1 uppercase font-bold">Share this PIN with rider</p>
+          </div>
+        )}
+
+        {/* Rider Info Card (Dynamic) */}
+        {order.rider_id && order.rider ? (
           <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-4 flex items-center gap-3">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-xl">
               👨‍🦰
@@ -113,18 +124,16 @@ export default function TrackOrderPage() {
               <p className="text-gray-500 text-xs font-medium">Your delivery partner</p>
             </div>
           </div>
-        </div>
-      ) : order.status === 'ready' || order.status === 'preparing' ? (
-        <div className="px-5 mt-auto fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-30">
+        ) : order.status === 'ready' || order.status === 'preparing' || order.status === 'pending' ? (
           <div className="bg-gray-50 border border-gray-200 shadow-sm rounded-2xl p-4 flex items-center gap-3 animate-pulse">
-            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+            <div className="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0"></div>
             <div className="flex-1 space-y-2">
               <div className="h-4 bg-gray-200 rounded w-1/2"></div>
               <div className="h-3 bg-gray-200 rounded w-3/4"></div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   )
 }

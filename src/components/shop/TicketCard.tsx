@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Order } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
@@ -13,20 +13,41 @@ export default function TicketCard({ order, onAccept, onReject, onReady }: Ticke
   // Dark mode optimized for Kitchen Display
   const isNew = order.status === 'pending'
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({})
+  const [isLate, setIsLate] = useState(false)
 
   const toggleItem = (idx: number) => {
     setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }))
   }
 
+  // Check if order has been preparing for > 10 mins
+  useEffect(() => {
+    if (order.status !== 'preparing') {
+      setIsLate(false)
+      return
+    }
+    const checkLate = () => {
+      const prepTime = Date.now() - new Date(order.placed_at).getTime()
+      setIsLate(prepTime > 10 * 60 * 1000)
+    }
+    checkLate()
+    const interval = setInterval(checkLate, 30000)
+    return () => clearInterval(interval)
+  }, [order.status, order.placed_at])
+
   return (
     <div className={`rounded-xl overflow-hidden flex flex-col border-2 ${
-      isNew ? 'bg-[#1E293B] border-amber-500/50' : 'bg-[#1E293B] border-slate-700'
+      isNew ? 'bg-[#1E293B] border-amber-500/50' : 
+      isLate ? 'bg-rose-950/40 border-rose-500/80' : 'bg-[#1E293B] border-slate-700'
     }`}>
       {/* Header */}
       <div className={`px-4 py-3 flex justify-between items-center ${
-        isNew ? 'bg-amber-500 text-amber-950' : 'bg-slate-800 text-slate-200'
+        isNew ? 'bg-amber-500 text-amber-950' : 
+        isLate ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800 text-slate-200'
       }`}>
-        <h3 className="font-bold font-mono text-lg">{order.order_number}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-bold font-mono text-lg">{order.order_number}</h3>
+          {isLate && <span className="px-2 py-0.5 bg-white text-rose-600 text-xs font-black rounded-sm tracking-wider uppercase">10M LATE!</span>}
+        </div>
         <span className="text-sm font-bold">{new Date(order.placed_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
       </div>
 
