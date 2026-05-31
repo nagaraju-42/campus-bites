@@ -1,65 +1,92 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { getRoleRedirect } from '@/lib/auth/redirect'
+
+export default function OnboardingPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    async function checkSession() {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        if (profile) router.replace(getRoleRedirect(profile.role))
+      }
+    }
+    checkSession()
+  }, [router])
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-[#FEFCE8] flex flex-col items-center justify-between px-6 py-12 max-w-[430px] mx-auto relative overflow-hidden">
+      
+      {/* Faint Background Buildings pattern could go here, simulating the image */}
+      <div className="absolute bottom-40 left-0 w-full h-48 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
+
+      {/* Header */}
+      <motion.div
+        className="text-center mt-12 z-10"
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center justify-center gap-2 mb-2">
+          {/* Mock Logo Icon to match image */}
+          <div className="w-8 h-8 rounded-full border-2 border-[#EAB308] flex flex-col items-center justify-center">
+            <div className="w-4 h-1.5 bg-[#EAB308] rounded-t-full mb-0.5"></div>
+            <div className="w-5 h-1 bg-[#EAB308] rounded-sm"></div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <h1 className="text-4xl font-display font-bold text-gray-900 tracking-tight">Campus<span className="text-[#EAB308]">Bites</span></h1>
+        <p className="text-gray-600 mt-3 text-sm font-medium px-4">
+          Good food, delivered<br />to your hostel.
+        </p>
+      </motion.div>
+
+      {/* Hero Illustration */}
+      <motion.div
+        className="flex-1 flex items-center justify-center my-8 w-full z-10"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.7, delay: 0.2 }}
+      >
+        <div className="relative w-64 h-64 flex items-center justify-center">
+          {/* Placeholder for the delivery scooter illustration */}
+          <div className="absolute inset-0 bg-[#FEF08A] rounded-full opacity-40 blur-2xl"></div>
+          <span className="text-9xl relative z-10 drop-shadow-xl">🛵</span>
         </div>
-      </main>
+      </motion.div>
+
+      {/* Bottom CTA */}
+      <motion.div
+        className="w-full space-y-4 mb-4 z-10"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+      >
+        <Link href="/register" className="block w-full">
+          <button className="w-full bg-[#EAB308] text-gray-900 font-bold py-4 rounded-xl text-base shadow-lg shadow-yellow-200 hover:bg-[#CA8A04] transition-all duration-200 active:scale-95">
+            Get Started
+          </button>
+        </Link>
+        <Link href="/login" className="block w-full">
+          <button className="w-full bg-white border-2 border-[#EAB308] text-gray-900 font-bold py-4 rounded-xl text-base shadow-sm hover:bg-gray-50 transition-all duration-200 active:scale-95">
+            Login
+          </button>
+        </Link>
+        <p className="text-center text-gray-400 text-xs mt-6 font-medium">
+          Made for students, by students ❤️
+        </p>
+      </motion.div>
     </div>
-  );
+  )
 }

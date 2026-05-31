@@ -1,0 +1,112 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Save } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useShopOrdersStore } from '@/store/shopOrdersStore'
+import { getShopDetailsByOwner } from '@/lib/supabase/queries/shop-dashboard'
+import toast from 'react-hot-toast'
+import { Shop } from '@/types'
+
+export default function ShopSettingsPage() {
+  const { shopId } = useShopOrdersStore()
+  const [shop, setShop] = useState<Shop | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (!shopId) return
+    async function load() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const shopData = await getShopDetailsByOwner(user.id)
+        setShop(shopData)
+      }
+    }
+    load()
+  }, [shopId])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (!shop) return
+    setShop({ ...shop, [e.target.name]: e.target.value })
+  }
+
+  const handleSave = async () => {
+    if (!shop) return
+    setIsSaving(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('shops')
+        .update({
+          name: shop.name,
+          description: shop.description,
+        })
+        .eq('id', shop.id)
+      
+      if (error) throw error
+      toast.success('Settings saved successfully!')
+    } catch (err) {
+      toast.error('Failed to save settings')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (!shop) return <div className="p-10 text-center">Loading settings...</div>
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h1 className="text-2xl font-display font-bold text-gray-900">Shop Settings</h1>
+        <p className="text-gray-500 font-medium text-sm">Update your public profile and configurations</p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1.5">Shop Name</label>
+          <input
+            type="text"
+            name="name"
+            value={shop.name}
+            onChange={handleChange}
+            className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-gray-50 text-gray-900 focus:outline-none focus:border-[#2563EB] focus:bg-white shadow-sm transition"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1.5">Description (Visible to students)</label>
+          <textarea
+            name="description"
+            rows={3}
+            value={shop.description || ''}
+            onChange={handleChange}
+            className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-gray-50 text-gray-900 focus:outline-none focus:border-[#2563EB] focus:bg-white shadow-sm transition resize-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1.5">UPI ID for Payments</label>
+          <input
+            type="text"
+            disabled
+            value="shop@upi"
+            className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-gray-100 text-gray-500 cursor-not-allowed shadow-sm transition"
+          />
+          <p className="text-xs text-gray-400 mt-1">Contact admin to change your payout UPI ID.</p>
+        </div>
+
+        <div className="pt-4 border-t border-gray-100">
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-[#2563EB] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-sm disabled:opacity-70"
+          >
+            <Save size={18} />
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

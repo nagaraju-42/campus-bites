@@ -1,0 +1,69 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { Toaster } from 'react-hot-toast'
+import { createClient } from '@/lib/supabase/client'
+import { useAuthStore } from '@/store/authStore'
+import StudentBottomNav from '@/components/student/StudentBottomNav'
+
+export default function StudentLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { setUser, setStudentProfile, setLoading, isLoading } = useAuthStore()
+
+  useEffect(() => {
+    async function checkAuth() {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        router.replace('/login')
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      if (!profile || profile.role !== 'student') {
+        router.replace('/login')
+        return
+      }
+
+      const { data: studentProfile } = await supabase
+        .from('student_profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      setUser(profile)
+      setStudentProfile(studentProfile)
+      setLoading(false)
+    }
+    checkAuth()
+  }, [router, setUser, setStudentProfile, setLoading])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-purple-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-purple-600 font-medium text-sm">Loading CampusBites...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const hideNav = pathname.includes('/track') || pathname.includes('/checkout')
+
+  return (
+    <div className="relative min-h-screen bg-gray-50">
+      <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+      {children}
+      {!hideNav && <StudentBottomNav />}
+    </div>
+  )
+}

@@ -1,0 +1,193 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
+import useSound from 'use-sound'
+import { createClient } from '@/lib/supabase/client'
+import { useAuthStore } from '@/store/authStore'
+import { useShopOrdersStore } from '@/store/shopOrdersStore'
+import { getShopDetailsByOwner } from '@/lib/supabase/queries/shop-dashboard'
+import ShopSidebar from '@/components/shop/ShopSidebar'
+import ShopBottomNav from '@/components/shop/ShopBottomNav'
+
+export default function ShopLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const isKDS = pathname === '/shop/kds'
+  
+  const { setUser, setLoading, isLoading } = useAuthStore()
+  const { setShopId, addOrder, updateOrderStatus } = useShopOrdersStore()
+  const [shopOwnerId, setShopOwnerId] = useState<string | null>(null)
+  
+  // Realtime notification sound
+  const [playAlert] = useSound('https://actions.google.com/sounds/v1/alarms/beep_short.ogg', { volume: 0.8 })
+
+  // 1. Auth Guard
+  useEffect(() => {
+    async function checkAuth() {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const isLoginRoute = pathname.includes('/login')
+
+      if (!session) {
+        setLoading(false)
+        if (!isLoginRoute) {
+          router.replace('/shop/login')
+        }
+        return
+      }
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      if (error || !profile || (profile.role !== 'shop_owner' && profile.role !== 'kitchen' && profile.role !== 'admin')) {
+        setLoading(false)
+        if (!isLoginRoute) {
+          router.replace('/shop/login')
+        }
+        return
+      }
+
+      if (profile.status === 'suspended') {
+        await supabase.auth.signOut()
+        setLoading(false)
+        toast.error('Your account has been suspended by the admin.')
+        if (!isLoginRoute) {
+          router.replace('/shop/login')
+        }
+        return
+      }
+
+      setUser(profile)
+      setShopOwnerId(session.user.id)
+      
+      // If they are on login page but already logged in, send to dashboard
+      if (isLoginRoute) {
+        setLoading(false)
+        router.replace('/shop/dashboard')
+      }
+    }
+    checkAuth()
+  }, [router, setUser, setLoading])
+
+  // 2. Fetch Shop Details & Setup Realtime
+  useEffect(() => {
+    if (!shopOwnerId) return
+
+    async function loadShop() {
+      try {
+        const shopData = await getShopDetailsByOwner(shopOwnerId!)
+        if (shopData) {
+          setShopId(shopData.id)
+          setupRealtime(shopData.id)
+        } else {
+          // AUTO-HEAL: If they are a shop owner but don't have a shop yet, create one for them instantly
+          const supabase = createClient()
+          const { data: newShop, error: autoCreateError } = await supabase
+            .from('shops')
+            .insert({
+              owner_id: shopOwnerId,
+              name: 'My New Shop',
+              description: 'A newly registered shop',
+              address: 'Campus',
+              is_open: true
+            })
+            .select()
+            .single()
+
+          if (newShop) {
+            setShopId(newShop.id)
+            setupRealtime(newShop.id)
+            toast.success("We automatically created a default shop for you!")
+          } else {
+            console.error("Auto-heal failed:", autoCreateError)
+            toast.error("No shop found for your account. Please contact admin.")
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load shop", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadShop()
+
+    function setupRealtime(sid: string) {
+      const supabase = createClient()
+      const channel = supabase
+        .channel(`shop-${sid}-orders-${Math.random()}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${sid}` },
+          async (payload) => {
+            const { data: fullOrder } = await supabase
+              .from('orders')
+              .select(`*, order_items(*)`)
+              .eq('id', payload.new.id)
+              .single()
+
+            if (fullOrder) {
+              addOrder(fullOrder)
+              playAlert()
+              toast.success(`New order received: ${fullOrder.order_number}`, { icon: '🔔', duration: 5000 })
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `shop_id=eq.${sid}` },
+          (payload) => {
+            updateOrderStatus(payload.new.id, payload.new.status)
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [shopOwnerId, setShopId, addOrder, updateOrderStatus, playAlert, setLoading])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#EFF6FF]">
+        <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-[#2563EB] font-bold text-sm">Loading Shop Portal...</p>
+      </div>
+    )
+  }
+
+  // Hide sidebar on login page
+  const isLoginPage = pathname === '/shop/login'
+
+  return (
+    <div className={`min-h-screen flex flex-col md:flex-row ${isKDS ? 'bg-slate-900' : 'bg-[#EFF6FF]'}`}>
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+      
+      {/* Desktop Sidebar (Hide in KDS) */}
+      {!isKDS && !isLoginPage && (
+        <div className="hidden md:block w-64 flex-shrink-0">
+          <ShopSidebar />
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <main className={`flex-1 w-full mx-auto ${isKDS ? 'max-w-none p-4' : 'max-w-6xl pb-24 md:pb-8 pt-4 px-4 md:px-8'}`}>
+        {children}
+      </main>
+
+      {/* Mobile Bottom Nav (Hide in KDS) */}
+      {!isKDS && !isLoginPage && (
+        <div className="md:hidden">
+          <ShopBottomNav />
+        </div>
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,93 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
+import { useShopOrdersStore } from '@/store/shopOrdersStore'
+import { updateOrderStatusDB } from '@/lib/supabase/queries/shop-dashboard'
+import TicketCard from '@/components/shop/TicketCard'
+import toast from 'react-hot-toast'
+
+export default function KDSPage() {
+  const router = useRouter()
+  const { getNewOrders, getPreparingOrders } = useShopOrdersStore()
+  const [time, setTime] = useState(new Date().toLocaleTimeString())
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Combine new and preparing for the kitchen view
+  const activeTickets = [...getNewOrders(), ...getPreparingOrders()]
+    .sort((a, b) => new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime())
+
+  const handleStatusChange = async (orderId: string, status: string) => {
+    try {
+      await updateOrderStatusDB(orderId, status)
+      if (status === 'ready') {
+        toast.success(`Order #${orderId.substring(0,6)} is Ready!`)
+      }
+    } catch (err) {
+      toast.error('Failed to update status')
+    }
+  }
+
+  return (
+    <div className="text-slate-100 flex flex-col h-[calc(100vh-2rem)]">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4 shrink-0">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/shop/dashboard')} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition">
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-3xl font-display font-bold">Kitchen Display</h1>
+          <div className="flex gap-4 ml-6">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+              <span className="text-sm font-bold text-slate-300">New ({getNewOrders().length})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-slate-500"></span>
+              <span className="text-sm font-bold text-slate-300">Preparing ({getPreparingOrders().length})</span>
+            </div>
+          </div>
+        </div>
+        <div className="text-3xl font-mono font-bold tracking-wider text-amber-400">{time}</div>
+      </div>
+      
+      {/* Grid */}
+      <div className="flex-1 overflow-auto">
+        {activeTickets.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-500">
+            <p className="text-6xl mb-4">👨‍🍳</p>
+            <p className="text-2xl font-bold">Kitchen is clear. Waiting for orders...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-10">
+            <AnimatePresence mode="popLayout">
+              {activeTickets.map(order => (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  key={order.id}
+                >
+                  <TicketCard
+                    order={order}
+                    onAccept={() => handleStatusChange(order.id, 'preparing')}
+                    onReject={() => handleStatusChange(order.id, 'cancelled')}
+                    onReady={() => handleStatusChange(order.id, 'ready')}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

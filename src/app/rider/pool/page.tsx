@@ -1,0 +1,129 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useAuthStore } from '@/store/authStore'
+import { useRiderStore } from '@/store/riderStore'
+import { claimDelivery } from '@/lib/supabase/queries/rider'
+import PoolCard from '@/components/rider/PoolCard'
+import NotificationsTray from '@/components/shared/NotificationsTray'
+import { Bell } from 'lucide-react'
+import toast from 'react-hot-toast'
+
+export default function RiderPoolPage() {
+  const router = useRouter()
+  const { user } = useAuthStore()
+  const { availableOrders, activeDelivery, removeAvailableOrder, setActiveDelivery } = useRiderStore()
+  const [claimingId, setClaimingId] = useState<string | null>(null)
+  const [isOnline, setIsOnline] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+
+  const handleClaim = async (orderId: string) => {
+    if (!user) return
+    if (activeDelivery) {
+      toast.error('You already have an active delivery! Complete it first.')
+      router.push(`/rider/delivery/${activeDelivery.id}`)
+      return
+    }
+
+    setClaimingId(orderId)
+    try {
+      await claimDelivery(orderId, user.id)
+      
+      const claimedOrder = availableOrders.find(o => o.id === orderId)
+      if (claimedOrder) {
+        removeAvailableOrder(orderId)
+        setActiveDelivery({ ...claimedOrder, status: 'out_for_delivery', rider_id: user.id })
+      }
+      
+      toast.success('Delivery Claimed! Drive safely. 🛵')
+      router.push(`/rider/delivery/${orderId}`)
+    } catch (err: any) {
+      toast.error('Someone else might have claimed this order already!')
+      removeAvailableOrder(orderId) // Remove it from UI just in case
+    } finally {
+      setClaimingId(null)
+    }
+  }
+
+  return (
+    <div className="px-5 pt-8 pb-4">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-gray-900">Delivery Pool</h1>
+          <p className="text-gray-500 font-medium text-sm">New orders ready for pickup</p>
+        </div>
+        
+        {/* Controls */}
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setIsNotificationsOpen(true)}
+            className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 relative hover:bg-gray-50 transition"
+          >
+            <Bell size={20} className="text-gray-700" />
+          </button>
+          
+          {/* Realistic Pill Switch Toggle */}
+        <div className="flex items-center gap-3">
+          <span className={`text-sm font-bold ${isOnline ? 'text-green-600' : 'text-gray-400'}`}>
+            {isOnline ? 'Online' : 'Offline'}
+          </span>
+          <button 
+            onClick={() => setIsOnline(!isOnline)}
+            className={`relative w-14 h-8 rounded-full transition-colors duration-300 ease-in-out shadow-inner ${
+              isOnline ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+          >
+            <div 
+              className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+                isOnline ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        </div>
+      </div>
+
+      {/* Pool Feed */}
+      {!isOnline ? (
+        <div className="bg-white rounded-3xl p-10 text-center border border-gray-200 mt-10">
+          <p className="text-5xl mb-4">😴</p>
+          <h3 className="font-bold text-gray-900 text-lg mb-2">You're Offline</h3>
+          <p className="text-gray-500 text-sm">Go online to start receiving delivery requests.</p>
+        </div>
+      ) : availableOrders.length === 0 ? (
+        <div className="text-center py-20">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-3xl text-green-600">📡</span>
+          </div>
+          <h3 className="font-bold text-gray-900 text-lg">Scanning for orders...</h3>
+          <p className="text-gray-500 text-sm mt-1">Wait here, new orders will pop up instantly.</p>
+        </div>
+      ) : (
+        <div className="space-y-4 relative">
+          <AnimatePresence>
+            {availableOrders.map(order => (
+              <motion.div
+                key={order.id}
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", bounce: 0.3 }}
+              >
+                <PoolCard 
+                  order={order} 
+                  onClaim={handleClaim} 
+                  isClaiming={claimingId === order.id} 
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+      
+      <NotificationsTray isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
+    </div>
+  )
+}
