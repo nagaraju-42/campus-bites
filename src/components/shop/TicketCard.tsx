@@ -31,7 +31,7 @@ export default function TicketCard({ order, onAccept, onReject, onReady }: Ticke
             <div className="flex gap-3">
               <span className="font-bold text-lg">{item.quantity}x</span>
               <div>
-                <p className="font-bold text-lg">{item.menu_item_name}</p>
+                <p className="font-bold text-lg">{item.item_name}</p>
               </div>
             </div>
           </div>

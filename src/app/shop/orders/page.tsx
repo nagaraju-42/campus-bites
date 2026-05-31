@@ -99,7 +99,7 @@ export default function ShopOrdersPage() {
                   <div className="space-y-1 mb-3">
                     {order.order_items?.map((item, idx) => (
                       <p key={idx} className="text-sm text-gray-700 font-medium">
-                        <span className="font-bold">{item.quantity}x</span> {item.menu_item_name}
+                        <span className="font-bold">{item.quantity}x</span> {item.item_name}
                       </p>
                     ))}
                   </div>

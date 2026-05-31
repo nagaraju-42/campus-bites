@@ -124,7 +124,7 @@ export default function ActiveDeliveryPage() {
               <ul className="space-y-2">
                 {order.order_items?.map((item, idx) => (
                   <li key={idx} className="flex justify-between text-gray-700 text-sm font-medium">
-                    <span>{item.quantity}x {item.menu_item_name}</span>
+                    <span>{item.quantity}x {item.item_name}</span>
                   </li>
                 ))}
               </ul>
