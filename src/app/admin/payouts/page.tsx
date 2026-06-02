@@ -59,7 +59,9 @@ export default function AdminPayoutsPage() {
         </div>
         <div className="bg-[#1E293B] rounded-2xl border border-slate-700/50 p-6 flex flex-col justify-center">
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Next Payout Cycle</p>
-          <p className="text-3xl font-display font-bold text-white">Tomorrow, 10 AM</p>
+          <p className="text-3xl font-display font-bold text-white">
+            {new Date(new Date().setDate(new Date().getDate() + 1)).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}, 10 AM
+          </p>
         </div>
         <div className="bg-[#1E293B] rounded-2xl border border-slate-700/50 p-6 flex flex-col justify-center">
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Partners Awaiting Payment</p>

@@ -15,14 +15,7 @@ import { Order } from '@/types'
 import toast from 'react-hot-toast'
 import { broadcastNotification } from '@/lib/supabase/queries/notifications'
 
-// Mock chart data for now
-const chartData = [
-  { time: '10 AM', revenue: 400 },
-  { time: '12 PM', revenue: 1200 },
-  { time: '2 PM', revenue: 800 },
-  { time: '4 PM', revenue: 1500 },
-  { time: '6 PM', revenue: 2000 },
-]
+// Dynamic chart data will be calculated from real orders
 
 export default function ShopDashboardPage() {
   const { user } = useAuthStore()
@@ -37,6 +30,7 @@ export default function ShopDashboardPage() {
   
   // Stats
   const [stats, setStats] = useState({ revenue: 0, orders: 0, avgValue: 0 })
+  const [chartData, setChartData] = useState<{time: string, revenue: number}[]>([])
 
   useEffect(() => {
     if (!user || !shopId) return
@@ -64,6 +58,30 @@ export default function ShopDashboardPage() {
           orders: completed.length,
           avgValue: completed.length > 0 ? totalRevenue / completed.length : 0
         })
+
+        // Generate Chart Data from completed orders
+        const groupedByHour = completed.reduce((acc, order) => {
+          const date = new Date(order.placed_at);
+          const hour = date.getHours();
+          const period = hour >= 12 ? 'PM' : 'AM';
+          const displayHour = hour % 12 || 12;
+          const timeLabel = `${displayHour} ${period}`;
+          
+          if (!acc[timeLabel]) acc[timeLabel] = 0;
+          acc[timeLabel] += order.total_amount;
+          return acc;
+        }, {} as Record<string, number>);
+
+        let dynamicChartData = Object.keys(groupedByHour).map(time => ({
+          time,
+          revenue: groupedByHour[time]
+        }));
+        
+        if (dynamicChartData.length === 0) {
+          dynamicChartData = [{ time: 'No Data', revenue: 0 }];
+        }
+
+        setChartData(dynamicChartData);
       } catch (err) {
         console.error("Failed to load shop dashboard data:", err)
       }

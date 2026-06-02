@@ -6,16 +6,10 @@ import { ArrowLeft, CheckCircle2, Circle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getOrderById } from '@/lib/supabase/queries/orders'
 import { Order, OrderStatus } from '@/types'
-import { formatCurrency, getOrderStatusStep } from '@/lib/utils'
+import { formatCurrency, getOrderStatusStep, formatDate } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
-const STATUS_STEPS = [
-  { step: 1, label: 'Order Placed', time: '12 May, 4:30 PM', status: 'pending', color: 'text-gray-600' },
-  { step: 2, label: 'Preparing', time: '12 May, 4:35 PM', status: 'preparing', color: 'text-orange-500' },
-  { step: 3, label: 'Ready', time: '12 May, 4:45 PM', status: 'ready', color: 'text-green-500' },
-  { step: 4, label: 'Out for Delivery', time: 'Rider is on the way', status: 'out_for_delivery', color: 'text-blue-500' },
-  { step: 5, label: 'Delivered', time: 'Upcoming', status: 'delivered', color: 'text-[#16A34A]' },
-]
+// STATUS_STEPS moved inside component
 
 export default function TrackOrderPage() {
   const { orderId } = useParams<{ orderId: string }>()
@@ -50,6 +44,14 @@ export default function TrackOrderPage() {
 
   const currentStep = getOrderStatusStep(order.status)
 
+  const STATUS_STEPS = [
+    { step: 1, label: 'Order Placed', time: formatDate(order.placed_at), status: 'pending', color: 'text-gray-600' },
+    { step: 2, label: 'Preparing', time: currentStep >= 2 ? 'In Progress' : 'Upcoming', status: 'preparing', color: 'text-orange-500' },
+    { step: 3, label: 'Ready', time: currentStep >= 3 ? 'Ready for Pickup' : 'Upcoming', status: 'ready', color: 'text-green-500' },
+    { step: 4, label: 'Out for Delivery', time: currentStep >= 4 ? 'Rider is on the way' : 'Upcoming', status: 'out_for_delivery', color: 'text-blue-500' },
+    { step: 5, label: 'Delivered', time: order.status === 'delivered' && order.delivered_at ? formatDate(order.delivered_at) : 'Upcoming', status: 'delivered', color: 'text-[#16A34A]' },
+  ]
+
   return (
     <div className="min-h-screen bg-white max-w-[430px] mx-auto pb-24 border-x border-gray-100 shadow-sm">
       {/* Header (White) */}
@@ -62,7 +64,7 @@ export default function TrackOrderPage() {
 
       <div className="px-5 py-2">
         <p className="text-gray-900 font-bold text-sm mb-1">Order ID: {order.order_number}</p>
-        <p className="text-gray-500 text-xs font-medium">Placed on 12 May, 4:30 PM</p>
+        <p className="text-gray-500 text-xs font-medium">Placed on {formatDate(order.placed_at)}</p>
       </div>
 
       <div className="px-5 py-6">
