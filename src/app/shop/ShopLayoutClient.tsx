@@ -22,6 +22,31 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const { setShopId, addOrder, updateOrderStatus } = useShopOrdersStore()
   const [shopOwnerId, setShopOwnerId] = useState<string | null>(null)
 
+  // Inject PWA manifest link into document head
+  useEffect(() => {
+    // Remove any existing manifest link
+    const existing = document.querySelector('link[rel="manifest"]')
+    if (existing) existing.remove()
+    
+    const link = document.createElement('link')
+    link.rel = 'manifest'
+    link.href = '/shop-manifest.json'
+    document.head.appendChild(link)
+
+    // Set theme color
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.name = 'theme-color'
+      document.head.appendChild(meta)
+    }
+    meta.content = '#0F172A'
+
+    return () => {
+      link.remove()
+    }
+  }, [])
+
   // 1. Auth Guard
   useEffect(() => {
     async function checkAuth() {
