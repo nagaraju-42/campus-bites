@@ -235,13 +235,17 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 w-full mx-auto flex flex-col ${isKDS ? 'max-w-none p-4' : 'max-w-6xl pb-24 md:pb-8 pt-0'}`}>
-        <div className="md:hidden">
-          <AdminImpersonationBanner />
-        </div>
-        <div className="px-4 md:px-8 pt-4">
-          {children}
-        </div>
+      <main className={`flex-1 w-full mx-auto flex flex-col ${isKDS ? 'max-w-none p-0' : 'max-w-6xl pb-24 md:pb-8 pt-0'}`}>
+        {!isKDS && (
+          <div className="md:hidden">
+            <AdminImpersonationBanner />
+          </div>
+        )}
+        {isKDS ? children : (
+          <div className="px-4 md:px-8 pt-4">
+            {children}
+          </div>
+        )}
       </main>
 
       {/* Mobile Bottom Nav (Hide in KDS) */}

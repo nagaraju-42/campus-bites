@@ -32,9 +32,9 @@ export async function registerPushNotifications(userId: string) {
     });
 
     return true;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to register push:', err);
-    return false;
+    throw new Error(err.message || 'Failed to register push');
   }
 }
 

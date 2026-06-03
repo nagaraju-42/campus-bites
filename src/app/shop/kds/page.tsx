@@ -30,12 +30,14 @@ export default function KDSPage() {
 
   const handleEnablePush = async () => {
     if (!user) return
-    const success = await registerPushNotifications(user.id)
-    if (success) {
-      setPushEnabled(true)
-      toast.success('Background notifications enabled!')
-    } else {
-      toast.error('Failed to enable notifications')
+    try {
+      const success = await registerPushNotifications(user.id)
+      if (success) {
+        setPushEnabled(true)
+        toast.success('Background notifications enabled!')
+      }
+    } catch (err: any) {
+      toast.error(`Push Error: ${err.message}`, { duration: 6000 })
     }
   }
 
