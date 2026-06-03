@@ -62,9 +62,27 @@ export async function getPlatformMetrics(): Promise<PlatformMetrics> {
 
 export async function getAllShops() {
   const supabase = createClient()
-  const { data, error } = await supabase.from('shops').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('shops')
+    .select('*, orders(id)')
+    .eq('is_deleted', false) // Filter out soft-deleted shops
+    .order('created_at', { ascending: false })
+    
   if (error) throw new Error(error.message)
-  return data
+  
+  return data.map(shop => ({
+    ...shop,
+    order_count: shop.orders ? shop.orders.length : 0
+  }))
+}
+
+export async function softDeleteShop(shopId: string) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('shops')
+    .update({ is_deleted: true, is_open: false })
+    .eq('id', shopId)
+  if (error) throw new Error(error.message)
 }
 
 export async function updateShopApproval(shopId: string, is_approved: boolean) {
@@ -130,4 +148,93 @@ export async function deletePromotion(id: string) {
   const supabase = createClient()
   const { error } = await supabase.from('promotions').delete().eq('id', id)
   if (error) throw new Error(error.message)
+}
+
+// ============================================================================
+// PHASE 2: God Mode Orders & Dispute Resolution
+// ============================================================================
+
+export async function getAllPlatformOrders() {
+  const supabase = createClient()
+  
+  // Fetch orders and shop names
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      shops:shop_id(name)
+    `)
+    .order('placed_at', { ascending: false })
+    .limit(100)
+
+  if (error) throw new Error(error.message)
+  if (!orders || orders.length === 0) return []
+
+  // Fetch student profiles to avoid fk ambiguity
+  const studentIds = [...new Set(orders.map(o => o.student_id).filter(Boolean))]
+  let profiles: any[] = []
+  if (studentIds.length > 0) {
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, phone')
+      .in('id', studentIds)
+    if (profilesData) profiles = profilesData
+  }
+
+  // Combine
+  return orders.map(order => ({
+    ...order,
+    student: profiles.find(p => p.id === order.student_id) || null
+  }))
+}
+
+export async function logOrderAudit(orderId: string, userId: string, statusFrom: string, statusTo: string) {
+  const supabase = createClient()
+  await supabase.from('order_audit_logs').insert({
+    order_id: orderId,
+    changed_by_user_id: userId,
+    status_from: statusFrom,
+    status_to: statusTo
+  })
+}
+
+export async function forceCancelOrder(orderId: string, adminId: string, reason: string) {
+  const supabase = createClient()
+  
+  const { data: order } = await supabase.from('orders').select('status, special_note').eq('id', orderId).single()
+  
+  const appendReason = order?.special_note ? `${order.special_note} | Admin Cancel: ${reason}` : `Admin Cancel: ${reason}`
+  
+  const { error } = await supabase
+    .from('orders')
+    .update({ status: 'cancelled', special_note: appendReason })
+    .eq('id', orderId)
+    
+  if (error) throw new Error(error.message)
+  
+  await logOrderAudit(orderId, adminId, order?.status || 'unknown', 'cancelled')
+}
+
+export async function getOrderAuditLogs(orderId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('order_audit_logs')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('created_at', { ascending: true })
+    
+  if (error) throw new Error(error.message)
+  if (!data || data.length === 0) return []
+  
+  const userIds = [...new Set(data.map(l => l.changed_by_user_id).filter(Boolean))]
+  let profiles: any[] = []
+  if (userIds.length > 0) {
+    const { data: pData } = await supabase.from('profiles').select('id, full_name, role').in('id', userIds)
+    if (pData) profiles = pData
+  }
+  
+  return data.map(log => ({
+    ...log,
+    changed_by: profiles.find(p => p.id === log.changed_by_user_id) || null
+  }))
 }

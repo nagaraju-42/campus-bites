@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { IndianRupee, ShoppingBag, Users, AlertCircle, Download, FileText } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { IndianRupee, ShoppingBag, Users, AlertCircle, Bell, Send, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
-import { getShopDetailsByOwner, updateShopStatusDB, getShopActiveOrders, getShopCompletedOrders } from '@/lib/supabase/queries/shop-dashboard'
+import { getShopDetailsByOwner, updateShopStatusDB, getShopActiveOrders, getShopCompletedOrders, getShopStats } from '@/lib/supabase/queries/shop-dashboard'
 import StatCard from '@/components/shop/StatCard'
 import NotificationsTray from '@/components/shared/NotificationsTray'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Bell, Send } from 'lucide-react'
 import { Order } from '@/types'
 import toast from 'react-hot-toast'
 import { broadcastNotification } from '@/lib/supabase/queries/notifications'
+
+type TimeRange = 'today' | 'yesterday' | 'week' | 'month' | 'all_time'
 
 // Dynamic chart data will be calculated from real orders
 
@@ -29,8 +29,9 @@ export default function ShopDashboardPage() {
   const [isBroadcasting, setIsBroadcasting] = useState(false)
   
   // Stats
-  const [stats, setStats] = useState({ revenue: 0, orders: 0, avgValue: 0 })
-  const [chartData, setChartData] = useState<{time: string, revenue: number}[]>([])
+  const [stats, setStats] = useState({ revenue: 0, orders: 0, avgValue: 0, cancelled: 0 })
+  const [timeRange, setTimeRange] = useState<TimeRange>('today')
+  const [isStatsLoading, setIsStatsLoading] = useState(false)
 
   useEffect(() => {
     if (!user || !shopId) return
@@ -46,48 +47,36 @@ export default function ShopDashboardPage() {
           getShopActiveOrders(shopId!),
           getShopCompletedOrders(shopId!)
         ])
+        const shopStats = await getShopStats(shopId!, timeRange)
         
         setShopName(shop.name)
         setLiveStatus(shop.is_open)
         setOrders(activeOrders)
         setRecentOrders(completed)
+        setStats(shopStats)
 
-        const totalRevenue = completed.reduce((sum, o) => sum + o.total_amount, 0)
-        setStats({
-          revenue: totalRevenue,
-          orders: completed.length,
-          avgValue: completed.length > 0 ? totalRevenue / completed.length : 0
-        })
-
-        // Generate Chart Data from completed orders
-        const groupedByHour = completed.reduce((acc, order) => {
-          const date = new Date(order.placed_at);
-          const hour = date.getHours();
-          const period = hour >= 12 ? 'PM' : 'AM';
-          const displayHour = hour % 12 || 12;
-          const timeLabel = `${displayHour} ${period}`;
-          
-          if (!acc[timeLabel]) acc[timeLabel] = 0;
-          acc[timeLabel] += order.total_amount;
-          return acc;
-        }, {} as Record<string, number>);
-
-        let dynamicChartData = Object.keys(groupedByHour).map(time => ({
-          time,
-          revenue: groupedByHour[time]
-        }));
-        
-        if (dynamicChartData.length === 0) {
-          dynamicChartData = [{ time: 'No Data', revenue: 0 }];
-        }
-
-        setChartData(dynamicChartData);
       } catch (err) {
         console.error("Failed to load shop dashboard data:", err)
       }
     }
     loadData()
-  }, [user, shopId, setLiveStatus, setOrders])
+  }, [user, shopId])
+
+  useEffect(() => {
+    if (!shopId) return
+    async function loadStats() {
+      setIsStatsLoading(true)
+      try {
+        const shopStats = await getShopStats(shopId!, timeRange)
+        setStats(shopStats)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setIsStatsLoading(false)
+      }
+    }
+    loadStats()
+  }, [timeRange, shopId])
 
   const [isToggling, setIsToggling] = useState(false)
 
@@ -161,42 +150,58 @@ export default function ShopDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Today's Revenue" value={formatCurrency(stats.revenue)} icon={<IndianRupee size={24} />} trend="12.5%" trendUp />
-        <StatCard title="Total Orders" value={stats.orders} icon={<ShoppingBag size={24} />} trend="8.2%" trendUp />
-        <StatCard title="Avg Order Value" value={formatCurrency(stats.avgValue)} icon={<Users size={24} />} />
-        <StatCard title="Cancelled" value="0" icon={<AlertCircle size={24} />} />
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-bold text-gray-900">Performance Summary</h2>
+          <div className="relative">
+            <select 
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+              className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-10 rounded-xl font-bold text-sm shadow-sm focus:outline-none focus:border-blue-500"
+            >
+              <option value="today">Today (Live)</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="all_time">All Time</option>
+            </select>
+            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+        </div>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity ${isStatsLoading ? 'opacity-50' : 'opacity-100'}`}>
+          <StatCard title="Total Revenue" value={formatCurrency(stats.revenue)} icon={<IndianRupee size={24} />} />
+          <StatCard title="Total Orders" value={stats.orders} icon={<ShoppingBag size={24} />} />
+          <StatCard title="Avg Order Value" value={formatCurrency(stats.avgValue)} icon={<Users size={24} />} />
+          <StatCard title="Cancelled" value={stats.cancelled} icon={<AlertCircle size={24} />} />
+        </div>
       </div>
 
       {/* Charts & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-bold text-gray-900">Revenue Overview</h2>
-            <div className="flex gap-2">
-              <button className="flex items-center gap-1 text-xs font-bold bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
-                <Download size={14} /> CSV
-              </button>
-              <button className="flex items-center gap-1 text-xs font-bold bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
-                <FileText size={14} /> PDF
-              </button>
-            </div>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} dx={-10} tickFormatter={(val) => `₹${val}`} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  cursor={{ stroke: '#E5E7EB', strokeWidth: 2 }}
-                />
-                <Line type="monotone" dataKey="revenue" stroke="#2563EB" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#2563EB', stroke: '#fff', strokeWidth: 2 }} />
-              </LineChart>
-            </ResponsiveContainer>
+        {/* Recent Activity */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-full">
+          <h2 className="font-bold text-gray-900 mb-6 flex items-center justify-between">
+            <span>Recent Completed Orders</span>
+            <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">Live Today</span>
+          </h2>
+          <div className="space-y-4 overflow-y-auto flex-1 max-h-[400px] pr-2">
+            {recentOrders.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-10">No completed orders today.</p>
+            ) : (
+              recentOrders.map(order => (
+                <div key={order.id} className="flex justify-between items-center border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                  <div>
+                    <p className="font-bold text-sm text-gray-900">{order.order_number}</p>
+                    <p className="text-xs font-medium text-gray-400">{formatDate(order.placed_at)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-sm text-gray-900">{formatCurrency(order.total_amount)}</p>
+                    <p className="text-xs font-bold text-green-600">Delivered</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -237,28 +242,7 @@ export default function ShopDashboardPage() {
           </button>
         </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <h2 className="font-bold text-gray-900 mb-6">Recent Completed Orders</h2>
-          <div className="space-y-4">
-            {recentOrders.length === 0 ? (
-              <p className="text-gray-400 text-sm">No completed orders today.</p>
-            ) : (
-              recentOrders.map(order => (
-                <div key={order.id} className="flex justify-between items-center border-b border-gray-50 pb-3 last:border-0 last:pb-0">
-                  <div>
-                    <p className="font-bold text-sm text-gray-900">{order.order_number}</p>
-                    <p className="text-xs font-medium text-gray-400">{formatDate(order.placed_at)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-sm text-gray-900">{formatCurrency(order.total_amount)}</p>
-                    <p className="text-xs font-bold text-green-600">Delivered</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+
 
       </div>
       

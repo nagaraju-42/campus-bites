@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
+import { useAuthStore } from '@/store/authStore'
 import { updateOrderStatusDB } from '@/lib/supabase/queries/shop-dashboard'
 import TicketCard from '@/components/shop/TicketCard'
 import toast from 'react-hot-toast'
 
 export default function KDSPage() {
   const router = useRouter()
+  const { user } = useAuthStore()
   const { shopId, orders, setOrders, getNewOrders, getPreparingOrders, getReadyOrders } = useShopOrdersStore()
   const [time, setTime] = useState(new Date().toLocaleTimeString())
   const [isLoading, setIsLoading] = useState(true)
@@ -48,7 +50,7 @@ export default function KDSPage() {
       stopShopAlarm()
     }
     try {
-      await updateOrderStatusDB(orderId, status)
+      await updateOrderStatusDB(orderId, status, user?.id)
       if (status === 'ready') {
         toast.success(`Order #${orderId.substring(0,6)} is Ready!`)
       }

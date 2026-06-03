@@ -23,16 +23,24 @@ export async function claimDelivery(orderId: string, riderId: string) {
     .is('rider_id', null)
 
   if (error) throw new Error(error.message)
+
+  // Insert Audit Log
+  const { logOrderAudit } = await import('./admin')
+  await logOrderAudit(orderId, riderId, 'ready', 'out_for_delivery')
 }
 
-export async function completeDelivery(orderId: string) {
+export async function completeDelivery(orderId: string, riderId: string) {
   const supabase = createClient()
   const { error } = await supabase
     .from('orders')
-    .update({ status: 'delivered' })
+    .update({ status: 'delivered', delivered_at: new Date().toISOString() })
     .eq('id', orderId)
 
   if (error) throw new Error(error.message)
+
+  // Insert Audit Log
+  const { logOrderAudit } = await import('./admin')
+  await logOrderAudit(orderId, riderId, 'out_for_delivery', 'delivered')
 }
 
 export async function getRiderEarnings(riderId: string) {

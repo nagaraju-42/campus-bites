@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Phone, MapPin, CheckCircle2, MessageSquare, X, Send } from 'lucide-react'
 import { useRiderStore } from '@/store/riderStore'
+import { useAuthStore } from '@/store/authStore'
 import { completeDelivery } from '@/lib/supabase/queries/rider'
 import SwipeButton from '@/components/rider/SwipeButton'
 import toast from 'react-hot-toast'
@@ -14,6 +15,7 @@ export default function ActiveDeliveryPage() {
   const router = useRouter()
   const { orderId } = useParams()
   const { activeDeliveries, setActiveDeliveries, removeActiveDelivery } = useRiderStore()
+  const { user } = useAuthStore()
   
   const [order, setOrder] = useState<Order | null>(null)
   const [step, setStep] = useState<'pickup' | 'dropoff'>('pickup')
@@ -75,7 +77,7 @@ export default function ActiveDeliveryPage() {
       return
     }
     try {
-      await completeDelivery(order.id)
+      await completeDelivery(order.id, user?.id || '')
       
       removeActiveDelivery(order.id)
       toast.success('Delivery Completed! ₹' + order.delivery_fee + ' earned.', { icon: '💰' })

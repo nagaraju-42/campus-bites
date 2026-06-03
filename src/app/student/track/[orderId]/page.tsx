@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle2, Circle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Circle, MessageSquare, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getOrderById } from '@/lib/supabase/queries/orders'
+import { getOrderAuditLogs } from '@/lib/supabase/queries/admin'
 import { Order, OrderStatus } from '@/types'
 import { formatCurrency, getOrderStatusStep, formatDate } from '@/lib/utils'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import OrderChat from '@/components/shared/OrderChat'
 
 // STATUS_STEPS moved inside component
 
@@ -15,15 +17,23 @@ export default function TrackOrderPage() {
   const { orderId } = useParams<{ orderId: string }>()
   const router = useRouter()
   const [order, setOrder] = useState<Order | null>(null)
+  const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [showChat, setShowChat] = useState(false)
 
   useEffect(() => {
-    async function loadOrder() {
+    async function loadData() {
       const data = await getOrderById(orderId)
       setOrder(data)
+      try {
+        const logs = await getOrderAuditLogs(orderId)
+        setAuditLogs(logs)
+      } catch (e) {
+        // logs might fail if empty or no permissions, safe to ignore
+      }
       setIsLoading(false)
     }
-    loadOrder()
+    loadData()
 
     const supabase = createClient()
     const subscription = supabase
@@ -31,8 +41,13 @@ export default function TrackOrderPage() {
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'orders',
         filter: `id=eq.${orderId}`,
-      }, (payload) => {
+      }, async (payload) => {
         setOrder((prev) => prev ? { ...prev, status: payload.new.status as OrderStatus } : prev)
+        // Also refresh logs when status updates
+        try {
+          const logs = await getOrderAuditLogs(orderId)
+          setAuditLogs(logs)
+        } catch (e) {}
       })
       .subscribe()
 
@@ -44,22 +59,33 @@ export default function TrackOrderPage() {
 
   const currentStep = getOrderStatusStep(order.status)
 
+  const getTimeForStatus = (status: string, fallback: string) => {
+    const log = auditLogs.find(l => l.status_to === status)
+    return log ? formatDate(log.created_at) : fallback
+  }
+
   const STATUS_STEPS = [
     { step: 1, label: 'Order Placed', time: formatDate(order.placed_at), status: 'pending', color: 'text-gray-600' },
-    { step: 2, label: 'Preparing', time: currentStep >= 2 ? 'In Progress' : 'Upcoming', status: 'preparing', color: 'text-orange-500' },
-    { step: 3, label: 'Ready', time: currentStep >= 3 ? 'Ready for Pickup' : 'Upcoming', status: 'ready', color: 'text-green-500' },
-    { step: 4, label: 'Out for Delivery', time: currentStep >= 4 ? 'Rider is on the way' : 'Upcoming', status: 'out_for_delivery', color: 'text-blue-500' },
-    { step: 5, label: 'Delivered', time: order.status === 'delivered' && order.delivered_at ? formatDate(order.delivered_at) : 'Upcoming', status: 'delivered', color: 'text-[#16A34A]' },
+    { step: 2, label: 'Preparing', time: getTimeForStatus('preparing', currentStep >= 2 ? 'In Progress' : 'Upcoming'), status: 'preparing', color: 'text-orange-500' },
+    { step: 3, label: 'Ready', time: getTimeForStatus('ready', currentStep >= 3 ? 'Ready for Pickup' : 'Upcoming'), status: 'ready', color: 'text-green-500' },
+    { step: 4, label: 'Out for Delivery', time: getTimeForStatus('out_for_delivery', currentStep >= 4 ? 'Rider is on the way' : 'Upcoming'), status: 'out_for_delivery', color: 'text-blue-500' },
+    { step: 5, label: 'Delivered', time: getTimeForStatus('delivered', order.status === 'delivered' && order.delivered_at ? formatDate(order.delivered_at) : 'Upcoming'), status: 'delivered', color: 'text-[#16A34A]' },
   ]
 
   return (
     <div className="min-h-screen bg-white max-w-[430px] mx-auto pb-24 border-x border-gray-100 shadow-sm">
       {/* Header (White) */}
-      <div className="bg-white px-5 pt-12 pb-4">
+      <div className="bg-white px-5 pt-12 pb-4 flex justify-between items-center relative z-20">
         <div className="flex items-center gap-3 text-gray-900">
           <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
           <h1 className="text-xl font-display font-bold flex-1">Order Tracking</h1>
         </div>
+        <button 
+          onClick={() => setShowChat(true)}
+          className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition shadow-sm"
+        >
+          <MessageSquare size={20} />
+        </button>
       </div>
 
       <div className="px-5 py-2">
@@ -136,6 +162,40 @@ export default function TrackOrderPage() {
           </div>
         ) : null}
       </div>
+
+      {/* Chat Slide-up Drawer */}
+      <AnimatePresence>
+        {showChat && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowChat(false)}
+              className="fixed inset-0 bg-black/40 z-40 max-w-[430px] mx-auto" 
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-3xl z-50 overflow-hidden shadow-2xl flex flex-col h-[70vh]"
+            >
+              <div className="flex justify-between items-center p-4 border-b border-gray-100">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2"><MessageSquare size={18} className="text-[#2563EB]"/> Shop Support</h3>
+                <button onClick={() => setShowChat(false)} className="p-2 text-gray-400 hover:text-gray-900 bg-gray-100 rounded-full">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 bg-gray-50 p-2 overflow-hidden">
+                <div className="h-full bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+                  <OrderChat orderId={orderId} />
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

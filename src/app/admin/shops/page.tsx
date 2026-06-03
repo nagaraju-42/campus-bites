@@ -1,8 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X } from 'lucide-react'
-import { getAllShops, updateShopApproval, updateShopDetails } from '@/lib/supabase/queries/admin'
+import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X, Eye, Trash2 } from 'lucide-react'
+import { getAllShops, updateShopApproval, updateShopDetails, softDeleteShop } from '@/lib/supabase/queries/admin'
+import { useAuthStore } from '@/store/authStore'
+import { useShopOrdersStore } from '@/store/shopOrdersStore'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 export default function AdminShopsPage() {
@@ -10,6 +13,10 @@ export default function AdminShopsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [editingShop, setEditingShop] = useState<any | null>(null)
   const [editForm, setEditForm] = useState({ name: '', address: '' })
+  
+  const router = useRouter()
+  const { user, setAdminUser, setUser } = useAuthStore()
+  const { setShopId } = useShopOrdersStore()
 
   useEffect(() => {
     async function load() {
@@ -52,6 +59,26 @@ export default function AdminShopsPage() {
     }
   }
 
+  const handleDeleteShop = async (shopId: string) => {
+    if (!window.confirm("Are you sure you want to delete this shop? This action hides it from all users.")) return
+    try {
+      await softDeleteShop(shopId)
+      setShops(shops.filter(s => s.id !== shopId))
+      toast.success('Shop deleted successfully.')
+    } catch (err) {
+      toast.error('Failed to delete shop.')
+    }
+  }
+
+  const handleImpersonate = (shop: any) => {
+    if (!user) return
+    setAdminUser(user) // Save the admin session
+    setUser({ id: shop.owner_id, role: 'shop_owner', email: shop.name + '@shop.com', full_name: shop.name, phone: null, avatar_url: null })
+    setShopId(shop.id)
+    toast.success(`Impersonating ${shop.name}`)
+    router.push('/shop/dashboard')
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-end mb-8">
@@ -87,13 +114,29 @@ export default function AdminShopsPage() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleEditClick(shop)}
-                  className="text-slate-400 hover:text-white p-2 bg-slate-800 rounded-lg"
-                  title="Edit Shop"
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleEditClick(shop)}
+                    className="text-slate-400 hover:text-white p-2 bg-slate-800 rounded-lg transition"
+                    title="Edit Shop"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button
+                  onClick={() => handleImpersonate(shop)}
+                  className="text-slate-400 hover:text-[#2563EB] p-2 bg-slate-800 rounded-lg transition"
+                  title="Impersonate Shop"
                 >
-                  <Edit2 size={16} />
+                  <Eye size={16} />
                 </button>
+                <button
+                  onClick={() => handleDeleteShop(shop.id)}
+                  className="text-slate-400 hover:text-red-500 p-2 bg-slate-800 rounded-lg transition"
+                  title="Delete Shop"
+                >
+                  <Trash2 size={16} />
+                </button>
+                </div>
               </div>
 
               <div className="pl-2 mb-6">
@@ -104,7 +147,7 @@ export default function AdminShopsPage() {
               <div className="mt-auto pl-2 pt-4 border-t border-slate-700/50 flex justify-between items-center">
                 <div>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Orders</p>
-                  <p className="font-bold text-white font-mono">1,245</p>
+                  <p className="font-bold text-white font-mono">{shop.order_count?.toLocaleString() || 0}</p>
                 </div>
                 <button
                   onClick={() => handleToggleStatus(shop.id, shop.is_open)}

@@ -3,16 +3,21 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
-import { updateOrderStatusDB } from '@/lib/supabase/queries/shop-dashboard'
+import { useAuthStore } from '@/store/authStore'
+import { updateOrderStatusDB, cancelOrderAsShop } from '@/lib/supabase/queries/shop-dashboard'
 import { formatCurrency } from '@/lib/utils'
 import { Order } from '@/types'
+import { MessageSquare, X } from 'lucide-react'
+import OrderChat from '@/components/shared/OrderChat'
 import toast from 'react-hot-toast'
 
 const TABS = ['New', 'Preparing', 'Ready']
 
 export default function ShopOrdersPage() {
+  const { user } = useAuthStore()
   const { getNewOrders, getPreparingOrders, getReadyOrders } = useShopOrdersStore()
   const [activeTab, setActiveTab] = useState('New')
+  const [chatOrderId, setChatOrderId] = useState<string | null>(null)
 
   const newOrders = getNewOrders()
   const prepOrders = getPreparingOrders()
@@ -24,12 +29,22 @@ export default function ShopOrdersPage() {
 
   const handleStatusChange = async (orderId: string, status: string) => {
     try {
-      await updateOrderStatusDB(orderId, status)
-      // Note: We don't manually update local state here because 
-      // the Supabase Realtime listener in layout.tsx will catch the update and do it!
+      await updateOrderStatusDB(orderId, status, user?.id)
       toast.success(`Order moved to ${status}`)
     } catch (err) {
       toast.error('Failed to update status')
+    }
+  }
+
+  const handleCancelOrder = async (orderId: string) => {
+    const reason = window.prompt("Enter cancellation reason (this will be sent to the student):", "Out of stock")
+    if (!reason) return
+    
+    try {
+      await cancelOrderAsShop(orderId, user?.id || '', reason)
+      toast.success('Order cancelled and student notified.')
+    } catch (err) {
+      toast.error('Failed to cancel order')
     }
   }
 
@@ -105,11 +120,18 @@ export default function ShopOrdersPage() {
                   </div>
 
                   {order.special_note && (
-                    <div className="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                    <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 mb-3">
                       <p className="text-xs font-bold text-amber-800 uppercase">Note from customer</p>
                       <p className="text-sm font-medium text-amber-900">{order.special_note}</p>
                     </div>
                   )}
+
+                  <button 
+                    onClick={() => setChatOrderId(order.id)}
+                    className="flex items-center gap-2 text-sm font-bold text-[#2563EB] hover:text-blue-700 transition px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg"
+                  >
+                    <MessageSquare size={16} /> Contact Customer
+                  </button>
                 </div>
 
                 <div className="w-full sm:w-48 flex flex-col gap-2 border-t sm:border-t-0 sm:border-l border-gray-100 pt-4 sm:pt-0 sm:pl-5">
@@ -118,15 +140,20 @@ export default function ShopOrdersPage() {
                       <button onClick={() => handleStatusChange(order.id, 'preparing')} className="w-full bg-[#2563EB] text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow-sm">
                         Accept Order
                       </button>
-                      <button onClick={() => handleStatusChange(order.id, 'cancelled')} className="w-full bg-white border-2 border-red-100 text-red-600 font-bold py-2.5 rounded-xl hover:bg-red-50 transition">
-                        Reject
+                      <button onClick={() => handleCancelOrder(order.id)} className="w-full bg-white border-2 border-red-100 text-red-600 font-bold py-2.5 rounded-xl hover:bg-red-50 transition">
+                        Cancel Order
                       </button>
                     </>
                   )}
                   {activeTab === 'Preparing' && (
-                    <button onClick={() => handleStatusChange(order.id, 'ready')} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-600 transition shadow-sm">
-                      Mark as Ready
-                    </button>
+                    <>
+                      <button onClick={() => handleStatusChange(order.id, 'ready')} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-600 transition shadow-sm">
+                        Mark as Ready
+                      </button>
+                      <button onClick={() => handleCancelOrder(order.id)} className="w-full bg-white border-2 border-red-100 text-red-600 font-bold py-2.5 rounded-xl hover:bg-red-50 transition text-sm">
+                        Cancel Order
+                      </button>
+                    </>
                   )}
                   {activeTab === 'Ready' && (
                     <div className="text-center p-4 bg-gray-50 rounded-xl">
@@ -140,6 +167,32 @@ export default function ShopOrdersPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Chat Modal */}
+      <AnimatePresence>
+        {chatOrderId && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col"
+            >
+              <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  <MessageSquare size={18} className="text-[#2563EB]"/> Customer Chat
+                </h3>
+                <button onClick={() => setChatOrderId(null)} className="p-2 text-gray-400 hover:text-gray-900 bg-gray-200 rounded-full">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-4 bg-gray-100 h-[60vh] md:h-[500px]">
+                <OrderChat orderId={chatOrderId} />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

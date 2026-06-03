@@ -190,7 +190,9 @@ export default function CheckoutPage() {
                   <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 shrink-0">📍</div>
                   <h4 className="font-bold text-gray-900">Delivery Address</h4>
                 </div>
-                <button onClick={() => setIsEditingLocation(true)} className="text-gray-400 hover:text-gray-600 text-xs font-bold bg-gray-50 px-3 py-1.5 rounded-full transition">Edit</button>
+                <button onClick={() => setIsEditingLocation(true)} className="text-[#0F766E] hover:text-white bg-teal-50 hover:bg-[#0F766E] text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm border border-teal-100">
+                  Edit Address
+                </button>
               </div>
               <p className="text-gray-700 text-sm font-medium pl-10 relative z-10 leading-relaxed whitespace-pre-line">
                 {studentProfile?.hostel_name || fullAddress}
