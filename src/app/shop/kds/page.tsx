@@ -94,49 +94,55 @@ export default function KDSPage() {
   }
 
   return (
-    <div className="text-slate-100 flex flex-col h-[calc(100vh-2rem)]">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4 shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/shop/dashboard')} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition">
-            <ArrowLeft size={24} />
-          </button>
-          <h1 className="text-3xl font-display font-bold">Kitchen Display</h1>
-          <div className="flex gap-4 ml-6">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-              <span className="text-sm font-bold text-slate-300">New ({getNewOrders().length})</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-slate-500"></span>
-              <span className="text-sm font-bold text-slate-300">Preparing ({getPreparingOrders().length})</span>
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-0 md:p-4">
+      {/* Mobile Constraint Container */}
+      <div className="w-full max-w-[430px] h-[100dvh] md:h-[850px] bg-slate-900 md:border-[8px] border-slate-800 md:rounded-[3rem] flex flex-col overflow-hidden relative shadow-2xl mx-auto ring-1 ring-white/10 text-slate-100">
+        
+        {/* Header */}
+        <div className="flex flex-col gap-4 p-5 border-b border-slate-700/50 bg-slate-800/30 shrink-0">
+          <div className="flex justify-between items-center">
+            <button onClick={() => router.push('/shop/dashboard')} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition">
+              <ArrowLeft size={20} />
+            </button>
+            <div className="text-2xl font-mono font-bold tracking-wider text-amber-400">{time}</div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-display font-bold">Kitchen Display</h1>
+            <div className="flex gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+                <span className="text-xs font-bold text-slate-300">New ({getNewOrders().length})</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                <span className="text-xs font-bold text-slate-300">Prep ({getPreparingOrders().length})</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex flex-col items-end gap-3">
-          <div className="text-3xl font-mono font-bold tracking-wider text-amber-400">{time}</div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2 mt-1">
             <button
               onClick={handleEnablePush}
               disabled={pushEnabled}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition ${pushEnabled ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
+              className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition ${pushEnabled ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600'}`}
             >
-              {pushEnabled ? <><Bell size={14} /> Push Enabled</> : <><BellOff size={14} /> Enable Push</>}
+              {pushEnabled ? <><Bell size={14} /> Push On</> : <><BellOff size={14} /> Enable Push</>}
             </button>
             {isWakeSupported && (
               <button
                 onClick={toggleWake}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition ${isAwake ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
+                className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition ${isAwake ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600'}`}
               >
-                {isAwake ? <><Sun size={14} /> Screen Awake</> : <><Moon size={14} /> Screen Sleep</>}
+                {isAwake ? <><Sun size={14} /> Awake</> : <><Moon size={14} /> Sleep</>}
               </button>
             )}
           </div>
         </div>
-      </div>
+
       
       {/* Grid */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto bg-slate-900/50 p-4">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-500">
             <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
@@ -171,6 +177,7 @@ export default function KDSPage() {
             </AnimatePresence>
           </div>
         )}
+      </div>
       </div>
     </div>
   )
