@@ -97,3 +97,32 @@ export async function placeOrder(params: {
 
   return { orderId: order.id, orderNumber }
 }
+
+export async function cancelOrderAsStudent(orderId: string, studentId: string, reason: string) {
+  const supabase = createClient()
+  
+  // Verify order belongs to student and is still pending
+  const { data: order } = await supabase.from('orders')
+    .select('status, special_note')
+    .eq('id', orderId)
+    .eq('student_id', studentId)
+    .single()
+    
+  if (!order) throw new Error("Order not found or unauthorized")
+  if (order.status !== 'pending') throw new Error("Order cannot be cancelled at this stage")
+  
+  const appendReason = order.special_note ? `${order.special_note} | Student Cancel: ${reason}` : `Student Cancel: ${reason}`
+  
+  const { error } = await supabase
+    .from('orders')
+    .update({ status: 'cancelled', special_note: appendReason })
+    .eq('id', orderId)
+    
+  if (error) throw new Error(error.message)
+  
+  // Optionally log audit
+  try {
+    const { logOrderAudit } = require('./admin')
+    await logOrderAudit(orderId, studentId, order.status, 'cancelled')
+  } catch(e) {}
+}

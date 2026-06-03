@@ -107,16 +107,17 @@ export default function KDSPage() {
             <p className="text-2xl font-bold">Kitchen is clear. Waiting for orders...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-10">
+          <div className="flex flex-col gap-4 max-w-lg mx-auto w-full pb-32">
             <AnimatePresence mode="popLayout">
               {activeTickets.map(order => (
                 <motion.div
                   layout
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   key={order.id}
+                  className="w-full"
                 >
                   <TicketCard
                     order={order}

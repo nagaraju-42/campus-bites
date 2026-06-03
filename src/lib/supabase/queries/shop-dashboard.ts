@@ -17,7 +17,7 @@ export async function getShopActiveOrders(shopId: string): Promise<Order[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('orders')
-    .select(`*, order_items (*)`)
+    .select(`*, order_items (*), student:profiles!orders_student_id_fkey(full_name, phone)`)
     .eq('shop_id', shopId)
     .in('status', ['pending', 'preparing', 'ready'])
     .order('placed_at', { ascending: true })

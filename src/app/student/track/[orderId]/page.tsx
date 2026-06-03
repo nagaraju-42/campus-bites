@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, Circle, MessageSquare, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getOrderById } from '@/lib/supabase/queries/orders'
+import { getOrderById, cancelOrderAsStudent } from '@/lib/supabase/queries/orders'
 import { getOrderAuditLogs } from '@/lib/supabase/queries/admin'
 import { Order, OrderStatus } from '@/types'
 import { formatCurrency, getOrderStatusStep, formatDate } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import toast from 'react-hot-toast'
 import OrderChat from '@/components/shared/OrderChat'
 
 // STATUS_STEPS moved inside component
@@ -20,6 +21,7 @@ export default function TrackOrderPage() {
   const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showChat, setShowChat] = useState(false)
+  const { user } = require('@/store/authStore').useAuthStore()
 
   useEffect(() => {
     async function loadData() {
@@ -62,6 +64,22 @@ export default function TrackOrderPage() {
   const getTimeForStatus = (status: string, fallback: string) => {
     const log = auditLogs.find(l => l.status_to === status)
     return log ? formatDate(log.created_at) : fallback
+  }
+
+  const handleCancelOrder = async () => {
+    const reason = window.prompt("Why do you want to cancel this order? (Required)")
+    if (!reason || !reason.trim()) {
+      toast.error('Cancellation reason is required')
+      return
+    }
+    
+    try {
+      await cancelOrderAsStudent(orderId, user?.id || '', reason.trim())
+      toast.success('Order cancelled successfully')
+      // Status will auto-update via realtime channel
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to cancel order')
+    }
   }
 
   const STATUS_STEPS = [
@@ -161,6 +179,15 @@ export default function TrackOrderPage() {
             </div>
           </div>
         ) : null}
+
+        {order.status === 'pending' && (
+          <button 
+            onClick={handleCancelOrder}
+            className="w-full bg-white border-2 border-red-100 text-red-600 font-bold py-3.5 rounded-2xl shadow-sm hover:bg-red-50 transition active:scale-95"
+          >
+            Cancel Order
+          </button>
+        )}
       </div>
 
       {/* Chat Slide-up Drawer */}
