@@ -120,6 +120,7 @@ export interface Order {
   shops?: Pick<Shop, 'id' | 'name' | 'logo_url' | 'phone' | 'description' | 'address'>
   order_items?: OrderItem[]
   rider?: Pick<Profile, 'full_name' | 'phone'>
+  student?: Pick<Profile, 'full_name' | 'phone'>
 }
 
 export interface OrderItem {
