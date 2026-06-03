@@ -8,6 +8,18 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      }
+    ],
+  },
   turbopack: {},
   /* config options here */
 };

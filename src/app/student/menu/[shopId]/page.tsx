@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cartStore'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 
 export default function MenuPage() {
   const { shopId } = useParams<{ shopId: string }>()
@@ -69,7 +70,7 @@ export default function MenuPage() {
       <div className="relative h-64 bg-[#7F1D1D] rounded-b-3xl overflow-hidden">
         {/* Placeholder image layer */}
         <div className="absolute inset-0 bg-black/40 z-10"></div>
-        <img src="https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Biryani Cover" className="absolute inset-0 w-full h-full object-cover" />
+        <Image src="https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Biryani Cover" fill className="object-cover" priority />
         
         {/* Top Nav inside image */}
         <div className="absolute top-0 left-0 w-full px-5 pt-12 pb-4 z-20 flex items-center justify-between">
@@ -148,8 +149,9 @@ export default function MenuPage() {
                     </div>
                     <div className="flex flex-col items-center gap-2">
                       {item.image_url ? (
-                        <img src={item.image_url} alt={item.name}
-                          className="w-14 h-14 rounded-xl object-cover" />
+                        <div className="w-14 h-14 rounded-xl overflow-hidden relative">
+                          <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="56px" />
+                        </div>
                       ) : (
                         <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-xl">🍲</div>
                       )}

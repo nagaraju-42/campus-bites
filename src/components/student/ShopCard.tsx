@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Clock, Star } from 'lucide-react'
 import { Shop } from '@/types'
 
@@ -14,9 +15,9 @@ export default function ShopCard({ shop }: { shop: Shop }) {
     >
       <div className="flex items-start gap-4">
         {/* Logo */}
-        <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-100">
+        <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-100 relative">
           {shop.logo_url ? (
-            <img src={shop.logo_url} alt={shop.name} className="w-full h-full object-cover" />
+            <Image src={shop.logo_url} alt={shop.name} fill className="object-cover" sizes="64px" />
           ) : (
             <span className="text-2xl">🍽️</span>
           )}

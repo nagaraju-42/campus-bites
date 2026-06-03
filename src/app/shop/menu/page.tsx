@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
@@ -186,9 +187,9 @@ export default function ShopMenuPage() {
                   <tr key={item.id} className="hover:bg-gray-50/50 transition">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 relative">
                           {item.image_url ? (
-                            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                            <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="40px" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No img</div>
                           )}
