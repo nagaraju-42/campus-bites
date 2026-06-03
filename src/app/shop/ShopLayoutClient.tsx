@@ -22,7 +22,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const { setShopId, addOrder, updateOrderStatus } = useShopOrdersStore()
   const [shopOwnerId, setShopOwnerId] = useState<string | null>(null)
 
-  // Inject PWA manifest link into document head
+  // Inject PWA manifest link into document head + register service worker
   useEffect(() => {
     // Remove any existing manifest link
     const existing = document.querySelector('link[rel="manifest"]')
@@ -41,6 +41,15 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       document.head.appendChild(meta)
     }
     meta.content = '#0F172A'
+
+    // Register service worker for push notifications
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        console.log('Service Worker registered:', reg.scope)
+      }).catch((err) => {
+        console.error('SW registration failed:', err)
+      })
+    }
 
     return () => {
       link.remove()

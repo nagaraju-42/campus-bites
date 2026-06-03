@@ -19,7 +19,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
   const { setAvailableOrders, addAvailableOrder, setActiveDeliveries, checkAutoOffline, setIsOnline } = useRiderStore()
   const [riderId, setRiderId] = useState<string | null>(null)
 
-  // Inject PWA manifest link into document head
+  // Inject PWA manifest link into document head + register service worker
   useEffect(() => {
     // Remove any existing manifest link
     const existing = document.querySelector('link[rel="manifest"]')
@@ -38,6 +38,15 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
       document.head.appendChild(meta)
     }
     meta.content = '#16A34A'
+
+    // Register service worker for push notifications
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        console.log('Service Worker registered:', reg.scope)
+      }).catch((err) => {
+        console.error('SW registration failed:', err)
+      })
+    }
 
     return () => {
       link.remove()
