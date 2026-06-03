@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
 import { useAuthStore } from '@/store/authStore'
-import { updateOrderStatusDB } from '@/lib/supabase/queries/shop-dashboard'
+import { updateOrderStatusDB, cancelOrderAsShop } from '@/lib/supabase/queries/shop-dashboard'
 import TicketCard from '@/components/shop/TicketCard'
 import toast from 'react-hot-toast'
 
@@ -56,6 +56,18 @@ export default function KDSPage() {
       }
     } catch (err) {
       toast.error('Failed to update status')
+    }
+  }
+
+  const handleCancelOrder = async (orderId: string) => {
+    const reason = window.prompt("Enter cancellation reason (this will be sent to the student):", "Out of stock")
+    if (!reason) return
+    
+    try {
+      await cancelOrderAsShop(orderId, user?.id || '', reason)
+      toast.success('Order cancelled and student notified.')
+    } catch (err) {
+      toast.error('Failed to cancel order')
     }
   }
 
@@ -109,7 +121,7 @@ export default function KDSPage() {
                   <TicketCard
                     order={order}
                     onAccept={() => handleStatusChange(order.id, 'preparing')}
-                    onReject={() => handleStatusChange(order.id, 'cancelled')}
+                    onReject={() => handleCancelOrder(order.id)}
                     onReady={() => handleStatusChange(order.id, 'ready')}
                   />
                 </motion.div>

@@ -86,21 +86,26 @@ export default function TicketCard({ order, onAccept, onReject, onReady }: Ticke
       </div>
 
       {/* Footer Actions */}
-      <div className="p-4 bg-slate-800/50 mt-auto flex gap-3">
+      <div className="p-4 bg-slate-800/50 mt-auto flex flex-col gap-2">
         {isNew && (
-          <>
-            <button onClick={onReject} className="flex-1 bg-rose-500/10 text-rose-500 font-bold py-4 rounded-xl hover:bg-rose-500/20 transition">
-              Reject
+          <div className="flex gap-2 w-full">
+            <button onClick={onReject} className="flex-1 bg-rose-500/10 text-rose-500 font-bold py-3 rounded-xl hover:bg-rose-500/20 transition text-sm">
+              Cancel Order
             </button>
-            <button onClick={onAccept} className="flex-[2] bg-amber-500 text-amber-950 font-bold text-lg py-4 rounded-xl hover:bg-amber-400 transition shadow-lg shadow-amber-500/20">
+            <button onClick={onAccept} className="flex-[2] bg-amber-500 text-amber-950 font-bold text-lg py-3 rounded-xl hover:bg-amber-400 transition shadow-lg shadow-amber-500/20">
               Start Preparing
             </button>
-          </>
+          </div>
         )}
         {order.status === 'preparing' && (
-          <button onClick={onReady} className="w-full bg-emerald-500 text-emerald-950 font-bold text-lg py-4 rounded-xl hover:bg-emerald-400 transition shadow-lg shadow-emerald-500/20">
-            Mark Ready
-          </button>
+          <div className="flex flex-col gap-2 w-full">
+            <button onClick={onReady} className="w-full bg-emerald-500 text-emerald-950 font-bold text-lg py-3 rounded-xl hover:bg-emerald-400 transition shadow-lg shadow-emerald-500/20">
+              Mark Ready
+            </button>
+            <button onClick={onReject} className="w-full bg-transparent border border-rose-500/30 text-rose-500 font-bold py-2 rounded-xl hover:bg-rose-500/10 transition text-sm">
+              Cancel Order
+            </button>
+          </div>
         )}
         {order.status === 'ready' && (
           <div className="w-full bg-slate-700/50 text-emerald-400 border border-emerald-500/30 font-bold text-lg py-4 rounded-xl text-center flex items-center justify-center gap-2">

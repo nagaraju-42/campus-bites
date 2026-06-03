@@ -15,13 +15,14 @@ const TABS = ['New', 'Preparing', 'Ready']
 
 export default function ShopOrdersPage() {
   const { user } = useAuthStore()
-  const { getNewOrders, getPreparingOrders, getReadyOrders } = useShopOrdersStore()
+  // Select orders directly so component re-renders on change
+  const { orders } = useShopOrdersStore()
   const [activeTab, setActiveTab] = useState('New')
   const [chatOrderId, setChatOrderId] = useState<string | null>(null)
 
-  const newOrders = getNewOrders()
-  const prepOrders = getPreparingOrders()
-  const readyOrders = getReadyOrders()
+  const newOrders = orders.filter(o => o.status === 'pending')
+  const prepOrders = orders.filter(o => o.status === 'preparing')
+  const readyOrders = orders.filter(o => o.status === 'ready')
 
   const currentOrders = 
     activeTab === 'New' ? newOrders :
