@@ -19,7 +19,7 @@ export function useWakeLock() {
         setIsAwake(false);
         setWakeLock(null);
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(`${err.name}, ${err.message}`);
     }
   }, [isSupported]);

@@ -63,7 +63,7 @@ export async function updateOrderStatusDB(orderId: string, status: string, userI
   if (error) throw new Error(error.message)
   
   // Send push notification to rider if marked ready
-  if (status === 'ready' && order.rider_id) {
+  if (status === 'ready' && order?.rider_id) {
     try {
       await fetch(process.env.NEXT_PUBLIC_APP_URL + '/api/push/trigger', {
         method: 'POST',

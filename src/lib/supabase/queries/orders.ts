@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { Order, OrderItem, PaymentMethod } from '@/types'
 import { CartItem } from '@/store/cartStore'
+import { formatCurrency } from '@/lib/utils'
 
 export async function getStudentOrders(studentId: string): Promise<Order[]> {
   const supabase = createClient()
