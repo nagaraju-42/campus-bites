@@ -19,10 +19,7 @@ export default function PushTestPage() {
     // We fetch subscriptions and join with profiles to get the user's name/role
     const { data, error } = await supabase
       .from('push_subscriptions')
-      .select(`
-        *,
-        profile:profiles!push_subscriptions_user_id_fkey(full_name, role, email)
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) {
