@@ -100,7 +100,7 @@ export async function placeOrder(params: {
   try {
     const { data: shop } = await supabase.from('shops').select('owner_id').eq('id', params.shopId).single();
     if (shop?.owner_id) {
-      await fetch(process.env.NEXT_PUBLIC_APP_URL + '/api/push/trigger', {
+      await fetch('/api/push/trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
