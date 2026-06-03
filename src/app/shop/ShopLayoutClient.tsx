@@ -122,6 +122,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           // Fix: Fetch initial orders so they don't disappear on direct page load
           const { getShopActiveOrders } = require('@/lib/supabase/queries/shop-dashboard')
           const activeOrders = await getShopActiveOrders(shopData.id)
+          console.log("DEBUG KDS ACTIVE ORDERS:", activeOrders)
           useShopOrdersStore.getState().setOrders(activeOrders)
 
           setupRealtime(shopData.id)
