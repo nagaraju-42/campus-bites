@@ -180,14 +180,36 @@ export default function TrackOrderPage() {
           </div>
         ) : null}
 
-        {order.status === 'pending' && (
-          <button 
-            onClick={handleCancelOrder}
-            className="w-full bg-white border-2 border-red-100 text-red-600 font-bold py-3.5 rounded-2xl shadow-sm hover:bg-red-50 transition active:scale-95"
-          >
-            Cancel Order
-          </button>
-        )}
+        {/* Cancel Logic */}
+        {(() => {
+          if (order.status === 'delivered' || order.status === 'cancelled') return null;
+
+          const isPending = order.status === 'pending';
+          const placedAt = new Date(order.placed_at);
+          const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+          const isWithin5Mins = placedAt > fiveMinsAgo;
+
+          if (isPending && isWithin5Mins) {
+            return (
+              <button 
+                onClick={handleCancelOrder}
+                className="w-full bg-white border-2 border-red-100 text-red-600 font-bold py-3.5 rounded-2xl shadow-sm hover:bg-red-50 transition active:scale-95 flex items-center justify-center gap-2"
+              >
+                Cancel Order
+              </button>
+            )
+          } else {
+            return (
+              <a 
+                href={`tel:${order.shops?.phone || ''}`}
+                className="w-full bg-white border-2 border-red-100 text-red-600 font-bold py-3.5 rounded-2xl shadow-sm hover:bg-red-50 transition active:scale-95 flex items-center justify-center gap-2"
+                onClick={() => toast('Please call the shop to cancel this order as preparation has started or 5 minutes have passed.', { icon: '📞' })}
+              >
+                Call and Cancel Order
+              </a>
+            )
+          }
+        })()}
       </div>
 
       {/* Chat Slide-up Drawer */}
