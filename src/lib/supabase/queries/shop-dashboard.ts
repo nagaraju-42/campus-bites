@@ -45,8 +45,8 @@ import { logOrderAudit } from './admin'
 export async function updateOrderStatusDB(orderId: string, status: string, userId?: string) {
   const supabase = createClient()
   
-  // Get current status
-  const { data: order } = await supabase.from('orders').select('status').eq('id', orderId).single()
+  // Get current status and rider
+  const { data: order } = await supabase.from('orders').select('status, rider_id').eq('id', orderId).single()
   
   const updateData: any = { status }
   
@@ -61,6 +61,24 @@ export async function updateOrderStatusDB(orderId: string, status: string, userI
     .eq('id', orderId)
     
   if (error) throw new Error(error.message)
+  
+  // Send push notification to rider if marked ready
+  if (status === 'ready' && order.rider_id) {
+    try {
+      await fetch(process.env.NEXT_PUBLIC_APP_URL + '/api/push/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: order.rider_id,
+          title: '🍔 Order Ready for Pickup!',
+          body: `Order is ready at the shop. Please pick it up.`,
+          url: '/rider/orders'
+        })
+      });
+    } catch (e) {
+      console.error("Push error:", e);
+    }
+  }
   
   // Log audit
   if (order?.status && order.status !== status) {

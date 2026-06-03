@@ -95,6 +95,25 @@ export async function placeOrder(params: {
 
   if (itemsError) throw new Error(itemsError.message)
 
+  // Try to send push notification to shop owner
+  try {
+    const { data: shop } = await supabase.from('shops').select('owner_id').eq('id', params.shopId).single();
+    if (shop?.owner_id) {
+      await fetch(process.env.NEXT_PUBLIC_APP_URL + '/api/push/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: shop.owner_id,
+          title: '🚨 New Order Received! 🚨',
+          body: `Order ${orderNumber} for ${formatCurrency(params.totalAmount)}`,
+          url: '/shop/kds'
+        })
+      });
+    }
+  } catch (e) {
+    console.error("Push error:", e);
+  }
+
   return { orderId: order.id, orderNumber }
 }
 

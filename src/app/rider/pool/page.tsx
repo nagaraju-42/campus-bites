@@ -8,7 +8,9 @@ import { useRiderStore } from '@/store/riderStore'
 import { claimDelivery } from '@/lib/supabase/queries/rider'
 import PoolCard from '@/components/rider/PoolCard'
 import NotificationsTray from '@/components/shared/NotificationsTray'
-import { Bell } from 'lucide-react'
+import { Bell, BellOff, Sun, Moon } from 'lucide-react'
+import { useWakeLock } from '@/lib/useWakeLock'
+import { registerPushNotifications } from '@/lib/push-notifications'
 import toast from 'react-hot-toast'
 
 export default function RiderPoolPage() {
@@ -17,6 +19,26 @@ export default function RiderPoolPage() {
   const { availableOrders, activeDeliveries, removeAvailableOrder, addActiveDelivery, isOnline, setIsOnline } = useRiderStore()
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const { isSupported: isWakeSupported, isAwake, toggle: toggleWake } = useWakeLock()
+  const [pushEnabled, setPushEnabled] = useState(false)
+
+  // Check push permission on mount
+  useState(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      setPushEnabled(true)
+    }
+  })
+
+  const handleEnablePush = async () => {
+    if (!user) return
+    const success = await registerPushNotifications(user.id)
+    if (success) {
+      setPushEnabled(true)
+      toast.success('Background notifications enabled!')
+    } else {
+      toast.error('Failed to enable notifications')
+    }
+  }
 
   const currentShopLockId = activeDeliveries.length > 0 ? activeDeliveries[0].shop_id : null
 
@@ -81,7 +103,24 @@ export default function RiderPoolPage() {
         </div>
         
         {/* Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleEnablePush}
+            disabled={pushEnabled}
+            className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm border border-gray-100 transition ${pushEnabled ? 'bg-green-50' : 'bg-white hover:bg-gray-50'}`}
+          >
+            {pushEnabled ? <Bell size={18} className="text-green-600" /> : <BellOff size={18} className="text-gray-500" />}
+          </button>
+
+          {isWakeSupported && (
+            <button
+              onClick={toggleWake}
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm border border-gray-100 transition ${isAwake ? 'bg-amber-50' : 'bg-white hover:bg-gray-50'}`}
+            >
+              {isAwake ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} className="text-gray-500" />}
+            </button>
+          )}
+
           <button 
             onClick={() => setIsNotificationsOpen(true)}
             className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 relative hover:bg-gray-50 transition"

@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Bell, BellOff, Sun, Moon } from 'lucide-react'
+import { useWakeLock } from '@/lib/useWakeLock'
+import { registerPushNotifications } from '@/lib/push-notifications'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
 import { useAuthStore } from '@/store/authStore'
 import { updateOrderStatusDB, cancelOrderAsShop } from '@/lib/supabase/queries/shop-dashboard'
@@ -16,6 +18,26 @@ export default function KDSPage() {
   const { shopId, orders, setOrders, getNewOrders, getPreparingOrders, getReadyOrders } = useShopOrdersStore()
   const [time, setTime] = useState(new Date().toLocaleTimeString())
   const [isLoading, setIsLoading] = useState(true)
+  const { isSupported: isWakeSupported, isAwake, toggle: toggleWake } = useWakeLock()
+  const [pushEnabled, setPushEnabled] = useState(false)
+
+  useEffect(() => {
+    // Check if push is already granted
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setPushEnabled(true)
+    }
+  }, [])
+
+  const handleEnablePush = async () => {
+    if (!user) return
+    const success = await registerPushNotifications(user.id)
+    if (success) {
+      setPushEnabled(true)
+      toast.success('Background notifications enabled!')
+    } else {
+      toast.error('Failed to enable notifications')
+    }
+  }
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000)
@@ -91,7 +113,26 @@ export default function KDSPage() {
             </div>
           </div>
         </div>
-        <div className="text-3xl font-mono font-bold tracking-wider text-amber-400">{time}</div>
+        <div className="flex flex-col items-end gap-3">
+          <div className="text-3xl font-mono font-bold tracking-wider text-amber-400">{time}</div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleEnablePush}
+              disabled={pushEnabled}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition ${pushEnabled ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
+            >
+              {pushEnabled ? <><Bell size={14} /> Push Enabled</> : <><BellOff size={14} /> Enable Push</>}
+            </button>
+            {isWakeSupported && (
+              <button
+                onClick={toggleWake}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition ${isAwake ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
+              >
+                {isAwake ? <><Sun size={14} /> Screen Awake</> : <><Moon size={14} /> Screen Sleep</>}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
       
       {/* Grid */}
