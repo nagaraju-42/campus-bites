@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import SearchOverlay from '@/components/student/SearchOverlay'
 
-const CATEGORIES = ['All', 'Biryani', 'Snacks', 'Combos', 'Drinks', 'Chinese']
+const CATEGORIES = ['All', 'Fast Food', 'Drinks', 'Ice Creams', 'Snacks', 'Curries']
 
 export default function StudentHomePage() {
   const { user } = useAuthStore()
@@ -125,8 +125,17 @@ export default function StudentHomePage() {
   useEffect(() => {
     let result = shops
     if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase()
       result = result.filter((s) =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase())
+        s.name.toLowerCase().includes(searchLower) || 
+        (s.description && s.description.toLowerCase().includes(searchLower))
+      )
+    }
+    if (activeCategory !== 'All') {
+      const catLower = activeCategory.toLowerCase()
+      result = result.filter(s => 
+        (s.description && s.description.toLowerCase().includes(catLower)) || 
+        s.name.toLowerCase().includes(catLower)
       )
     }
     setFilteredShops(result)
@@ -195,13 +204,30 @@ export default function StudentHomePage() {
 
       <div className="px-5 py-4 space-y-6">
         {/* Category Icons */}
-        <div className="flex gap-4 overflow-x-auto scrollbar-none pb-2 pt-2">
+        <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2 pt-2 px-1">
           {CATEGORIES.map((cat, i) => (
-            <div key={cat} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-100">
-                <span className="text-2xl">{i===0?'🍽️':i===1?'🍲':i===2?'🍟':i===3?'🍱':i===4?'🥤':'🍜'}</span>
-              </div>
-              <span className="text-xs font-bold text-gray-700">{cat}</span>
+            <div 
+              key={cat} 
+              onClick={() => setActiveCategory(cat)}
+              className={`flex items-center gap-2.5 flex-shrink-0 cursor-pointer px-5 py-3 rounded-2xl shadow-sm border transition-all ${
+                activeCategory === cat 
+                  ? 'bg-gray-900 border-gray-900 shadow-md scale-[1.02]' 
+                  : 'bg-white border-gray-100 hover:border-gray-200'
+              }`}
+            >
+                <img 
+                  src={
+                    i === 0 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f37d-fe0f.png' :
+                    i === 1 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f354.png' :
+                    i === 2 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f964.png' :
+                    i === 3 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f366.png' :
+                    i === 4 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f35f.png' :
+                    'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f35b.png'
+                  }
+                  alt={cat}
+                  className="w-6 h-6 object-contain drop-shadow-sm"
+                />
+              <span className={`text-sm font-bold ${activeCategory === cat ? 'text-white' : 'text-gray-700'}`}>{cat}</span>
             </div>
           ))}
         </div>
