@@ -155,6 +155,13 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (!user || !shopId || hasActiveOrder) return
     
+    // Check if ALL items are partner items (user removed main shop items)
+    const allPartnerItems = items.every(item => item.partnerShopId)
+    if (allPartnerItems) {
+      toast.error('You must add at least one item from the main shop to checkout.')
+      return
+    }
+
     if (isDineIn) {
       if (!tableNumber.trim()) {
         toast.error('Please enter your table number')
