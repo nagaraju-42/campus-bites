@@ -180,7 +180,7 @@ export default function TrackOrderPage() {
       <div className="px-5 mt-auto fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-30 space-y-3">
         
         {/* OTP Delivery Box */}
-        {riderMode && !order.hostel_name?.includes('[Dine-In]') && order.status !== 'delivered' && order.status !== 'cancelled' && (
+        {!order.hostel_name?.includes('[Dine-In]') && order.status !== 'delivered' && order.status !== 'cancelled' && (
           <div className="bg-gray-900 rounded-2xl p-4 text-center shadow-2xl">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Delivery OTP</p>
             <p className="text-white text-3xl font-mono font-bold tracking-[0.25em]">{(order as any).delivery_otp || '----'}</p>

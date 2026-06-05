@@ -157,7 +157,7 @@ export default function CheckoutPage() {
     if (!user || !shopId || hasActiveOrder) return
     
     // Enforce Complete Profile
-    if (!user.full_name || !user.phone || user.full_name.trim() === '' || user.phone.trim() === '') {
+    if (!user.full_name || !user.phone || String(user.full_name).trim() === '' || String(user.phone).trim() === '' || String(user.phone).trim() === 'null') {
       toast.error('Please complete your profile (Name and Phone) before placing an order.')
       router.push('/complete-profile')
       return

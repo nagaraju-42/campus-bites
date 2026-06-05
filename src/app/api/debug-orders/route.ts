@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .select('*')
+    .select(`*, student:profiles!orders_student_id_fkey(full_name, phone)`)
     .order('placed_at', { ascending: false })
     .limit(10);
 

@@ -84,7 +84,10 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
               )}
             </div>
           ) : (
-            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-200 border border-blue-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">DELIVERY</span>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-200 border border-blue-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">DELIVERY</span>
+              <span className="px-2 py-0.5 bg-green-500/20 text-green-200 border border-green-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">OTP: {(order as any).delivery_otp || '----'}</span>
+            </div>
           )}
           {isLate && <span className="px-2 py-0.5 bg-white text-rose-600 text-xs font-black rounded-sm tracking-wider uppercase">10M LATE!</span>}
         </div>
@@ -147,6 +150,11 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
               <span className="text-xs uppercase tracking-wider font-bold text-slate-500 block mb-1">Customer Details</span>
               <p className="font-bold text-sm">{order.student.full_name || 'No Name Provided'}</p>
               {order.student.phone && <p className="text-sm">{order.student.phone}</p>}
+              {order.order_type === 'delivery' && order.hostel_name && (
+                <p className="text-sm mt-1 border-t border-slate-700/30 pt-1">
+                  <span className="text-slate-500 font-bold">Dest:</span> {order.hostel_name}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               {order.student.phone && (
