@@ -9,6 +9,7 @@ export interface CartItem {
   price: number
   quantity: number
   image_url?: string
+  partnerShopId?: string // if this item is a cross-shop add-on
 }
 
 interface CartState {

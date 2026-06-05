@@ -36,7 +36,14 @@ export default function PoolCard({ order, onClaim, isClaiming }: PoolCardProps) 
           <div className="absolute -left-6 top-0.5 w-5 h-5 bg-white border-4 border-gray-300 rounded-full z-10"></div>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pickup</p>
           <p className="text-sm font-bold text-gray-900 mt-0.5">{order.shops?.name}</p>
-          {order.shops?.description && <p className="text-xs text-gray-400 truncate">{order.shops.description}</p>}
+          {order.order_items?.some((i: any) => i.partner_shop_id) && (
+            <p className="text-xs text-[#F97316] font-bold mt-0.5">
+              + {order.order_items.find((i: any) => i.partner_shop_id)?.partner?.name}
+            </p>
+          )}
+          {order.shops?.description && !order.order_items?.some((i: any) => i.partner_shop_id) && (
+            <p className="text-xs text-gray-400 truncate">{order.shops.description}</p>
+          )}
         </div>
 
         {/* Dropoff */}

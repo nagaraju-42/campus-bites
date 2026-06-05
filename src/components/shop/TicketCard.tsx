@@ -6,13 +6,20 @@ import Link from 'next/link'
 
 interface TicketCardProps {
   order: Order
+  currentShopId: string
   onAccept?: () => void
   onReject?: (reason: string) => void
   onReady?: () => void
   onDelivered?: () => void
 }
 
-export default function TicketCard({ order, onAccept, onReject, onReady, onDelivered }: TicketCardProps) {
+export default function TicketCard({ order, currentShopId, onAccept, onReject, onReady, onDelivered }: TicketCardProps) {
+  // Filter items that belong to the current shop
+  const displayItems = order.order_items?.filter(item => 
+    (item.partner_shop_id && item.partner_shop_id === currentShopId) || 
+    (!item.partner_shop_id && order.shop_id === currentShopId)
+  ) || []
+
   // Dark mode optimized for Kitchen Display
   const isNew = order.status === 'pending'
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({})
@@ -81,10 +88,10 @@ export default function TicketCard({ order, onAccept, onReject, onReady, onDeliv
 
       {/* Items */}
       <div className="p-4 flex-1 space-y-3">
-        {order.order_items?.length === 0 ? (
+        {displayItems.length === 0 ? (
           <p className="text-slate-400 italic">No items found</p>
         ) : (
-          order.order_items?.map((item, idx) => {
+          displayItems.map((item, idx) => {
             const isChecked = checkedItems[idx]
             return (
               <div 

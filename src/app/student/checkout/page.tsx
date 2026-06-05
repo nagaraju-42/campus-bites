@@ -160,6 +160,10 @@ export default function CheckoutPage() {
         toast.error('Please enter your table number')
         return
       }
+      if (items.some(i => i.partnerShopId)) {
+        toast.error('Dine-In is not available for orders containing add-ons from partner shops.')
+        return
+      }
     } else {
       if (shopInfo && !shopInfo.is_open) {
         toast.error('This shop is currently closed for delivery.')
@@ -238,7 +242,13 @@ export default function CheckoutPage() {
                 Delivery
               </button>
               <button
-                onClick={() => setIsDineIn(true)}
+                onClick={() => {
+                  if (items.some(i => i.partnerShopId)) {
+                    toast.error('Dine-In is not available for orders containing add-ons from partner shops.')
+                    return
+                  }
+                  setIsDineIn(true)
+                }}
                 className={`flex-1 py-2 font-bold text-sm rounded-lg transition ${isDineIn ? 'bg-[#0F766E] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
               >
                 Dine-In

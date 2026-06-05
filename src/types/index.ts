@@ -134,6 +134,10 @@ export interface OrderItem {
   item_name: string
   quantity: number
   unit_price: number
+  partner_shop_id?: string | null
+  partner?: {
+    name: string
+  } | null
 }
 
 // ============================================================

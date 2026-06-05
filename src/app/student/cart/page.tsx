@@ -1,17 +1,69 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Minus, Trash2 } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { formatCurrency } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createClient } from '@/lib/supabase/client'
+import toast from 'react-hot-toast'
 
 export default function CartPage() {
   const router = useRouter()
   const [specialNote, setSpecialNote] = useState('')
-  const { items, updateQuantity, clearCart,
+  const [suggestedItems, setSuggestedItems] = useState<any[]>([])
+  const { items, updateQuantity, clearCart, addItem, shopId,
     getTotalItems, getTotalPrice, getDeliveryFee, getPlatformFee, getGrandTotal } = useCartStore()
+
+  useEffect(() => {
+    if (shopId) {
+      fetchSuggestedItems(shopId)
+    }
+  }, [shopId])
+
+  async function fetchSuggestedItems(currentShopId: string) {
+    try {
+      const supabase = createClient()
+      const { data: collabs } = await supabase
+        .from('shop_collaborations')
+        .select('partner_shop_id, partner:partner_shop_id(name)')
+        .eq('primary_shop_id', currentShopId)
+        .eq('is_active', true)
+
+      if (collabs && collabs.length > 0) {
+        // Just fetch items from the first active partner shop for simplicity
+        const partnerShop = collabs[0]
+        const { data: menuItems } = await supabase
+          .from('menu_items')
+          .select('*')
+          .eq('shop_id', partnerShop.partner_shop_id)
+          .eq('is_available', true)
+          .limit(10)
+        
+        if (menuItems) {
+          setSuggestedItems(menuItems.map(item => ({
+            ...item,
+            partnerShopName: (partnerShop.partner as any)?.name || (partnerShop.partner as any)?.[0]?.name || 'Partner Shop'
+          })))
+        }
+      } else {
+        setSuggestedItems([])
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleCheckout = () => {
+    // Check if ALL items are partner items
+    const allPartnerItems = items.every(item => item.partnerShopId)
+    if (allPartnerItems) {
+      toast.error('You must add at least one item from the main shop before checking out.')
+      return
+    }
+    router.push(`/student/checkout?note=${encodeURIComponent(specialNote)}`)
+  }
 
   if (items.length === 0) {
     return (
@@ -104,10 +156,46 @@ export default function CartPage() {
         </div>
       </div>
 
+      {/* Suggested Items (Cross-Sell) */}
+      {suggestedItems.length > 0 && (
+        <div className="px-5 pb-6">
+          <h3 className="font-bold text-gray-900 mb-3 text-sm flex items-center gap-2">
+            ✨ Suggested from {suggestedItems[0].partnerShopName}
+          </h3>
+          <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
+            {suggestedItems.map(item => (
+              <div key={item.id} className="min-w-[140px] bg-white p-3 rounded-2xl shadow-sm border border-gray-100 snap-start flex flex-col justify-between">
+                <div>
+                  <div className="w-full h-20 bg-orange-50 rounded-xl flex items-center justify-center mb-2">
+                    <span className="text-2xl">🍰</span>
+                  </div>
+                  <p className="font-bold text-gray-900 text-xs line-clamp-2">{item.name}</p>
+                  <p className="font-bold text-[#6D28D9] text-sm mt-1">{formatCurrency(item.price)}</p>
+                </div>
+                <button
+                  onClick={() => addItem({
+                    id: item.id,
+                    shopId: shopId!,
+                    partnerShopId: item.shop_id,
+                    shopName: suggestedItems[0].partnerShopName,
+                    name: item.name,
+                    price: item.price,
+                    quantity: 1
+                  })}
+                  className="mt-3 w-full bg-[#6D28D9]/10 text-[#6D28D9] font-bold text-xs py-2 rounded-xl hover:bg-[#6D28D9]/20 transition"
+                >
+                  + Add
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Proceed to Checkout */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-40">
         <button
-          onClick={() => router.push(`/student/checkout?note=${encodeURIComponent(specialNote)}`)}
+          onClick={handleCheckout}
           className="w-full bg-[#6D28D9] text-white py-4 rounded-2xl font-bold flex items-center justify-center shadow-xl shadow-purple-200 hover:bg-purple-800 transition active:scale-95"
         >
           Proceed to Checkout

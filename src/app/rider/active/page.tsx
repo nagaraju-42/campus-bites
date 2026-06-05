@@ -61,6 +61,11 @@ export default function ActiveDeliveriesPage() {
                     <div>
                       <p className="font-bold text-gray-900 text-lg">{order.order_number}</p>
                       <p className="text-gray-500 text-sm font-medium">{order.shops?.name}</p>
+                      {order.order_items?.some((i: any) => i.partner_shop_id) && (
+                        <p className="text-xs text-[#F97316] font-bold mt-0.5">
+                          + Pickup from: {order.order_items.find((i: any) => i.partner_shop_id)?.partner?.name}
+                        </p>
+                      )}
                     </div>
                     <span className="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider text-green-700 bg-green-100 border border-green-200">
                       Deliver This

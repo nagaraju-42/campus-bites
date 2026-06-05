@@ -15,10 +15,22 @@ export async function getShopDetailsByOwner(ownerId: string) {
 
 export async function getShopActiveOrders(shopId: string): Promise<Order[]> {
   const supabase = createClient()
+  
+  // Find orders where this shop is a partner
+  const { data: partnerItems } = await supabase
+    .from('order_items')
+    .select('order_id')
+    .eq('partner_shop_id', shopId)
+    
+  const partnerOrderIds = partnerItems?.map(item => item.order_id) || []
+  const orderIdsFilter = partnerOrderIds.length > 0 
+    ? `id.in.(${partnerOrderIds.join(',')})` 
+    : 'id.eq.00000000-0000-0000-0000-000000000000'
+
   const { data, error } = await supabase
     .from('orders')
     .select(`*, order_items (*), student:profiles!orders_student_id_fkey(full_name, phone)`)
-    .eq('shop_id', shopId)
+    .or(`shop_id.eq.${shopId},${orderIdsFilter}`)
     .in('status', ['pending', 'preparing', 'ready'])
     .order('placed_at', { ascending: true })
     
@@ -28,10 +40,22 @@ export async function getShopActiveOrders(shopId: string): Promise<Order[]> {
 
 export async function getShopOrderHistory(shopId: string, limit: number = 50): Promise<Order[]> {
   const supabase = createClient()
+
+  // Find orders where this shop is a partner
+  const { data: partnerItems } = await supabase
+    .from('order_items')
+    .select('order_id')
+    .eq('partner_shop_id', shopId)
+    
+  const partnerOrderIds = partnerItems?.map(item => item.order_id) || []
+  const orderIdsFilter = partnerOrderIds.length > 0 
+    ? `id.in.(${partnerOrderIds.join(',')})` 
+    : 'id.eq.00000000-0000-0000-0000-000000000000'
+
   const { data, error } = await supabase
     .from('orders')
     .select(`*, order_items (*), student:profiles!orders_student_id_fkey(full_name, phone)`)
-    .eq('shop_id', shopId)
+    .or(`shop_id.eq.${shopId},${orderIdsFilter}`)
     .in('status', ['delivered', 'cancelled'])
     .order('placed_at', { ascending: false })
     .limit(limit)

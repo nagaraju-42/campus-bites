@@ -90,6 +90,7 @@ export async function placeOrder(params: {
     item_name: item.name,
     quantity: item.quantity,
     unit_price: item.price,
+    partner_shop_id: item.partnerShopId || null,
   }))
 
   const { error: itemsError } = await supabase

@@ -152,6 +152,11 @@ export default function Rider2DashboardPage() {
                       </span>
                       <h3 className="font-bold text-gray-900">Order #{order.order_number}</h3>
                       <p className="text-xs text-gray-600 font-medium mt-1">Shop: {order.shops?.name}</p>
+                      {order.order_items?.some((i: any) => i.partner_shop_id) && (
+                        <p className="text-xs text-[#F97316] font-bold mt-0.5">
+                          + Pickup from: {order.order_items.find((i: any) => i.partner_shop_id)?.partner?.name}
+                        </p>
+                      )}
                       <p className="text-xs text-gray-500 mt-1">Deliver to: {order.hostel_name}</p>
                     </div>
                     <span className="text-lg font-bold text-orange-600">₹{order.total_amount}</span>
@@ -184,6 +189,11 @@ export default function Rider2DashboardPage() {
                       {order.status === 'ready' ? 'Ready for Pickup' : 'Out for Delivery'}
                     </span>
                     <h3 className="font-bold text-gray-900">Order #{order.order_number}</h3>
+                    {order.order_items?.some((i: any) => i.partner_shop_id) && (
+                      <p className="text-xs text-[#16A34A] font-bold mt-0.5">
+                        + {order.order_items.find((i: any) => i.partner_shop_id)?.partner?.name}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500 truncate max-w-[200px] mt-1">{order.hostel_name}</p>
                   </div>
                   <Link href={`/rider2/delivery/${order.id}`} className="bg-[#16A34A] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm">

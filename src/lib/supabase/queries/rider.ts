@@ -5,7 +5,7 @@ export async function getAvailableDeliveries(): Promise<Order[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('orders')
-    .select(`*, shops(name, description)`)
+    .select(`*, shops(name, description), order_items(partner_shop_id, partner:partner_shop_id(name))`)
     .eq('status', 'ready')
     .or('order_type.eq.delivery,order_type.is.null')
     .is('rider_id', null)
@@ -67,7 +67,7 @@ export async function getActiveDeliveries(riderId: string): Promise<Order[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('orders')
-    .select(`*, shops(name), profiles!student_id(full_name, phone)`)
+    .select(`*, shops(name), profiles!student_id(full_name, phone), order_items(partner_shop_id, partner:partner_shop_id(name))`)
     .eq('rider_id', riderId)
     .eq('status', 'out_for_delivery')
     .or('order_type.eq.delivery,order_type.is.null')

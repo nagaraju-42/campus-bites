@@ -171,6 +171,7 @@ export default function KDSPage() {
                 >
                   <TicketCard
                     order={order}
+                    currentShopId={shopId || ''}
                     onAccept={() => handleStatusChange(order.id, 'preparing')}
                     onReject={(reason) => handleCancelOrder(order.id, reason)}
                     onReady={() => handleStatusChange(order.id, 'ready')}
