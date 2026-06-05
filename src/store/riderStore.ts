@@ -15,6 +15,9 @@ interface RiderState {
   lastOnlineAt: number | null
   setIsOnline: (status: boolean) => void
   checkAutoOffline: () => void
+  pickedUpOrders: string[]
+  markOrderPickedUp: (orderId: string) => void
+  removePickedUpOrder: (orderId: string) => void
 }
 
 export const useRiderStore = create<RiderState>()(
@@ -24,6 +27,7 @@ export const useRiderStore = create<RiderState>()(
       activeDeliveries: [],
       isOnline: false,
       lastOnlineAt: null,
+      pickedUpOrders: [],
       
       setAvailableOrders: (orders) => set({ availableOrders: orders }),
       
@@ -62,11 +66,24 @@ export const useRiderStore = create<RiderState>()(
             set({ lastOnlineAt: Date.now() })
           }
         }
-      }
+      },
+
+      markOrderPickedUp: (orderId) => set((state) => {
+        if (state.pickedUpOrders.includes(orderId)) return state
+        return { pickedUpOrders: [...state.pickedUpOrders, orderId] }
+      }),
+
+      removePickedUpOrder: (orderId) => set((state) => ({
+        pickedUpOrders: state.pickedUpOrders.filter(id => id !== orderId)
+      }))
     }),
     {
       name: 'rider-storage',
-      partialize: (state) => ({ isOnline: state.isOnline, lastOnlineAt: state.lastOnlineAt }),
+      partialize: (state) => ({ 
+        isOnline: state.isOnline, 
+        lastOnlineAt: state.lastOnlineAt,
+        pickedUpOrders: state.pickedUpOrders
+      }),
     }
   )
 )
