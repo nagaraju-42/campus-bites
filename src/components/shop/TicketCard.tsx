@@ -14,11 +14,9 @@ interface TicketCardProps {
 }
 
 export default function TicketCard({ order, currentShopId, onAccept, onReject, onReady, onDelivered }: TicketCardProps) {
-  // Filter items that belong to the current shop
-  const displayItems = order.order_items?.filter(item => 
-    (item.partner_shop_id && item.partner_shop_id === currentShopId) || 
-    (!item.partner_shop_id && order.shop_id === currentShopId)
-  ) || []
+  // The user wants ALL items visible on the KDS so the kitchen knows the full order context,
+  // but we will highlight the external items differently.
+  const displayItems = order.order_items || []
 
   // Dark mode optimized for Kitchen Display
   const isNew = order.status === 'pending'
@@ -93,21 +91,39 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
         ) : (
           displayItems.map((item, idx) => {
             const isChecked = checkedItems[idx]
+            
+            const isExternalItem = item.partner_shop_id 
+              ? item.partner_shop_id !== currentShopId 
+              : order.shop_id !== currentShopId;
+
             return (
               <div 
                 key={idx} 
                 onClick={() => toggleItem(idx)}
-                className={`flex justify-between items-start cursor-pointer transition-all ${isChecked ? 'text-slate-500 line-through opacity-70' : 'text-slate-100 hover:text-white'}`}
+                className={`flex flex-col gap-1 cursor-pointer transition-all p-3 rounded-xl border ${
+                  isExternalItem 
+                    ? 'bg-purple-500/10 border-purple-500/30' 
+                    : 'bg-slate-700/20 border-transparent hover:bg-slate-700/40'
+                } ${isChecked ? 'opacity-50' : 'opacity-100'}`}
               >
-                <div className="flex gap-3 items-center">
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-emerald-500 border-emerald-500 text-emerald-950' : 'border-slate-500'}`}>
-                    {isChecked && <span className="text-xs font-bold">✓</span>}
-                  </div>
-                  <span className="font-bold text-lg">{item.quantity}x</span>
-                  <div>
-                    <p className="font-bold text-lg">{item.item_name}</p>
+                <div className={`flex justify-between items-start ${isChecked ? 'text-slate-500 line-through' : (isExternalItem ? 'text-purple-200' : 'text-slate-100')}`}>
+                  <div className="flex gap-3 items-center">
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-emerald-500 border-emerald-500 text-emerald-950' : (isExternalItem ? 'border-purple-500/50' : 'border-slate-500')}`}>
+                      {isChecked && <span className="text-xs font-bold">✓</span>}
+                    </div>
+                    <span className="font-bold text-lg">{item.quantity}x</span>
+                    <div>
+                      <p className="font-bold text-lg">{item.item_name}</p>
+                    </div>
                   </div>
                 </div>
+                {isExternalItem && (
+                  <div className="pl-8">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md">
+                      Partner Add-on: {item.partner?.name || 'External Shop'}
+                    </span>
+                  </div>
+                )}
               </div>
             )
           })
