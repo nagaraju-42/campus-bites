@@ -47,7 +47,7 @@ export default function ActiveDeliveryPage() {
         const supabase = createClient()
         const { data, error } = await supabase
           .from('orders')
-          .select(`*, shops(name, description), profiles!student_id(full_name, phone)`)
+          .select(`*, shops(name, description), profiles!student_id(full_name, phone), order_items(*, partner:partner_shop_id(name))`)
           .eq('id', orderId)
           .single()
         
