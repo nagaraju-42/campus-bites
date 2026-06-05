@@ -26,6 +26,11 @@ export default function ActiveDeliveryPage() {
   
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
   const [otpInput, setOtpInput] = useState('')
+  const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({})
+
+  const toggleItem = (idx: number) => {
+    setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }))
+  }
 
   useEffect(() => {
     // If the active delivery in store matches the URL, use it immediately
@@ -149,13 +154,58 @@ export default function ActiveDeliveryPage() {
 
             <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
               <h3 className="font-bold text-gray-900 mb-3 text-sm uppercase tracking-wider">Order Items</h3>
-              <ul className="space-y-2">
-                {order.order_items?.map((item, idx) => (
-                  <li key={idx} className="flex justify-between text-gray-700 text-sm font-medium">
-                    <span>{item.quantity}x {item.item_name}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-3">
+                {/* Primary Items */}
+                {order.order_items?.filter(i => !i.partner_shop_id || i.partner_shop_id === order.shop_id).map((item, idx) => {
+                  const originalIdx = order.order_items!.findIndex(i => i === item);
+                  const isChecked = checkedItems[originalIdx];
+                  return (
+                    <div 
+                      key={`p-${originalIdx}`} 
+                      onClick={() => toggleItem(originalIdx)}
+                      className={`flex justify-between items-center p-3 rounded-xl border transition-all cursor-pointer ${
+                        isChecked ? 'bg-green-50 border-green-200 text-gray-400 opacity-60' : 'bg-white border-gray-100 text-gray-800 shadow-sm'
+                      }`}
+                    >
+                      <div className="flex gap-3 items-center">
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}`}>
+                          {isChecked && <span className="text-xs font-bold">✓</span>}
+                        </div>
+                        <span className={`font-bold ${isChecked ? 'line-through' : ''}`}>{item.quantity}x {item.item_name}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Secondary Items */}
+                {order.order_items?.some(i => i.partner_shop_id && i.partner_shop_id !== order.shop_id) && (
+                  <div className="mt-4 bg-purple-50 rounded-2xl p-4 border border-purple-100">
+                    <p className="text-purple-600 text-xs font-bold uppercase tracking-wider mb-3">Partner Add-ons</p>
+                    <div className="space-y-2">
+                      {order.order_items?.filter(i => i.partner_shop_id && i.partner_shop_id !== order.shop_id).map((item, idx) => {
+                        const originalIdx = order.order_items!.findIndex(i => i === item);
+                        const isChecked = checkedItems[originalIdx];
+                        return (
+                          <div 
+                            key={`s-${originalIdx}`} 
+                            onClick={() => toggleItem(originalIdx)}
+                            className={`flex justify-between items-center p-3 rounded-xl border transition-all cursor-pointer ${
+                              isChecked ? 'bg-purple-100 border-purple-200 text-purple-400 opacity-60' : 'bg-white border-purple-100 text-purple-900 shadow-sm'
+                            }`}
+                          >
+                            <div className="flex gap-3 items-center">
+                              <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-purple-500 border-purple-500 text-white' : 'border-purple-300'}`}>
+                                {isChecked && <span className="text-xs font-bold">✓</span>}
+                              </div>
+                              <span className={`font-bold ${isChecked ? 'line-through' : ''}`}>{item.quantity}x {item.item_name}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
               {order.special_note && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <p className="text-xs font-bold text-amber-600 uppercase mb-1">Note:</p>
