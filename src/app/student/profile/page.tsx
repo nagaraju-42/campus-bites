@@ -6,6 +6,7 @@ import { LogOut, User as UserIcon, Settings, Heart, HelpCircle, ChevronRight, Fi
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
+import { updateStudentProfileServer } from './actions'
 
 export default function StudentProfilePage() {
   const router = useRouter()
@@ -52,12 +53,12 @@ export default function StudentProfilePage() {
     }
     setIsSaving(true)
     try {
-      const supabase = createClient()
-      await supabase.from('profiles').update({ full_name: editForm.full_name.trim() }).eq('id', user!.id)
-      await supabase.from('student_profiles').update({ 
-        hostel_name: editForm.hostel_name,
-        room_number: editForm.room_number.trim() || 'N/A'
-      }).eq('id', user!.id)
+      await updateStudentProfileServer(
+        user!.id,
+        editForm.full_name.trim(),
+        editForm.hostel_name,
+        editForm.room_number.trim() || 'N/A'
+      )
 
       setUser({ ...user!, full_name: editForm.full_name.trim() })
       setStudentProfile({ 

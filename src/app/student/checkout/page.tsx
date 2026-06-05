@@ -12,6 +12,7 @@ import toast from 'react-hot-toast'
 import { getPromotionByCode, Promotion } from '@/lib/supabase/queries/promotions'
 import { getShopById } from '@/lib/supabase/queries/shops'
 import { Shop } from '@/types'
+import { updateCheckoutLocationServer } from './actions'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -132,12 +133,11 @@ export default function CheckoutPage() {
       return
     }
     try {
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
-      await supabase.from('student_profiles').update({ 
-        hostel_name: hostelName.trim(),
-        room_number: roomNumber.trim() || 'N/A'
-      }).eq('id', user!.id)
+      await updateCheckoutLocationServer(
+        user!.id,
+        hostelName.trim(),
+        roomNumber.trim() || 'N/A'
+      )
       
       useAuthStore.getState().setStudentProfile({ 
         ...studentProfile!, 

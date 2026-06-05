@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { RegisterFormData } from '@/types'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
+import { updateProfileServer } from '../complete-profile/actions'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -107,17 +108,13 @@ export default function RegisterPage() {
       if (error) throw error
       if (!data.user) throw new Error('Registration failed')
 
-      await supabase
-        .from('profiles')
-        .update({ phone: formData.phone })
-        .eq('id', data.user.id)
-
-      await supabase.from('student_profiles').insert({
-        id: data.user.id,
-        college_name: 'Campus',
-        hostel_name: formData.hostel_name,
-        room_number: formData.room_number || 'N/A',
-      })
+      await updateProfileServer(
+        data.user.id,
+        formData.full_name,
+        formData.phone,
+        formData.hostel_name,
+        formData.room_number || 'N/A'
+      )
 
       toast.success('Account created! Welcome to TapNosh 🎉')
       router.replace('/student/home')

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
+import { updateProfileServer } from './actions'
 
 export default function CompleteProfilePage() {
   const router = useRouter()
@@ -81,22 +82,14 @@ export default function CompleteProfilePage() {
         data: { full_name: formData.full_name, role: 'student' }
       })
 
-      // Update profiles (row already exists from trigger)
-      const { error: profileError } = await supabase.from('profiles').update({
-        full_name: formData.full_name,
-        role: 'student',
-        phone: formData.phone
-      }).eq('id', currentUser.id)
-      if (profileError) throw profileError
-
-      // Update student_profiles
-      const { error: studentError } = await supabase.from('student_profiles').upsert({
-        id: currentUser.id,
-        college_name: 'Campus',
-        hostel_name: formData.hostel_name,
-        room_number: formData.room_number || 'N/A'
-      })
-      if (studentError) throw studentError
+      // Use Server Action to bypass RLS policies and ensure DB updates
+      await updateProfileServer(
+        currentUser.id,
+        formData.full_name,
+        formData.phone,
+        formData.hostel_name,
+        formData.room_number || 'N/A'
+      )
 
       // Update Zustand
       setUser({
