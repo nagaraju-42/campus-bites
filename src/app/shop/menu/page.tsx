@@ -9,6 +9,7 @@ import { getAllMenuItemsByShop, addMenuItem } from '@/lib/supabase/queries/menu'
 import { MenuItem } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import ImageUploadWebP from '@/components/shared/ImageUploadWebP'
 
 export default function ShopMenuPage() {
   const { shopId } = useShopOrdersStore()
@@ -23,6 +24,7 @@ export default function ShopMenuPage() {
     description: '',
     price: '',
     category: 'Mains',
+    image_url: ''
   })
   const [debugError, setDebugError] = useState<string | null>(null)
 
@@ -82,12 +84,13 @@ export default function ShopMenuPage() {
         description: formData.description,
         price: parseFloat(formData.price),
         category: formData.category,
+        image_url: formData.image_url || null,
         is_available: true
       })
       
       setItems([newItem, ...items])
       setIsModalOpen(false)
-      setFormData({ name: '', description: '', price: '', category: 'Mains' })
+      setFormData({ name: '', description: '', price: '', category: 'Mains', image_url: '' })
       setDebugError(null)
       toast.success('Item added to menu!')
     } catch (err: any) {
@@ -129,7 +132,16 @@ export default function ShopMenuPage() {
                 ERROR: {debugError}
               </div>
             )}
-            <form onSubmit={handleAddItem} className="p-5 space-y-4">
+            <form onSubmit={handleAddItem} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="mb-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Item Image</label>
+                <ImageUploadWebP 
+                  bucket="campus_assets" 
+                  folderPath={`menus/${shopId}`}
+                  currentImage={formData.image_url}
+                  onUploadSuccess={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+                />
+              </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Item Name</label>
                 <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="e.g. Chicken Biryani" />

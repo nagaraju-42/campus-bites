@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-display font-bold text-white tracking-wide">Platform Overview</h1>
-          <p className="text-slate-400 mt-1">Live metrics for CampusBites</p>
+          <p className="text-slate-400 mt-1">Live metrics for TapNosh</p>
         </div>
         <button className="flex items-center gap-2 bg-[#1E293B] text-slate-300 px-4 py-2 rounded-xl text-sm font-bold border border-slate-700 hover:bg-slate-800 transition">
           <Download size={16} /> Export Report

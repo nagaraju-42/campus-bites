@@ -51,6 +51,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       setUser(profile)
       setStudentProfile(studentProfile)
       setLoading(false)
+
+      if (!profile.phone || !studentProfile?.hostel_name) {
+        router.replace('/complete-profile')
+        return
+      }
       
       // If they are on login page but already logged in, send to home
       if (isLoginRoute) {
@@ -87,7 +92,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <div className="min-h-screen flex items-center justify-center bg-purple-50">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-purple-600 font-medium text-sm">Loading CampusBites...</p>
+          <p className="text-purple-600 font-medium text-sm">Loading TapNosh...</p>
         </div>
       </div>
     )

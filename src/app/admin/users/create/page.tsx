@@ -54,7 +54,7 @@ export default function AdminCreateUserPage() {
         const { error: shopError } = await supabase.from('shops').insert({
           owner_id: authData.user.id,
           name: formData.shopName,
-          description: 'A new CampusBites restaurant',
+          description: 'A new TapNosh restaurant',
           is_open: true,
           address: 'Campus Food Court'
         })

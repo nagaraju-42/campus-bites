@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Ban, CheckCircle, Search, Mail, MapPin, Trash2 } from 'lucide-react'
-import { getAllUsers, updateUserStatus, hardDeleteUser } from '@/lib/supabase/queries/admin'
+import { Ban, CheckCircle, Search, Mail, MapPin, Trash2, Edit2, X } from 'lucide-react'
+import { getAllUsers, updateUserStatus, hardDeleteUser, updateUserProfile, getDeliveryLocations } from '@/lib/supabase/queries/admin'
 import toast from 'react-hot-toast'
 
 export default function AdminUsersPage() {
@@ -11,11 +11,18 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState('all')
 
+  const [editUser, setEditUser] = useState<any>(null)
+  const [editForm, setEditForm] = useState({ full_name: '', phone: '', hostel_name: '', room_number: '' })
+  const [deliveryLocations, setDeliveryLocations] = useState<string[]>([])
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+
   useEffect(() => {
     async function load() {
       try {
         const data = await getAllUsers()
         setUsers(data)
+        const locs = await getDeliveryLocations()
+        setDeliveryLocations(locs)
       } catch (err) {
         console.error("Failed to load users", err)
       } finally {
@@ -56,6 +63,49 @@ export default function AdminUsersPage() {
       toast.success('User permanently deleted.')
     } catch (err: any) {
       toast.error('Failed to delete user: ' + err.message)
+    }
+  }
+
+  const handleOpenEdit = (user: any) => {
+    setEditUser(user)
+    setEditForm({
+      full_name: user.full_name || '',
+      phone: user.phone || '',
+      hostel_name: user.student_profiles?.hostel_name || '',
+      room_number: user.student_profiles?.room_number || ''
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    setIsSavingEdit(true)
+    try {
+      const updates = { full_name: editForm.full_name, phone: editForm.phone }
+      const studentUpdates = editUser.role === 'student' ? { hostel_name: editForm.hostel_name, room_number: editForm.room_number } : null
+      
+      await updateUserProfile(editUser.id, editUser.role, updates, studentUpdates)
+      
+      setUsers(users.map(u => {
+        if (u.id === editUser.id) {
+          return {
+            ...u,
+            full_name: editForm.full_name,
+            phone: editForm.phone,
+            student_profiles: u.student_profiles ? {
+              ...u.student_profiles,
+              hostel_name: editForm.hostel_name,
+              room_number: editForm.room_number
+            } : null
+          }
+        }
+        return u
+      }))
+      
+      toast.success('User updated successfully')
+      setEditUser(null)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update user')
+    } finally {
+      setIsSavingEdit(false)
     }
   }
 
@@ -145,6 +195,12 @@ export default function AdminUsersPage() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button 
+                          onClick={() => handleOpenEdit(user)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition flex items-center gap-1"
+                        >
+                          <Edit2 size={14} /> Edit
+                        </button>
+                        <button 
                           onClick={() => toggleSuspend(user.id, user.status)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                             user.status === 'suspended' ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20' : 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'
@@ -167,6 +223,86 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </div>
+
+      {editUser && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-slate-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-700">
+            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+              <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                Edit User Details
+              </h3>
+              <button onClick={() => setEditUser(null)} className="text-slate-400 hover:text-white transition">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Full Name</label>
+                <input 
+                  type="text"
+                  value={editForm.full_name}
+                  onChange={e => setEditForm({...editForm, full_name: e.target.value})}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-[#F97316]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Phone Number (Admin Override)</label>
+                <input 
+                  type="text"
+                  value={editForm.phone}
+                  onChange={e => setEditForm({...editForm, phone: e.target.value})}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-[#F97316]"
+                />
+              </div>
+
+              {editUser.role === 'student' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Hostel / Address</label>
+                    <select
+                      value={editForm.hostel_name}
+                      onChange={e => setEditForm({...editForm, hostel_name: e.target.value})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-[#F97316]"
+                    >
+                      <option value="">No Location Selected</option>
+                      {deliveryLocations.map((loc, idx) => (
+                        <option key={idx} value={loc}>{loc}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Room Number / Floor</label>
+                    <input 
+                      type="text"
+                      value={editForm.room_number}
+                      onChange={e => setEditForm({...editForm, room_number: e.target.value})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-[#F97316]"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-800 flex gap-3 bg-slate-800/50">
+              <button 
+                onClick={() => setEditUser(null)}
+                className="flex-1 bg-slate-700 text-white font-bold py-2.5 rounded-xl hover:bg-slate-600 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveEdit}
+                disabled={isSavingEdit}
+                className="flex-1 bg-[#F97316] text-white font-bold py-2.5 rounded-xl hover:bg-orange-600 transition disabled:opacity-50"
+              >
+                {isSavingEdit ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

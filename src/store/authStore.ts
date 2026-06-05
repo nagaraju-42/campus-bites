@@ -45,7 +45,7 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () => set({ user: null, studentProfile: null, adminUser: null }),
     }),
     {
-      name: 'campus-bites-auth',
+      name: 'tapnosh-auth',
       partialize: (state) => ({ user: state.user, studentProfile: state.studentProfile, adminUser: state.adminUser }),
     }
   )

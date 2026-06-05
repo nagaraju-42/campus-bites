@@ -58,12 +58,14 @@ export interface Shop {
   description: string | null
   address: string
   phone: string | null
+  cover_image?: string
   upi_id: string | null
   logo_url: string | null
   is_open: boolean
   status: ShopStatus
   opening_time: string | null
   closing_time: string | null
+  dine_in_enabled?: boolean | null
   created_at: string
   // Joined fields
   categories?: string[]
@@ -103,6 +105,7 @@ export interface Order {
   student_id: string
   shop_id: string
   rider_id: string | null
+  order_type: 'delivery' | 'dine_in'
   status: OrderStatus
   total_amount: number
   delivery_fee: number
@@ -114,6 +117,7 @@ export interface Order {
   floor: string | null
   delivery_otp: string
   special_note: string | null
+  cancellation_reason?: string | null
   placed_at: string
   delivered_at: string | null
   // Joined

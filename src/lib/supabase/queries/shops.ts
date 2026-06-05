@@ -6,7 +6,8 @@ export async function getApprovedShops(): Promise<Shop[]> {
   const { data, error } = await supabase
     .from('shops')
     .select('*')
-    .eq('is_open', true)
+    .eq('is_deleted', false)
+    .order('is_open', { ascending: false })
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)

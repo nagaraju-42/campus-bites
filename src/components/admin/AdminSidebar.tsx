@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/admin/users', label: 'User Management', Icon: Users },
   { href: '/admin/promotions', label: 'Promotions', Icon: Tag },
   { href: '/admin/payouts', label: 'Financials', Icon: Banknote },
+  { href: '/admin/settings', label: 'Settings', Icon: Store },
   { href: '/admin/support', label: 'Support Inbox', Icon: MessageSquare },
 ]
 
@@ -31,7 +32,7 @@ export default function AdminSidebar() {
     <div className="h-full flex flex-col pt-6 pb-4 bg-[#0F172A]">
       <div className="px-6 mb-8">
         <h1 className="text-2xl font-display font-bold text-white tracking-wide">
-          Campus<span className="text-[#F97316]">Admin</span>
+          TapNosh<span className="text-[#F97316]">Admin</span>
         </h1>
         <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-widest">God Mode</p>
       </div>

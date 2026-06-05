@@ -1,4 +1,4 @@
-// CampusBites Push Notification Service Worker
+// TapNosh Push Notification Service Worker
 // This file lives in public/ and is served directly at /sw.js
 
 // Install event - activate immediately
@@ -17,7 +17,7 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json();
-    const title = data.title || 'CampusBites';
+    const title = data.title || 'TapNosh';
     const options = {
       body: data.body || 'You have a new update.',
       icon: '/icons/icon-192x192.png',

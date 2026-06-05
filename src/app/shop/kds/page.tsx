@@ -16,7 +16,7 @@ export default function KDSPage() {
   const router = useRouter()
   const { user } = useAuthStore()
   const { shopId, orders, setOrders, getNewOrders, getPreparingOrders, getReadyOrders } = useShopOrdersStore()
-  const [time, setTime] = useState(new Date().toLocaleTimeString())
+  const [time, setTime] = useState(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }))
   const [isLoading, setIsLoading] = useState(true)
   const { isSupported: isWakeSupported, isAwake, toggle: toggleWake } = useWakeLock()
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -42,7 +42,7 @@ export default function KDSPage() {
   }
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000)
+    const timer = setInterval(() => setTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })), 1000)
     return () => clearInterval(timer)
   }, [])
 
@@ -83,12 +83,13 @@ export default function KDSPage() {
     }
   }
 
-  const handleCancelOrder = async (orderId: string) => {
-    const reason = window.prompt("Enter cancellation reason (this will be sent to the student):", "Out of stock")
+  const handleCancelOrder = async (orderId: string, reason: string) => {
     if (!reason) return
     
     try {
       await cancelOrderAsShop(orderId, user?.id || '', reason)
+      const { updateOrderStatus } = useShopOrdersStore.getState()
+      updateOrderStatus(orderId, 'cancelled')
       toast.success('Order cancelled and student notified.')
     } catch (err) {
       toast.error('Failed to cancel order')
@@ -171,8 +172,9 @@ export default function KDSPage() {
                   <TicketCard
                     order={order}
                     onAccept={() => handleStatusChange(order.id, 'preparing')}
-                    onReject={() => handleCancelOrder(order.id)}
+                    onReject={(reason) => handleCancelOrder(order.id, reason)}
                     onReady={() => handleStatusChange(order.id, 'ready')}
+                    onDelivered={() => handleStatusChange(order.id, 'delivered')}
                   />
                 </motion.div>
               ))}

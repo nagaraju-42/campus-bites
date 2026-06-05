@@ -21,12 +21,19 @@ export default function TrackOrderPage() {
   const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showChat, setShowChat] = useState(false)
+  const [riderMode, setRiderMode] = useState(true)
   const { user } = require('@/store/authStore').useAuthStore()
 
   useEffect(() => {
     async function loadData() {
       const data = await getOrderById(orderId)
       setOrder(data)
+      try {
+        const supabase = createClient()
+        const { data: settings } = await supabase.from('app_settings').select('rider_mode').limit(1).single()
+        if (settings) setRiderMode(settings.rider_mode)
+      } catch (e) {}
+
       try {
         const logs = await getOrderAuditLogs(orderId)
         setAuditLogs(logs)
@@ -59,6 +66,9 @@ export default function TrackOrderPage() {
   if (isLoading) return <div className="p-5 max-w-[430px] mx-auto"><div className="h-64 bg-gray-200 rounded-2xl animate-pulse" /></div>
   if (!order) return <div className="p-5 text-center text-gray-500 max-w-[430px] mx-auto">Order not found</div>
 
+  const isDineIn = order.order_type === 'dine_in' || order.hostel_name?.includes('[Dine-In]')
+
+
   const currentStep = getOrderStatusStep(order.status)
 
   const getTimeForStatus = (status: string, fallback: string) => {
@@ -82,13 +92,21 @@ export default function TrackOrderPage() {
     }
   }
 
-  const STATUS_STEPS = [
+  let STATUS_STEPS = [
     { step: 1, label: 'Order Placed', time: formatDate(order.placed_at), status: 'pending', color: 'text-gray-600' },
     { step: 2, label: 'Preparing', time: getTimeForStatus('preparing', currentStep >= 2 ? 'In Progress' : 'Upcoming'), status: 'preparing', color: 'text-orange-500' },
     { step: 3, label: 'Ready', time: getTimeForStatus('ready', currentStep >= 3 ? 'Ready for Pickup' : 'Upcoming'), status: 'ready', color: 'text-green-500' },
     { step: 4, label: 'Out for Delivery', time: getTimeForStatus('out_for_delivery', currentStep >= 4 ? 'Rider is on the way' : 'Upcoming'), status: 'out_for_delivery', color: 'text-blue-500' },
     { step: 5, label: 'Delivered', time: getTimeForStatus('delivered', order.status === 'delivered' && order.delivered_at ? formatDate(order.delivered_at) : 'Upcoming'), status: 'delivered', color: 'text-[#16A34A]' },
   ]
+
+  if (isDineIn) {
+    STATUS_STEPS = [
+      { step: 1, label: 'Order Placed', time: formatDate(order.placed_at), status: 'pending', color: 'text-gray-600' },
+      { step: 2, label: 'Preparing', time: getTimeForStatus('preparing', currentStep >= 2 ? 'In Progress' : 'Upcoming'), status: 'preparing', color: 'text-orange-500' },
+      { step: 3, label: 'Served', time: getTimeForStatus('delivered', order.status === 'delivered' && order.delivered_at ? formatDate(order.delivered_at) : 'Upcoming'), status: 'delivered', color: 'text-[#16A34A]' },
+    ]
+  }
 
   return (
     <div className="min-h-screen bg-white max-w-[430px] mx-auto pb-24 border-x border-gray-100 shadow-sm">
@@ -110,6 +128,17 @@ export default function TrackOrderPage() {
         <p className="text-gray-900 font-bold text-sm mb-1">Order ID: {order.order_number}</p>
         <p className="text-gray-500 text-xs font-medium">Placed on {formatDate(order.placed_at)}</p>
       </div>
+
+      {order.status === 'cancelled' && (
+        <div className="mx-5 my-2 bg-red-50 border border-red-200 rounded-xl p-4">
+          <h3 className="text-red-700 font-bold text-sm flex items-center gap-2">
+            <X size={16} /> Order Cancelled
+          </h3>
+          <p className="text-red-600 text-xs mt-1">
+            {order.cancellation_reason ? `Reason: ${order.cancellation_reason}` : 'This order has been cancelled.'}
+          </p>
+        </div>
+      )}
 
       <div className="px-5 py-6">
         {/* Status Timeline */}
@@ -151,7 +180,7 @@ export default function TrackOrderPage() {
       <div className="px-5 mt-auto fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-30 space-y-3">
         
         {/* OTP Delivery Box */}
-        {order.status !== 'delivered' && order.status !== 'cancelled' && (
+        {riderMode && !order.hostel_name?.includes('[Dine-In]') && order.status !== 'delivered' && order.status !== 'cancelled' && (
           <div className="bg-gray-900 rounded-2xl p-4 text-center shadow-2xl">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Delivery OTP</p>
             <p className="text-white text-3xl font-mono font-bold tracking-[0.25em]">{(order as any).delivery_otp || '----'}</p>
@@ -160,25 +189,27 @@ export default function TrackOrderPage() {
         )}
 
         {/* Rider Info Card (Dynamic) */}
-        {order.rider_id && order.rider ? (
-          <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-xl">
-              👨‍🦰
+        {!isDineIn && riderMode && (
+          order.rider_id && order.rider ? (
+            <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-xl">
+                👨‍🦰
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-gray-900 text-sm">{order.rider.full_name}</p>
+                <p className="text-gray-500 text-xs font-medium">Your delivery partner</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-gray-900 text-sm">{order.rider.full_name}</p>
-              <p className="text-gray-500 text-xs font-medium">Your delivery partner</p>
+          ) : order.status === 'ready' || order.status === 'preparing' || order.status === 'pending' ? (
+            <div className="bg-gray-50 border border-gray-200 shadow-sm rounded-2xl p-4 flex items-center gap-3 animate-pulse">
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+              </div>
             </div>
-          </div>
-        ) : order.status === 'ready' || order.status === 'preparing' || order.status === 'pending' ? (
-          <div className="bg-gray-50 border border-gray-200 shadow-sm rounded-2xl p-4 flex items-center gap-3 animate-pulse">
-            <div className="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-            </div>
-          </div>
-        ) : null}
+          ) : null
+        )}
 
         {/* Cancel Logic */}
         {(() => {

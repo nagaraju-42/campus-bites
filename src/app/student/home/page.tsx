@@ -20,7 +20,10 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import SearchOverlay from '@/components/student/SearchOverlay'
 
-const CATEGORIES = ['All', 'Fast Food', 'Drinks', 'Ice Creams', 'Snacks', 'Curries']
+const DEFAULT_ALL_CATEGORY = {
+  name: 'All',
+  icon_url: 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f37d-fe0f.png'
+}
 
 export default function StudentHomePage() {
   const { user } = useAuthStore()
@@ -30,12 +33,16 @@ export default function StudentHomePage() {
   const [shops, setShops] = useState<Shop[]>([])
   const [filteredShops, setFilteredShops] = useState<Shop[]>([])
   const [activeCategory, setActiveCategory] = useState('All')
+  const [dbCategories, setDbCategories] = useState<any[]>([DEFAULT_ALL_CATEGORY])
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [lastOrder, setLastOrder] = useState<Order | null>(null)
+  
+  const [globalDineInEnabled, setGlobalDineInEnabled] = useState(false)
+  const [orderMode, setOrderMode] = useState<'delivery' | 'dine_in'>('delivery')
 
   useEffect(() => {
     async function fetchData() {
@@ -47,6 +54,17 @@ export default function StudentHomePage() {
         setShops(shopsData)
         setFilteredShops(shopsData)
         setPromotions(promosData)
+
+        const supabase = createClient()
+        const { data: catData } = await supabase.from('app_categories').select('*').eq('is_active', true).order('display_order', { ascending: true })
+        if (catData && catData.length > 0) {
+          setDbCategories([DEFAULT_ALL_CATEGORY, ...catData])
+        }
+
+        const { data: settings } = await supabase.from('app_settings').select('dine_in_enabled').limit(1).single()
+        if (settings) {
+          setGlobalDineInEnabled(settings.dine_in_enabled)
+        }
 
         // Fetch last order for Magic Reorder
         if (user?.id) {
@@ -152,7 +170,7 @@ export default function StudentHomePage() {
             </SheetTrigger>
             <SheetContent side="left" className="w-[80%] max-w-[300px] sm:max-w-[300px] p-0 bg-gray-50">
               <div className="bg-[#EAB308] p-6 pb-8 rounded-br-3xl">
-                <h2 className="text-2xl font-display font-bold text-gray-900 mt-4">CampusBites</h2>
+                <h2 className="text-2xl font-display font-bold text-gray-900 mt-4">TapNosh</h2>
                 <p className="text-yellow-900 text-sm font-medium">Hello, {user?.full_name || 'Student'}!</p>
               </div>
               <div className="flex flex-col gap-2 p-6 mt-2">
@@ -202,32 +220,43 @@ export default function StudentHomePage() {
         </div>
       </div>
 
+      {/* Order Mode Toggle (Global Settings Driven) */}
+      {globalDineInEnabled && (
+        <div className="mx-5 -mt-5 mb-4 relative z-20 flex bg-white rounded-2xl p-1.5 shadow-lg border border-gray-100">
+          <button
+            onClick={() => setOrderMode('delivery')}
+            className={`flex-1 py-2.5 font-bold text-sm rounded-xl transition-all ${orderMode === 'delivery' ? 'bg-[#0F766E] text-white shadow-md scale-[1.02]' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            🛵 Delivery
+          </button>
+          <button
+            onClick={() => setOrderMode('dine_in')}
+            className={`flex-1 py-2.5 font-bold text-sm rounded-xl transition-all ${orderMode === 'dine_in' ? 'bg-[#0F766E] text-white shadow-md scale-[1.02]' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            🍽️ Dine-In
+          </button>
+        </div>
+      )}
+
       <div className="px-5 py-4 space-y-6">
         {/* Category Icons */}
         <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2 pt-2 px-1">
-          {CATEGORIES.map((cat, i) => (
+          {dbCategories.map((cat, i) => (
             <div 
-              key={cat} 
-              onClick={() => setActiveCategory(cat)}
+              key={cat.name} 
+              onClick={() => setActiveCategory(cat.name)}
               className={`flex items-center gap-2.5 flex-shrink-0 cursor-pointer px-5 py-3 rounded-2xl shadow-sm border transition-all ${
-                activeCategory === cat 
+                activeCategory === cat.name 
                   ? 'bg-gray-900 border-gray-900 shadow-md scale-[1.02]' 
                   : 'bg-white border-gray-100 hover:border-gray-200'
               }`}
             >
                 <img 
-                  src={
-                    i === 0 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f37d-fe0f.png' :
-                    i === 1 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f354.png' :
-                    i === 2 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f964.png' :
-                    i === 3 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f366.png' :
-                    i === 4 ? 'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f35f.png' :
-                    'https://unpkg.com/emoji-datasource-apple@15.0.1/img/apple/64/1f35b.png'
-                  }
-                  alt={cat}
+                  src={cat.icon_url}
+                  alt={cat.name}
                   className="w-6 h-6 object-contain drop-shadow-sm"
                 />
-              <span className={`text-sm font-bold ${activeCategory === cat ? 'text-white' : 'text-gray-700'}`}>{cat}</span>
+              <span className={`text-sm font-bold ${activeCategory === cat.name ? 'text-white' : 'text-gray-700'}`}>{cat.name}</span>
             </div>
           ))}
         </div>
@@ -293,7 +322,7 @@ export default function StudentHomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.07 }}
                 >
-                  <ShopCard shop={shop} />
+                  <ShopCard shop={shop} orderMode={orderMode} />
                 </motion.div>
               ))}
             </motion.div>

@@ -5,13 +5,14 @@ import { motion } from 'framer-motion'
 import { IndianRupee, ShoppingBag, Users, AlertCircle, Bell, Send, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
-import { getShopDetailsByOwner, updateShopStatusDB, getShopActiveOrders, getShopCompletedOrders, getShopStats } from '@/lib/supabase/queries/shop-dashboard'
+import { getShopDetailsByOwner, updateShopStatusDB, getShopActiveOrders, getShopOrderHistory, getShopStats } from '@/lib/supabase/queries/shop-dashboard'
 import StatCard from '@/components/shop/StatCard'
 import NotificationsTray from '@/components/shared/NotificationsTray'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Order } from '@/types'
 import toast from 'react-hot-toast'
 import { broadcastNotification } from '@/lib/supabase/queries/notifications'
+import WhatsAppQRShare from '@/components/shop/WhatsAppQRShare'
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'month' | 'all_time'
 
@@ -45,7 +46,7 @@ export default function ShopDashboardPage() {
 
         const [activeOrders, completed] = await Promise.all([
           getShopActiveOrders(shopId!),
-          getShopCompletedOrders(shopId!)
+          getShopOrderHistory(shopId!, 5)
         ])
         const shopStats = await getShopStats(shopId!, timeRange)
         
@@ -242,7 +243,10 @@ export default function ShopDashboardPage() {
           </button>
         </div>
 
-
+        {/* WhatsApp Share Widget */}
+        <div className="h-full">
+          {shopId && <WhatsAppQRShare shopId={shopId} />}
+        </div>
 
       </div>
       

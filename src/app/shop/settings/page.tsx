@@ -28,7 +28,8 @@ export default function ShopSettingsPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!shop) return
-    setShop({ ...shop, [e.target.name]: e.target.value })
+    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value
+    setShop({ ...shop, [e.target.name]: value })
   }
 
   const handleSave = async () => {
@@ -41,6 +42,7 @@ export default function ShopSettingsPage() {
         .update({
           name: shop.name,
           description: shop.description,
+          dine_in_enabled: shop.dine_in_enabled,
         })
         .eq('id', shop.id)
       
@@ -94,6 +96,23 @@ export default function ShopSettingsPage() {
             className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-gray-100 text-gray-500 cursor-not-allowed shadow-sm transition"
           />
           <p className="text-xs text-gray-400 mt-1">Contact admin to change your payout UPI ID.</p>
+        </div>
+
+        <div className="flex items-center justify-between py-2 border-t border-gray-100">
+          <div>
+            <label className="block text-sm font-bold text-gray-900">Enable Dine-In Orders</label>
+            <p className="text-xs text-gray-500 mt-1">Allow students to browse menu and order for dine-in.</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              name="dine_in_enabled"
+              checked={!!shop.dine_in_enabled} 
+              onChange={handleChange}
+              className="sr-only peer" 
+            />
+            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#2563EB]"></div>
+          </label>
         </div>
 
         <div className="pt-4 border-t border-gray-100">

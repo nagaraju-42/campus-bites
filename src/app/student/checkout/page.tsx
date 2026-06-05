@@ -10,6 +10,8 @@ import { formatCurrency } from '@/lib/utils'
 import { PaymentMethod } from '@/types'
 import toast from 'react-hot-toast'
 import { getPromotionByCode, Promotion } from '@/lib/supabase/queries/promotions'
+import { getShopById } from '@/lib/supabase/queries/shops'
+import { Shop } from '@/types'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -18,17 +20,52 @@ export default function CheckoutPage() {
 
   const { user, studentProfile } = useAuthStore()
   const { items, shopId, getDeliveryFee, getPlatformFee, getGrandTotal, clearCart } = useCartStore()
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_on_delivery')
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [hasActiveOrder, setHasActiveOrder] = useState(false)
   const [isCheckingActive, setIsCheckingActive] = useState(true)
 
   const [isEditingLocation, setIsEditingLocation] = useState(false)
-  const [fullAddress, setFullAddress] = useState('')
+  const [hostelName, setHostelName] = useState('')
+  const [roomNumber, setRoomNumber] = useState('')
+  const [deliveryLocations, setDeliveryLocations] = useState<string[]>([])
+
+  const [dineInEnabled, setDineInEnabled] = useState(false)
+  const [isDineIn, setIsDineIn] = useState(false)
+  const [tableNumber, setTableNumber] = useState('')
+  const [shopInfo, setShopInfo] = useState<Shop | null>(null)
+
+  useEffect(() => {
+    async function loadSettings() {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data } = await supabase.from('app_settings').select('dine_in_enabled').limit(1).single()
+      
+      const { data: locData } = await supabase.from('app_settings').select('value').eq('key', 'delivery_locations').single()
+      if (locData && locData.value) {
+        try {
+          setDeliveryLocations(JSON.parse(locData.value))
+        } catch(e) {}
+      }
+      
+      let shopData = null
+      if (shopId) {
+        shopData = await getShopById(shopId)
+        setShopInfo(shopData)
+        if (shopData && !shopData.is_open && shopData.dine_in_enabled) {
+          setIsDineIn(true) // Force dine-in if closed for delivery
+        }
+      }
+
+      if (data) setDineInEnabled(data.dine_in_enabled && (shopData ? shopData.dine_in_enabled : true))
+    }
+    loadSettings()
+  }, [shopId])
 
   useEffect(() => {
     if (studentProfile) {
-      setFullAddress(studentProfile.hostel_name || '')
+      setHostelName(studentProfile.hostel_name || '')
+      setRoomNumber(studentProfile.room_number || '')
       if (!studentProfile.hostel_name) {
         setIsEditingLocation(true)
       }
@@ -82,38 +119,51 @@ export default function CheckoutPage() {
   }
 
   const handleSaveLocation = async () => {
-    if (!fullAddress.trim()) {
-      toast.error('Please enter your full delivery address')
+    if (!hostelName.trim()) {
+      toast.error('Please select your delivery location')
       return
     }
     try {
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
-      await supabase.from('student_profiles').update({
-        hostel_name: fullAddress.trim(),
-        college_name: 'Campus',
-        room_number: 'N/A'
-      }).eq('id', user?.id)
+      await supabase.from('student_profiles').update({ 
+        hostel_name: hostelName.trim(),
+        room_number: roomNumber.trim() || 'N/A'
+      }).eq('id', user!.id)
+      
+      useAuthStore.getState().setStudentProfile({ 
+        ...studentProfile!, 
+        hostel_name: hostelName.trim(),
+        room_number: roomNumber.trim() || 'N/A'
+      })
       
       setIsEditingLocation(false)
-      toast.success('Location saved!')
-      
-      // Update local store so it reflects immediately
-      const { setStudentProfile } = useAuthStore.getState()
-      setStudentProfile({ ...studentProfile, hostel_name: fullAddress.trim() } as any)
-      
-    } catch (err) {
-      toast.error('Failed to save location')
+      toast.success('Location updated!')
+    } catch (e) {
+      toast.error('Failed to update location')
     }
   }
 
   const handlePlaceOrder = async () => {
     if (!user || !shopId || hasActiveOrder) return
-    if (!fullAddress.trim()) {
-      toast.error('Please enter your full delivery address')
-      setIsEditingLocation(true)
-      return
+    
+    if (isDineIn) {
+      if (!tableNumber.trim()) {
+        toast.error('Please enter your table number')
+        return
+      }
+    } else {
+      if (shopInfo && !shopInfo.is_open) {
+        toast.error('This shop is currently closed for delivery.')
+        return
+      }
+      if (!hostelName.trim()) {
+        toast.error('Please select your delivery location')
+        setIsEditingLocation(true)
+        return
+      }
     }
+
     setIsPlacingOrder(true)
     try {
       const { orderId } = await placeOrder({
@@ -124,9 +174,10 @@ export default function CheckoutPage() {
         deliveryFee: getDeliveryFee(),
         platformFee: getPlatformFee(),
         paymentMethod,
-        hostelName: fullAddress.trim(),
+        hostelName: isDineIn ? `[Dine-In] Table: ${tableNumber.trim()}` : `${hostelName.trim()} ${roomNumber.trim() ? '- ' + roomNumber.trim() : ''}`.trim(),
         roomNumber: 'N/A',
         specialNote,
+        orderType: isDineIn ? 'dine_in' : 'delivery',
       })
       clearCart()
       toast.success('Order placed! 🎉')
@@ -158,11 +209,50 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {/* Delivery Address */}
+        {/* Order Mode & Location */}
         <div>
-          <h3 className="font-bold text-gray-900 text-sm mb-3">Delivery Location (Required)</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-gray-900 text-sm">Order Mode</h3>
+          </div>
           
-          {isEditingLocation ? (
+          {dineInEnabled && (
+            <div className="flex bg-white rounded-xl p-1 shadow-sm border border-gray-100 mb-4">
+              <button
+                onClick={() => {
+                  if (shopInfo && !shopInfo.is_open) {
+                    toast.error('Shop is closed for delivery.')
+                    return
+                  }
+                  setIsDineIn(false)
+                }}
+                className={`flex-1 py-2 font-bold text-sm rounded-lg transition ${!isDineIn ? 'bg-[#0F766E] text-white' : 'text-gray-500 hover:bg-gray-50'} ${shopInfo && !shopInfo.is_open ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Delivery
+              </button>
+              <button
+                onClick={() => setIsDineIn(true)}
+                className={`flex-1 py-2 font-bold text-sm rounded-lg transition ${isDineIn ? 'bg-[#0F766E] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
+                Dine-In
+              </button>
+            </div>
+          )}
+
+          {isDineIn ? (
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#0F766E]/20">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 shrink-0">🍽️</div>
+                <h4 className="font-bold text-gray-900">Table Number</h4>
+              </div>
+              <input 
+                type="text" 
+                placeholder="e.g. 5" 
+                value={tableNumber} 
+                onChange={e => setTableNumber(e.target.value)} 
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border-none shadow-sm focus:ring-2 focus:ring-[#0F766E]/20 font-bold text-sm" 
+              />
+            </div>
+          ) : isEditingLocation ? (
             <div className="bg-amber-50 rounded-3xl p-5 shadow-sm border border-amber-200 space-y-4">
               <div className="flex items-center gap-2 mb-2 text-amber-800">
                 <span className="text-xl">📍</span>
@@ -170,12 +260,25 @@ export default function CheckoutPage() {
               </div>
               
               <div>
-                <label className="text-xs font-bold text-amber-800 mb-1 block">Full Delivery Address *</label>
-                <textarea 
-                  value={fullAddress} 
-                  onChange={e => setFullAddress(e.target.value)} 
-                  placeholder="e.g. Anurag University, Boys Hostel, Block B, 3rd Floor, Room 312" 
-                  className="w-full px-4 py-3 rounded-xl bg-white border-none shadow-sm focus:ring-2 focus:ring-amber-400 font-bold text-sm h-28 resize-none" 
+                <label className="text-xs font-bold text-amber-800 mb-1 block">Preset Delivery Location *</label>
+                <select 
+                  value={hostelName} 
+                  onChange={e => setHostelName(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-xl bg-white border-none shadow-sm focus:ring-2 focus:ring-amber-400 font-bold text-sm mb-3" 
+                >
+                  <option value="" disabled>Select your location</option>
+                  {deliveryLocations.map((loc, idx) => (
+                    <option key={idx} value={loc}>{loc}</option>
+                  ))}
+                </select>
+                
+                <label className="text-xs font-bold text-amber-800 mb-1 block">Room / Block Number (Optional)</label>
+                <input 
+                  type="text"
+                  value={roomNumber} 
+                  onChange={e => setRoomNumber(e.target.value)} 
+                  placeholder="e.g. Room 312, Floor 3" 
+                  className="w-full px-4 py-3 rounded-xl bg-white border-none shadow-sm focus:ring-2 focus:ring-amber-400 font-bold text-sm" 
                 />
               </div>
               <button onClick={handleSaveLocation} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 text-sm">
@@ -190,12 +293,21 @@ export default function CheckoutPage() {
                   <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 shrink-0">📍</div>
                   <h4 className="font-bold text-gray-900">Delivery Address</h4>
                 </div>
-                <button onClick={() => setIsEditingLocation(true)} className="text-[#0F766E] hover:text-white bg-teal-50 hover:bg-[#0F766E] text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm border border-teal-100">
+                <button 
+                  onClick={() => {
+                    if (hasActiveOrder) {
+                      toast.error('You cannot change address while you have an active order.')
+                      return
+                    }
+                    setIsEditingLocation(true)
+                  }} 
+                  className={`text-[#0F766E] hover:text-white bg-teal-50 hover:bg-[#0F766E] text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm border border-teal-100 ${hasActiveOrder ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
                   Edit Address
                 </button>
               </div>
               <p className="text-gray-700 text-sm font-medium pl-10 relative z-10 leading-relaxed whitespace-pre-line">
-                {studentProfile?.hostel_name || fullAddress}
+                {studentProfile?.hostel_name ? `${studentProfile.hostel_name} ${studentProfile.room_number !== 'N/A' && studentProfile.room_number ? '- ' + studentProfile.room_number : ''}` : 'Not set'}
               </p>
             </div>
           )}
@@ -204,19 +316,14 @@ export default function CheckoutPage() {
         {/* Payment Method */}
         <div>
           <h3 className="font-bold text-gray-900 text-sm mb-3">Payment Method</h3>
-          <div className="bg-white rounded-3xl p-2 shadow-sm border border-gray-100 space-y-1">
-            <PaymentOption
-              label="UPI"
-              description="Google Pay, PhonePe, Paytm"
-              isSelected={paymentMethod === 'UPI'}
-              onClick={() => setPaymentMethod('UPI')}
-            />
-            <PaymentOption
-              label="Cash on Delivery"
-              description=""
-              isSelected={paymentMethod === 'cash_on_delivery'}
-              onClick={() => setPaymentMethod('cash_on_delivery')}
-            />
+          <div className="bg-white rounded-3xl p-4 shadow-sm border border-[#0F766E]/20 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center text-[#0F766E]">
+              <span className="text-xl">💵</span>
+            </div>
+            <div>
+              <p className="font-bold text-gray-900">Pay on Delivery</p>
+              <p className="text-xs text-gray-500 font-medium">Cash or PhonePe accepted at your door</p>
+            </div>
           </div>
         </div>
 
@@ -297,7 +404,7 @@ export default function CheckoutPage() {
             : 'bg-[#0F766E] shadow-teal-200 hover:bg-teal-800'
           }`}
         >
-          {isCheckingActive ? 'Checking...' : isPlacingOrder ? 'Processing...' : 'Place Order'}
+          {isCheckingActive ? 'Checking...' : isPlacingOrder ? 'Processing...' : 'Place Order • Pay on Delivery (Cash/PhonePe)'}
         </button>
       </div>
     </div>

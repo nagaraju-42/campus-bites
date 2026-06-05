@@ -49,6 +49,7 @@ export async function placeOrder(params: {
   block?: string
   floor?: string
   specialNote: string
+  orderType?: 'delivery' | 'dine_in'
 }): Promise<{ orderId: string; orderNumber: string }> {
   const supabase = createClient()
 
@@ -75,6 +76,7 @@ export async function placeOrder(params: {
       floor: params.floor || null,
       special_note: params.specialNote || null,
       delivery_otp: deliveryOtp,
+      order_type: params.orderType || 'delivery',
     })
     .select()
     .single()

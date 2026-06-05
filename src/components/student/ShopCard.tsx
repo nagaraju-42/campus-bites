@@ -5,15 +5,27 @@ import Image from 'next/image'
 import { Clock, Star } from 'lucide-react'
 import { Shop } from '@/types'
 
-export default function ShopCard({ shop }: { shop: Shop }) {
+export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop, orderMode?: string }) {
   const router = useRouter()
+
+  const isAccessible = shop.is_open || (orderMode === 'dine_in' && shop.dine_in_enabled)
+
+  const handleCardClick = () => {
+    if (isAccessible) {
+      router.push(`/student/menu/${shop.id}?mode=${orderMode}`)
+    }
+  }
 
   return (
     <div
-      onClick={() => router.push(`/student/menu/${shop.id}`)}
-      className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow active:scale-98"
+      onClick={handleCardClick}
+      className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all ${isAccessible ? 'hover:shadow-md cursor-pointer active:scale-98' : 'opacity-60 grayscale cursor-not-allowed'}`}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 relative">
+        {!isAccessible && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          </div>
+        )}
         {/* Logo */}
         <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-100 relative">
           {shop.logo_url ? (
@@ -28,11 +40,11 @@ export default function ShopCard({ shop }: { shop: Shop }) {
           <div className="flex items-start justify-between">
             <h3 className="font-bold text-gray-900 text-base truncate pr-2">{shop.name}</h3>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm flex-shrink-0 border ${
-              shop.is_open
+              isAccessible
                 ? 'bg-[#F0FDF4] text-[#16A34A] border-[#86EFAC]'
                 : 'bg-red-50 text-red-600 border-red-200'
             }`}>
-              {shop.is_open ? 'OPEN' : 'CLOSED'}
+              {isAccessible ? 'OPEN' : 'CLOSED'}
             </span>
           </div>
           

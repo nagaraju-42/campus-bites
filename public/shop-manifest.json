@@ -1,7 +1,7 @@
 {
-  "name": "CampusBites Shop Portal",
+  "name": "TapNosh Shop Portal",
   "short_name": "Shop Portal",
-  "description": "Kitchen Display System and Shop Dashboard for CampusBites",
+  "description": "Kitchen Display System and Shop Dashboard for TapNosh",
   "start_url": "/shop/login",
   "scope": "/shop/",
   "display": "standalone",

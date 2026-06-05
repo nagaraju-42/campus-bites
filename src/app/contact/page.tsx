@@ -118,6 +118,11 @@ export default function ContactPage() {
         <div className="text-center mt-4">
           <h1 className="text-3xl font-display font-bold text-gray-900">Contact Support</h1>
           <p className="text-yellow-900 mt-2 font-medium">We're here to help you</p>
+          <div className="bg-yellow-100/50 rounded-xl p-3 mt-4 text-xs font-bold text-yellow-900 inline-block text-left mx-auto border border-yellow-200/50">
+            <p>⏰ Tickets are typically resolved within 1 hour</p>
+            <p>🕐 Best time to reach us: 5-6 PM daily</p>
+            <p>📱 Available any day, any time</p>
+          </div>
         </div>
         
         {userId && (

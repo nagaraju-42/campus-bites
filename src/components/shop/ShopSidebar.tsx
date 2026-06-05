@@ -25,7 +25,7 @@ export default function ShopSidebar() {
   }
 
   return (
-    <div className="fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col z-50">
+    <div className="flex-1 w-full bg-white flex flex-col z-40">
       <div className="p-6">
         <h1 className="text-2xl font-display font-bold text-gray-900">
           Campus<span className="text-[#2563EB]">Shop</span>

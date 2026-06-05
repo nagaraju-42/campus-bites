@@ -229,7 +229,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       
       {/* Desktop Sidebar (Hide in KDS) */}
       {!isKDS && !isLoginPage && (
-        <div className="hidden md:flex flex-col w-64 flex-shrink-0 border-r border-gray-200 bg-white">
+        <div className="hidden md:flex flex-col w-64 flex-shrink-0 border-r border-gray-200 bg-white sticky top-0 h-screen overflow-y-auto">
           <AdminImpersonationBanner />
           <ShopSidebar />
         </div>

@@ -104,10 +104,21 @@ export async function getAllUsers() {
   // Join profiles with student_profiles for extra data
   const { data, error } = await supabase
     .from('profiles')
-    .select('*, student_profiles(college_name)')
+    .select('*, student_profiles(college_name, hostel_name, room_number)')
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function updateUserProfile(userId: string, role: string, updates: any, studentUpdates?: any) {
+  const supabase = createClient()
+  const { error } = await supabase.from('profiles').update(updates).eq('id', userId)
+  if (error) throw new Error(error.message)
+  
+  if (role === 'student' && studentUpdates) {
+    const { error: studentError } = await supabase.from('student_profiles').update(studentUpdates).eq('id', userId)
+    if (studentError) throw new Error(studentError.message)
+  }
 }
 
 export async function updateUserStatus(userId: string, status: string) {
@@ -237,4 +248,48 @@ export async function getOrderAuditLogs(orderId: string) {
     ...log,
     changed_by: profiles.find(p => p.id === log.changed_by_user_id) || null
   }))
+}
+
+// ============================================================================
+// DELIVERY LOCATIONS (Stored in app_settings)
+// ============================================================================
+
+export async function getDeliveryLocations(): Promise<string[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'delivery_locations')
+    .single()
+    
+  if (!data || !data.value) return []
+  try {
+    return JSON.parse(data.value)
+  } catch (e) {
+    return []
+  }
+}
+
+export async function setDeliveryLocations(locations: string[]) {
+  const supabase = createClient()
+  
+  // Check if exists
+  const { data: existing } = await supabase
+    .from('app_settings')
+    .select('key')
+    .eq('key', 'delivery_locations')
+    .single()
+    
+  if (existing) {
+    const { error } = await supabase
+      .from('app_settings')
+      .update({ value: JSON.stringify(locations) })
+      .eq('key', 'delivery_locations')
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await supabase
+      .from('app_settings')
+      .insert({ key: 'delivery_locations', value: JSON.stringify(locations) })
+    if (error) throw new Error(error.message)
+  }
 }

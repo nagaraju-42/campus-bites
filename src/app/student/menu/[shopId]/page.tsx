@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Star, Clock, Plus, Minus, ShoppingCart, Info, Search } from 'lucide-react'
 import { getShopById } from '@/lib/supabase/queries/shops'
-import { getMenuItemsByShop, groupMenuByCategory } from '@/lib/supabase/queries/menu'
+import { getMenuItemsByShop, groupMenuByCategory, getCollaborativeMenuItems } from '@/lib/supabase/queries/menu'
 import { Shop, MenuItem } from '@/types'
 import { useCartStore } from '@/store/cartStore'
 import { formatCurrency } from '@/lib/utils'
@@ -19,8 +19,13 @@ export default function MenuPage() {
   const [groupedMenu, setGroupedMenu] = useState<Record<string, MenuItem[]>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('Menu')
+  const [partnerShops, setPartnerShops] = useState<any[]>([])
 
   const { items, addItem, updateQuantity, getTotalItems, getTotalPrice, shopId: cartShopId } = useCartStore()
+
+  const searchParams = useSearchParams()
+  const orderMode = searchParams.get('mode') || 'delivery'
+  const isShopAccessible = shop ? (shop.is_open || (orderMode === 'dine_in' && shop.dine_in_enabled)) : true
 
   const getItemQuantity = (itemId: string) =>
     items.find((i) => i.id === itemId)?.quantity ?? 0
@@ -30,10 +35,11 @@ export default function MenuPage() {
       try {
         const [shopData, menuData] = await Promise.all([
           getShopById(shopId),
-          getMenuItemsByShop(shopId),
+          getCollaborativeMenuItems(shopId),
         ])
         setShop(shopData)
-        setGroupedMenu(groupMenuByCategory(menuData))
+        setGroupedMenu(groupMenuByCategory(menuData.items))
+        setPartnerShops(menuData.partnerShops)
       } finally {
         setIsLoading(false)
       }
@@ -42,14 +48,19 @@ export default function MenuPage() {
   }, [shopId])
 
   const handleAddToCart = (item: MenuItem) => {
-    if (cartShopId && cartShopId !== item.shop_id) {
+    if (!isShopAccessible) {
+      toast.error(`This shop is currently closed for ${orderMode === 'dine_in' ? 'dine-in' : 'delivery'}.`)
+      return
+    }
+
+    if (cartShopId && cartShopId !== shopId) {
       toast((t) => (
         <div>
           <p className="font-bold text-sm">Your cart has items from another shop</p>
           <p className="text-xs text-gray-500 mt-1 font-medium">Do you want to clear it and start fresh?</p>
           <div className="flex gap-2 mt-3">
             <button
-              onClick={() => { addItem({ id: item.id, shopId: item.shop_id, shopName: shop?.name ?? '', name: item.name, price: item.price, quantity: 1, image_url: item.image_url ?? undefined }); toast.dismiss(t.id) }}
+              onClick={() => { addItem({ id: item.id, shopId: shopId, shopName: shop?.name ?? '', name: item.name, price: item.price, quantity: 1, image_url: item.image_url ?? undefined }); toast.dismiss(t.id) }}
               className="bg-[#DC2626] text-white font-bold text-xs px-3 py-1.5 rounded-lg"
             >Yes, Start Fresh</button>
             <button onClick={() => toast.dismiss(t.id)} className="border border-gray-200 text-gray-600 font-bold text-xs px-3 py-1.5 rounded-lg">Cancel</button>
@@ -58,7 +69,8 @@ export default function MenuPage() {
       ), { duration: 6000 })
       return
     }
-    addItem({ id: item.id, shopId: item.shop_id, shopName: shop?.name ?? '', name: item.name, price: item.price, quantity: 1 })
+
+    addItem({ id: item.id, shopId: shopId, shopName: shop?.name ?? '', name: item.name, price: item.price, quantity: 1, image_url: item.image_url ?? undefined })
   }
 
   if (isLoading) return <MenuSkeleton />
@@ -68,9 +80,15 @@ export default function MenuPage() {
       
       {/* Dynamic Header Image + Top Bar */}
       <div className="relative h-64 bg-[#7F1D1D] rounded-b-3xl overflow-hidden">
-        {/* Placeholder image layer */}
+        {/* Dynamic cover image layer */}
         <div className="absolute inset-0 bg-black/40 z-10"></div>
-        <Image src="https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Biryani Cover" fill className="object-cover" priority />
+        <Image 
+          src={shop?.cover_image || "https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"} 
+          alt={`${shop?.name || 'Shop'} Cover`} 
+          fill 
+          className="object-cover" 
+          priority 
+        />
         
         {/* Top Nav inside image */}
         <div className="absolute top-0 left-0 w-full px-5 pt-12 pb-4 z-20 flex items-center justify-between">
@@ -86,7 +104,12 @@ export default function MenuPage() {
         {/* Shop Info inside image */}
         <div className="absolute bottom-6 left-5 z-20">
           <h1 className="text-3xl font-display font-bold text-white mb-1">{shop?.name}</h1>
-          <div className="flex items-center gap-2 text-white/90 text-xs font-medium mb-1">
+          {partnerShops && partnerShops.length > 0 && (
+            <p className="text-xs text-white/90 mb-1 font-medium bg-black/40 inline-block px-2 py-1 rounded backdrop-blur-sm">
+              🤝 Partnered with {partnerShops.map(p => p.name).join(', ')}
+            </p>
+          )}
+          <div className="flex items-center gap-2 text-white/90 text-xs font-medium mb-1 mt-1">
             <Star size={12} className="text-[#EAB308]" fill="currentColor" />
             <span className="font-bold">4.6 (230+)</span>
             <span>•</span>
@@ -107,7 +130,13 @@ export default function MenuPage() {
         </div>
       </div>
 
-      <div className="px-5 py-4 flex gap-8 border-b border-gray-200 sticky top-0 bg-gray-50 z-10">
+      {!isShopAccessible && (
+        <div className="bg-red-500 text-white text-center text-xs font-bold py-2 sticky top-0 z-20 shadow-md">
+          Shop is currently closed for {orderMode === 'delivery' ? 'delivery' : 'dine-in'}. Browsing only.
+        </div>
+      )}
+
+      <div className={`px-5 py-4 flex gap-8 border-b border-gray-200 sticky ${!isShopAccessible ? 'top-8' : 'top-0'} bg-gray-50 z-10`}>
         {['Menu', 'Reviews (230)', 'Info'].map((tab) => (
           <button 
             key={tab}
@@ -142,9 +171,16 @@ export default function MenuPage() {
               {menuItems.map((item) => {
                 const qty = getItemQuantity(item.id)
                 return (
-                  <div key={item.id} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex items-center gap-3">
+                  <div key={item.id} className={`bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex items-center gap-3 ${!item.is_available ? 'opacity-60 grayscale' : ''}`}>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 text-xs">{item.name}</h3>
+                      <h3 className="font-bold text-gray-900 text-xs">
+                        {item.name}
+                      </h3>
+                      {(item as any).partner_shop_name && (
+                        <p className="text-[9px] font-bold text-purple-600 bg-purple-50 inline-block px-1.5 py-0.5 rounded mt-0.5">
+                          by {(item as any).partner_shop_name}
+                        </p>
+                      )}
                       <p className="text-gray-900 font-bold text-xs mt-1">{formatCurrency(item.price)}</p>
                     </div>
                     <div className="flex flex-col items-center gap-2">
@@ -155,7 +191,15 @@ export default function MenuPage() {
                       ) : (
                         <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-xl">🍲</div>
                       )}
-                      {qty === 0 ? (
+                      {!item.is_available ? (
+                        <div className="bg-red-50 text-red-600 text-[9px] font-bold px-2 py-1 rounded-md shadow-sm border border-red-100 relative -mt-4 z-10 uppercase">
+                          Out of Stock
+                        </div>
+                      ) : !isShopAccessible ? (
+                        <div className="bg-gray-100 text-gray-500 text-[9px] font-bold px-2 py-1 rounded-md shadow-sm border border-gray-200 relative -mt-4 z-10 uppercase">
+                          Closed
+                        </div>
+                      ) : qty === 0 ? (
                         <button
                           onClick={() => handleAddToCart(item)}
                           className="w-7 h-7 bg-[#DC2626] rounded-md flex items-center justify-center shadow-sm relative -mt-5 z-10"

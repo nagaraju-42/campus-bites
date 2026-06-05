@@ -7,6 +7,7 @@ export async function getAvailableDeliveries(): Promise<Order[]> {
     .from('orders')
     .select(`*, shops(name, description)`)
     .eq('status', 'ready')
+    .or('order_type.eq.delivery,order_type.is.null')
     .is('rider_id', null)
     .order('placed_at', { ascending: true })
 
@@ -69,6 +70,7 @@ export async function getActiveDeliveries(riderId: string): Promise<Order[]> {
     .select(`*, shops(name), profiles!student_id(full_name, phone)`)
     .eq('rider_id', riderId)
     .eq('status', 'out_for_delivery')
+    .or('order_type.eq.delivery,order_type.is.null')
 
   if (error && error.code !== 'PGRST116') throw new Error(error.message)
   return data || []

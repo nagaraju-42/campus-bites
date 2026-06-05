@@ -26,14 +26,14 @@ export async function getShopActiveOrders(shopId: string): Promise<Order[]> {
   return data || []
 }
 
-export async function getShopCompletedOrders(shopId: string, limit: number = 5): Promise<Order[]> {
+export async function getShopOrderHistory(shopId: string, limit: number = 50): Promise<Order[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('orders')
-    .select(`*, order_items (*)`)
+    .select(`*, order_items (*), student:profiles!orders_student_id_fkey(full_name, phone)`)
     .eq('shop_id', shopId)
-    .eq('status', 'delivered')
-    .order('delivered_at', { ascending: false })
+    .in('status', ['delivered', 'cancelled'])
+    .order('placed_at', { ascending: false })
     .limit(limit)
     
   if (error) throw new Error(error.message)

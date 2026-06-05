@@ -1,18 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X, Eye, Trash2 } from 'lucide-react'
+import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X, Eye, Trash2, Menu } from 'lucide-react'
 import { getAllShops, updateShopApproval, updateShopDetails, softDeleteShop } from '@/lib/supabase/queries/admin'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import ImageUploadWebP from '@/components/shared/ImageUploadWebP'
 
 export default function AdminShopsPage() {
   const [shops, setShops] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingShop, setEditingShop] = useState<any | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', address: '' })
+  const [editForm, setEditForm] = useState({ name: '', address: '', description: '', cover_image: '' })
   
   const router = useRouter()
   const { user, setAdminUser, setUser } = useAuthStore()
@@ -44,14 +45,14 @@ export default function AdminShopsPage() {
 
   const handleEditClick = (shop: any) => {
     setEditingShop(shop)
-    setEditForm({ name: shop.name, address: shop.address || '' })
+    setEditForm({ name: shop.name, address: shop.address || '', description: shop.description || '', cover_image: shop.cover_image || '' })
   }
 
   const handleSaveEdit = async () => {
     if (!editingShop) return
     try {
       await updateShopDetails(editingShop.id, editForm)
-      setShops(shops.map(s => s.id === editingShop.id ? { ...s, name: editForm.name, address: editForm.address } : s))
+      setShops(shops.map(s => s.id === editingShop.id ? { ...s, name: editForm.name, address: editForm.address, description: editForm.description, cover_image: editForm.cover_image } : s))
       toast.success('Shop details updated!')
       setEditingShop(null)
     } catch (err) {
@@ -130,6 +131,13 @@ export default function AdminShopsPage() {
                   <Eye size={16} />
                 </button>
                 <button
+                  onClick={() => router.push(`/admin/shops/${shop.id}/menu`)}
+                  className="text-slate-400 hover:text-green-400 p-2 bg-slate-800 rounded-lg transition"
+                  title="Manage Menu (Blinkit Style)"
+                >
+                  <Menu size={16} />
+                </button>
+                <button
                   onClick={() => handleDeleteShop(shop.id)}
                   className="text-slate-400 hover:text-red-500 p-2 bg-slate-800 rounded-lg transition"
                   title="Delete Shop"
@@ -168,32 +176,38 @@ export default function AdminShopsPage() {
 
       {editingShop && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1E293B] rounded-2xl p-6 w-full max-w-md relative">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md relative overflow-hidden">
             <button 
               onClick={() => setEditingShop(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
             >
               <X size={20} />
             </button>
-            <h2 className="text-xl font-bold text-white mb-4">Edit Shop: {editingShop.name}</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Shop Name</label>
-                <input 
-                  type="text"
-                  value={editForm.name}
-                  onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Address</label>
-                <input 
-                  type="text"
-                  value={editForm.address}
-                  onChange={e => setEditForm({ ...editForm, address: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white"
-                />
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Edit Shop: {editingShop.name}</h2>
+              <div className="overflow-y-auto max-h-[70vh] mb-4 pr-2">
+                <div className="space-y-4">
+                  <div className="mb-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Shop Cover Image</label>
+                    <ImageUploadWebP 
+                      bucket="campus_assets" 
+                      folderPath={`shops/${editingShop.id}`}
+                      currentImage={editForm.cover_image}
+                      onUploadSuccess={(url) => setEditForm(prev => ({ ...prev, cover_image: url }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
+                    <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description (Keywords)</label>
+                    <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" rows={2}></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <input type="text" value={editForm.address} onChange={e => setEditForm({...editForm, address: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" />
+                  </div>
+                </div>
               </div>
               <button 
                 onClick={handleSaveEdit}
@@ -201,7 +215,6 @@ export default function AdminShopsPage() {
               >
                 Save Changes
               </button>
-            </div>
           </div>
         </div>
       )}

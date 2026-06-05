@@ -31,12 +31,17 @@ export default function RiderPoolPage() {
 
   const handleEnablePush = async () => {
     if (!user) return
-    const success = await registerPushNotifications(user.id)
-    if (success) {
-      setPushEnabled(true)
-      toast.success('Background notifications enabled!')
-    } else {
-      toast.error('Failed to enable notifications')
+    try {
+      const success = await registerPushNotifications(user.id)
+      if (success) {
+        setPushEnabled(true)
+        toast.success('Background notifications enabled!')
+      } else {
+        toast.error('Push notifications not supported in this browser or Incognito mode.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Error: ' + (err.message || 'Failed to enable notifications'))
     }
   }
 

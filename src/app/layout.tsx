@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CampusBites",
+  title: "TapNosh",
   description: "Food delivery for campus students",
 };
 
