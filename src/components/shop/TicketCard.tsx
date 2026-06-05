@@ -63,7 +63,14 @@ export default function TicketCard({ order, onAccept, onReject, onReady, onDeliv
         <div className="flex items-center gap-2">
           <h3 className="font-bold font-mono text-lg">{order.order_number}</h3>
           {order.order_type === 'dine_in' ? (
-            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-200 border border-purple-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">DINE-IN</span>
+            <div className="flex items-center gap-1.5">
+              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-200 border border-purple-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">DINE-IN</span>
+              {order.hostel_name && (
+                <span className="px-2 py-0.5 bg-fuchsia-500/20 text-fuchsia-200 border border-fuchsia-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">
+                  {order.hostel_name.replace('[Dine-In] ', '')}
+                </span>
+              )}
+            </div>
           ) : (
             <span className="px-2 py-0.5 bg-blue-500/20 text-blue-200 border border-blue-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">DELIVERY</span>
           )}
