@@ -11,6 +11,7 @@ import { useWakeLock } from '@/lib/useWakeLock'
 import { registerPushNotifications } from '@/lib/push-notifications'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { claimDelivery } from '@/lib/supabase/queries/rider'
 
 export default function Rider2DashboardPage() {
   const router = useRouter()
@@ -62,19 +63,12 @@ export default function Rider2DashboardPage() {
   const handleClaimOrder = async (orderId: string) => {
     if (!user) return
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('orders')
-        .update({ rider_id: user.id })
-        .eq('id', orderId)
-        .is('rider_id', null) // Prevent double booking
-
-      if (error) throw error
+      await claimDelivery(orderId, user.id)
 
       const claimedOrder = availableOrders.find(o => o.id === orderId)
       if (claimedOrder) {
         removeAvailableOrder(orderId)
-        addActiveDelivery({ ...claimedOrder, rider_id: user.id })
+        addActiveDelivery({ ...claimedOrder, status: 'out_for_delivery', rider_id: user.id })
         toast.success('Order claimed! Proceed to pickup.')
       }
     } catch (err: any) {

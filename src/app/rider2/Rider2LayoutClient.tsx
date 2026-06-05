@@ -139,7 +139,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
           // Fetch full order data to put in pool
           const { data: fullOrder } = await supabase
             .from('orders')
-            .select(`*, shops(name, description)`)
+            .select(`*, shops(name, description), order_items(*, partner:partner_shop_id(name))`)
             .eq('id', payload.new.id)
             .single()
 
