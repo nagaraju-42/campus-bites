@@ -143,7 +143,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
             .eq('id', payload.new.id)
             .single()
 
-          if (fullOrder && !fullOrder.rider_id) {
+          if (fullOrder && !fullOrder.rider_id && (!fullOrder.order_type || fullOrder.order_type === 'delivery')) {
             addAvailableOrder(fullOrder)
             // Play loud alarm for Rider
             const { playRiderAlarm } = require('@/store/riderStore')
