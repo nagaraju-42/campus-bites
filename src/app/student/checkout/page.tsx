@@ -13,6 +13,7 @@ import { getPromotionByCode, Promotion } from '@/lib/supabase/queries/promotions
 import { getShopById } from '@/lib/supabase/queries/shops'
 import { Shop } from '@/types'
 import { updateCheckoutLocationServer } from './actions'
+import { createClient } from '@/lib/supabase/client'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -162,11 +163,20 @@ export default function CheckoutPage() {
       return
     }
 
-    // Check if ALL items are partner items (user removed main shop items)
-    const allPartnerItems = items.every(item => item.partnerShopId)
-    if (allPartnerItems) {
-      toast.error('You must add at least one item from the main shop to checkout.')
-      return
+    // Check if ALL items are partner items by querying the DB to be absolutely 100% sure (ignores cached client state)
+    const supabase = createClient()
+    const { data: dbItems } = await supabase
+      .from('menu_items')
+      .select('id, shop_id')
+      .in('id', items.map(i => i.id))
+      
+    if (dbItems) {
+      const hasMainShopItem = dbItems.some(dbItem => dbItem.shop_id === shopId)
+      if (!hasMainShopItem) {
+        setIsPlacingOrder(false)
+        toast.error('You must add at least one item from the main shop to checkout.')
+        return
+      }
     }
 
     if (isDineIn) {
