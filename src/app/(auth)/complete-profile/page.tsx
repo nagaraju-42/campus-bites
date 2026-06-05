@@ -81,13 +81,12 @@ export default function CompleteProfilePage() {
         data: { full_name: formData.full_name, role: 'student' }
       })
 
-      // Update profiles
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: currentUser.id,
+      // Update profiles (row already exists from trigger)
+      const { error: profileError } = await supabase.from('profiles').update({
         full_name: formData.full_name,
         role: 'student',
         phone: formData.phone
-      })
+      }).eq('id', currentUser.id)
       if (profileError) throw profileError
 
       // Update student_profiles
@@ -115,7 +114,8 @@ export default function CompleteProfilePage() {
       })
 
       toast.success('Profile completed successfully!')
-      router.replace('/student/home')
+      // Force a full page reload to ensure layout fetches fresh data
+      window.location.href = '/student/home'
     } catch (err: any) {
       toast.error(err.message || 'Failed to complete profile')
     } finally {
