@@ -16,7 +16,14 @@ interface TicketCardProps {
 export default function TicketCard({ order, currentShopId, onAccept, onReject, onReady, onDelivered }: TicketCardProps) {
   // The user wants ALL items visible on the KDS so the kitchen knows the full order context,
   // but we will highlight the external items differently.
-  const displayItems = order.order_items || []
+  // Sort items so that primary items are at the top, and partner items are at the bottom.
+  const displayItems = [...(order.order_items || [])].sort((a, b) => {
+    const isAExternal = a.partner_shop_id ? a.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
+    const isBExternal = b.partner_shop_id ? b.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
+    
+    if (isAExternal === isBExternal) return 0;
+    return isAExternal ? 1 : -1;
+  })
 
   // Dark mode optimized for Kitchen Display
   const isNew = order.status === 'pending'
