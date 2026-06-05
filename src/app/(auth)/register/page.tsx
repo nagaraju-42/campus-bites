@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [deliveryLocations, setDeliveryLocations] = useState<string[]>([])
+  const [isCustomAddress, setIsCustomAddress] = useState(false)
 
   useEffect(() => {
     async function loadSettings() {
@@ -162,18 +163,44 @@ export default function RegisterPage() {
           placeholder="9876543210" value={formData.phone} onChange={handleChange} />
 
         <div>
-          <label className="block text-sm font-bold text-gray-800 mb-1.5">Preset Delivery Location *</label>
-          <select
-            name="hostel_name"
-            value={formData.hostel_name}
-            onChange={handleChange}
-            className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-white text-gray-900 focus:outline-none focus:border-[#EAB308] focus:ring-0 shadow-sm transition-all"
-          >
-            <option value="" disabled>Select your location</option>
-            {deliveryLocations.map((loc, idx) => (
-              <option key={idx} value={loc}>{loc}</option>
-            ))}
-          </select>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-sm font-bold text-gray-800">
+              {isCustomAddress ? 'Custom Delivery Location *' : 'Preset Delivery Location *'}
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCustomAddress(!isCustomAddress)
+                setFormData({ ...formData, hostel_name: '' })
+              }}
+              className="text-xs font-bold text-[#CA8A04] hover:text-yellow-800 transition"
+            >
+              {isCustomAddress ? 'Choose Preset' : 'Enter Custom Address'}
+            </button>
+          </div>
+          
+          {isCustomAddress ? (
+            <input
+              type="text"
+              name="hostel_name"
+              placeholder="e.g. My Custom Block"
+              value={formData.hostel_name}
+              onChange={handleChange}
+              className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#EAB308] focus:ring-0 shadow-sm transition-all"
+            />
+          ) : (
+            <select
+              name="hostel_name"
+              value={formData.hostel_name}
+              onChange={handleChange}
+              className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-white text-gray-900 focus:outline-none focus:border-[#EAB308] focus:ring-0 shadow-sm transition-all"
+            >
+              <option value="" disabled>Select your location</option>
+              {deliveryLocations.map((loc, idx) => (
+                <option key={idx} value={loc}>{loc}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <InputField 

@@ -13,6 +13,7 @@ export default function CompleteProfilePage() {
   
   const [isLoading, setIsLoading] = useState(false)
   const [deliveryLocations, setDeliveryLocations] = useState<string[]>([])
+  const [isCustomAddress, setIsCustomAddress] = useState(false)
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -104,10 +105,10 @@ export default function CompleteProfilePage() {
         email: currentUser.email!,
         role: 'student',
         full_name: formData.full_name,
-        phone: formData.phone
+        phone: formData.phone,
+        avatar_url: currentUser.user_metadata?.avatar_url || ''
       })
       setStudentProfile({
-        id: currentUser.id,
         college_name: 'Campus',
         hostel_name: formData.hostel_name,
         room_number: formData.room_number || 'N/A'
@@ -161,18 +162,44 @@ export default function CompleteProfilePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-800 mb-1.5">Preset Delivery Location *</label>
-          <select
-            name="hostel_name"
-            value={formData.hostel_name}
-            onChange={handleChange}
-            className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-white text-gray-900 focus:outline-none focus:border-[#EAB308] focus:ring-0 shadow-sm transition-all"
-          >
-            <option value="" disabled>Select your location</option>
-            {deliveryLocations.map((loc, idx) => (
-              <option key={idx} value={loc}>{loc}</option>
-            ))}
-          </select>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-sm font-bold text-gray-800">
+              {isCustomAddress ? 'Custom Delivery Location *' : 'Preset Delivery Location *'}
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCustomAddress(!isCustomAddress)
+                setFormData({ ...formData, hostel_name: '' })
+              }}
+              className="text-xs font-bold text-[#CA8A04] hover:text-yellow-800 transition"
+            >
+              {isCustomAddress ? 'Choose Preset' : 'Enter Custom Address'}
+            </button>
+          </div>
+          
+          {isCustomAddress ? (
+            <input
+              type="text"
+              name="hostel_name"
+              placeholder="e.g. My Custom Block"
+              value={formData.hostel_name}
+              onChange={handleChange}
+              className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#EAB308] focus:ring-0 shadow-sm transition-all"
+            />
+          ) : (
+            <select
+              name="hostel_name"
+              value={formData.hostel_name}
+              onChange={handleChange}
+              className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-white text-gray-900 focus:outline-none focus:border-[#EAB308] focus:ring-0 shadow-sm transition-all"
+            >
+              <option value="" disabled>Select your location</option>
+              {deliveryLocations.map((loc, idx) => (
+                <option key={idx} value={loc}>{loc}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div>

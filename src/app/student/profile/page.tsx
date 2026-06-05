@@ -14,6 +14,7 @@ export default function StudentProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [deliveryLocations, setDeliveryLocations] = useState<string[]>([])
+  const [isCustomAddress, setIsCustomAddress] = useState(false)
   const [editForm, setEditForm] = useState({
     full_name: '',
     hostel_name: '',
@@ -34,11 +35,13 @@ export default function StudentProfilePage() {
   }, [])
 
   const handleOpenEdit = () => {
+    const currentHostel = studentProfile?.hostel_name || ''
     setEditForm({
       full_name: user?.full_name || '',
-      hostel_name: studentProfile?.hostel_name || '',
+      hostel_name: currentHostel,
       room_number: studentProfile?.room_number || ''
     })
+    setIsCustomAddress(currentHostel ? !deliveryLocations.includes(currentHostel) : false)
     setIsEditing(true)
   }
 
@@ -204,24 +207,48 @@ export default function StudentProfilePage() {
                 <label className="block text-xs font-bold text-gray-500 mb-1">Phone Number <span className="text-red-400 font-normal">(Contact Support to change)</span></label>
                 <input 
                   type="text"
-                  value={user.phone}
+                  value={user.phone || ''}
                   disabled
                   className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-500 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">Preset Delivery Location</label>
-                <select
-                  value={editForm.hostel_name}
-                  onChange={e => setEditForm({...editForm, hostel_name: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:border-[#EAB308]"
-                >
-                  <option value="" disabled>Select your location</option>
-                  {deliveryLocations.map((loc, idx) => (
-                    <option key={idx} value={loc}>{loc}</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-gray-500">
+                    {isCustomAddress ? 'Custom Delivery Location' : 'Preset Delivery Location'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomAddress(!isCustomAddress)
+                      setEditForm({ ...editForm, hostel_name: '' })
+                    }}
+                    className="text-xs font-bold text-[#CA8A04] hover:text-yellow-800 transition"
+                  >
+                    {isCustomAddress ? 'Choose Preset' : 'Enter Custom'}
+                  </button>
+                </div>
+                {isCustomAddress ? (
+                  <input
+                    type="text"
+                    value={editForm.hostel_name}
+                    placeholder="e.g. My Custom Block"
+                    onChange={e => setEditForm({...editForm, hostel_name: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:border-[#EAB308]"
+                  />
+                ) : (
+                  <select
+                    value={editForm.hostel_name}
+                    onChange={e => setEditForm({...editForm, hostel_name: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:border-[#EAB308]"
+                  >
+                    <option value="" disabled>Select your location</option>
+                    {deliveryLocations.map((loc, idx) => (
+                      <option key={idx} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>

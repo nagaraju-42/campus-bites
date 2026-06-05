@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [hostelName, setHostelName] = useState('')
   const [roomNumber, setRoomNumber] = useState('')
   const [deliveryLocations, setDeliveryLocations] = useState<string[]>([])
+  const [isCustomAddress, setIsCustomAddress] = useState(false)
 
   const [dineInEnabled, setDineInEnabled] = useState(false)
   const [isDineIn, setIsDineIn] = useState(false)
@@ -64,13 +65,20 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (studentProfile) {
-      setHostelName(studentProfile.hostel_name || '')
+      const currentHostel = studentProfile.hostel_name || ''
+      setHostelName(currentHostel)
       setRoomNumber(studentProfile.room_number || '')
-      if (!studentProfile.hostel_name) {
+      if (!currentHostel) {
         setIsEditingLocation(true)
       }
     }
   }, [studentProfile])
+
+  useEffect(() => {
+    if (deliveryLocations.length > 0 && studentProfile?.hostel_name) {
+      setIsCustomAddress(!deliveryLocations.includes(studentProfile.hostel_name))
+    }
+  }, [deliveryLocations, studentProfile])
 
   const [couponCode, setCouponCode] = useState('')
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null)
@@ -260,17 +268,42 @@ export default function CheckoutPage() {
               </div>
               
               <div>
-                <label className="text-xs font-bold text-amber-800 mb-1 block">Preset Delivery Location *</label>
-                <select 
-                  value={hostelName} 
-                  onChange={e => setHostelName(e.target.value)} 
-                  className="w-full px-4 py-3 rounded-xl bg-white border-none shadow-sm focus:ring-2 focus:ring-amber-400 font-bold text-sm mb-3" 
-                >
-                  <option value="" disabled>Select your location</option>
-                  {deliveryLocations.map((loc, idx) => (
-                    <option key={idx} value={loc}>{loc}</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-amber-800">
+                    {isCustomAddress ? 'Custom Delivery Location *' : 'Preset Delivery Location *'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomAddress(!isCustomAddress)
+                      setHostelName('')
+                    }}
+                    className="text-xs font-bold text-amber-700 hover:text-amber-900 underline transition"
+                  >
+                    {isCustomAddress ? 'Choose Preset' : 'Enter Custom'}
+                  </button>
+                </div>
+                
+                {isCustomAddress ? (
+                  <input 
+                    type="text"
+                    value={hostelName} 
+                    placeholder="e.g. My Custom Block"
+                    onChange={e => setHostelName(e.target.value)} 
+                    className="w-full px-4 py-3 rounded-xl bg-white border-none shadow-sm focus:ring-2 focus:ring-amber-400 font-bold text-sm mb-3" 
+                  />
+                ) : (
+                  <select 
+                    value={hostelName} 
+                    onChange={e => setHostelName(e.target.value)} 
+                    className="w-full px-4 py-3 rounded-xl bg-white border-none shadow-sm focus:ring-2 focus:ring-amber-400 font-bold text-sm mb-3" 
+                  >
+                    <option value="" disabled>Select your location</option>
+                    {deliveryLocations.map((loc, idx) => (
+                      <option key={idx} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                )}
                 
                 <label className="text-xs font-bold text-amber-800 mb-1 block">Room / Block Number (Optional)</label>
                 <input 
