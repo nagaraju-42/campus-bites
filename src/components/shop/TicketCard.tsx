@@ -135,21 +135,28 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
           </div>
         )}
         {order.student && (
-          <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
-            {order.student.phone && (
-              <a 
-                href={`tel:${order.student.phone}`} 
-                className="flex-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition"
+          <div className="mt-4 pt-4 border-t border-slate-700/50">
+            <div className="mb-3 text-slate-300">
+              <span className="text-xs uppercase tracking-wider font-bold text-slate-500 block mb-1">Customer Details</span>
+              <p className="font-bold text-sm">{order.student.full_name || 'No Name Provided'}</p>
+              {order.student.phone && <p className="text-sm">{order.student.phone}</p>}
+            </div>
+            <div className="flex gap-2">
+              {order.student.phone && (
+                <a 
+                  href={`tel:${order.student.phone}`} 
+                  className="flex-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition"
+                >
+                  <Phone size={16} /> Call
+                </a>
+              )}
+              <Link 
+                href={`/shop/orders`} 
+                className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition"
               >
-                <Phone size={16} /> Call
-              </a>
-            )}
-            <Link 
-              href={`/shop/orders`} 
-              className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition"
-            >
-              <MessageSquare size={16} /> Chat
-            </Link>
+                <MessageSquare size={16} /> Chat
+              </Link>
+            </div>
           </div>
         )}
       </div>

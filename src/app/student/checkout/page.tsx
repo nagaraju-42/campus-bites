@@ -155,6 +155,13 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (!user || !shopId || hasActiveOrder) return
     
+    // Enforce Complete Profile
+    if (!user.full_name || !user.phone || user.full_name.trim() === '' || user.phone.trim() === '') {
+      toast.error('Please complete your profile (Name and Phone) before placing an order.')
+      router.push('/complete-profile')
+      return
+    }
+
     // Check if ALL items are partner items (user removed main shop items)
     const allPartnerItems = items.every(item => item.partnerShopId)
     if (allPartnerItems) {
