@@ -66,7 +66,7 @@ export default function TicketCard({ order, onAccept, onReject, onReady, onDeliv
             <div className="flex items-center gap-1.5">
               <span className="px-2 py-0.5 bg-purple-500/20 text-purple-200 border border-purple-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">DINE-IN</span>
               {order.hostel_name && (
-                <span className="px-2 py-0.5 bg-fuchsia-500/20 text-fuchsia-200 border border-fuchsia-500/50 text-[10px] font-black rounded-md uppercase tracking-wide">
+                <span className="px-2 py-0.5 bg-red-600 text-white border border-red-500 shadow-[0_0_8px_rgba(220,38,38,0.5)] text-[11px] font-black rounded-md uppercase tracking-wide">
                   {order.hostel_name.replace('[Dine-In] ', '')}
                 </span>
               )}
@@ -156,11 +156,11 @@ export default function TicketCard({ order, onAccept, onReject, onReady, onDeliv
         {order.status === 'ready' && (
           <div className="flex flex-col gap-2 w-full">
             <div className="w-full bg-slate-700/50 text-emerald-400 border border-emerald-500/30 font-bold text-lg py-4 rounded-xl text-center flex items-center justify-center gap-2">
-              <span className="animate-pulse">⏳</span> Waiting for Rider
+              <span className="animate-pulse">⏳</span> {isDineIn ? 'Ready at Kitchen' : 'Waiting for Rider'}
             </div>
             {onDelivered && (
               <button onClick={onDelivered} className="w-full bg-emerald-600/20 text-emerald-500 border border-emerald-500/50 font-bold text-sm py-2 rounded-xl hover:bg-emerald-600/30 transition shadow-sm">
-                Mark Delivered (Manual Pickup)
+                {isDineIn ? 'Order Arriving to Table' : 'Mark Delivered (Manual Pickup)'}
               </button>
             )}
           </div>
