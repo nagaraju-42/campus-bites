@@ -60,7 +60,19 @@ export default function MenuPage() {
           <p className="text-xs text-gray-500 mt-1 font-medium">Do you want to clear it and start fresh?</p>
           <div className="flex gap-2 mt-3">
             <button
-              onClick={() => { addItem({ id: item.id, shopId: shopId, shopName: shop?.name ?? '', name: item.name, price: item.price, quantity: 1, image_url: item.image_url ?? undefined }); toast.dismiss(t.id) }}
+              onClick={() => { 
+                addItem({ 
+                  id: item.id, 
+                  shopId: shopId, 
+                  partnerShopId: item.shop_id !== shopId ? item.shop_id : undefined,
+                  shopName: shop?.name ?? '', 
+                  name: item.name, 
+                  price: item.price, 
+                  quantity: 1, 
+                  image_url: item.image_url ?? undefined 
+                }); 
+                toast.dismiss(t.id) 
+              }}
               className="bg-[#DC2626] text-white font-bold text-xs px-3 py-1.5 rounded-lg"
             >Yes, Start Fresh</button>
             <button onClick={() => toast.dismiss(t.id)} className="border border-gray-200 text-gray-600 font-bold text-xs px-3 py-1.5 rounded-lg">Cancel</button>
@@ -70,7 +82,16 @@ export default function MenuPage() {
       return
     }
 
-    addItem({ id: item.id, shopId: shopId, shopName: shop?.name ?? '', name: item.name, price: item.price, quantity: 1, image_url: item.image_url ?? undefined })
+    addItem({ 
+      id: item.id, 
+      shopId: shopId, 
+      partnerShopId: item.shop_id !== shopId ? item.shop_id : undefined,
+      shopName: shop?.name ?? '', 
+      name: item.name, 
+      price: item.price, 
+      quantity: 1, 
+      image_url: item.image_url ?? undefined 
+    })
   }
 
   if (isLoading) return <MenuSkeleton />
