@@ -11,6 +11,7 @@ import { useRiderStore } from '@/store/riderStore'
 import { getAvailableDeliveries, getActiveDeliveries } from '@/lib/supabase/queries/rider'
 import Rider2BottomNav from '@/components/rider2/Rider2BottomNav'
 import { Order } from '@/types'
+import CompleteProfileOverlay from '@/components/shared/CompleteProfileOverlay'
 
 export default function RiderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -18,10 +19,10 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
   const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
   const { setAvailableOrders, addAvailableOrder, setActiveDeliveries, checkAutoOffline, setIsOnline } = useRiderStore()
   const [riderId, setRiderId] = useState<string | null>(null)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   // Inject PWA manifest link into document head + register service worker
   useEffect(() => {
-    // Remove any existing manifest link
     const existing = document.querySelector('link[rel="manifest"]')
     if (existing) existing.remove()
     
@@ -30,7 +31,6 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
     link.href = '/rider2-manifest.json'
     document.head.appendChild(link)
 
-    // Set theme color
     let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement
     if (!meta) {
       meta = document.createElement('meta')
@@ -39,7 +39,6 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
     }
     meta.content = '#16A34A'
 
-    // Register service worker for push notifications
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then((reg) => {
         console.log('Service Worker registered:', reg.scope)
@@ -64,7 +63,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
       if (!session) {
         clearAuth()
         setLoading(false)
-        setIsOnline(false) // Reset online status on logout
+        setIsOnline(false) 
         if (!isLoginRoute) {
           router.replace('/rider2/login')
         }
@@ -96,9 +95,15 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
       setUser(profile)
       setRiderId(session.user.id)
-      checkAutoOffline() // Check if 30 mins passed
+
+      if (!profile.phone) {
+        setNeedsOnboarding(true)
+        setLoading(false)
+        return
+      }
+
+      checkAutoOffline() 
       
-      // If they are on login page but already logged in, send to pool
       if (isLoginRoute) {
         setLoading(false)
         router.replace('/rider2/dashboard')
@@ -135,8 +140,6 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `status=eq.ready` },
         async (payload) => {
-          // A shop just marked an order as ready! 
-          // Fetch full order data to put in pool
           const { data: fullOrder } = await supabase
             .from('orders')
             .select(`*, shops(name, description), order_items(*, partner:partner_shop_id(name))`)
@@ -145,7 +148,6 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
           if (fullOrder && !fullOrder.rider_id && (!fullOrder.order_type || fullOrder.order_type === 'delivery')) {
             addAvailableOrder(fullOrder)
-            // Play loud alarm for Rider
             const { playRiderAlarm } = require('@/store/riderStore')
             playRiderAlarm()
             
@@ -173,19 +175,32 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
     )
   }
 
-  // Determine if it's the login page to hide nav
   const isLoginPage = pathname === '/rider2/login'
 
+  if (pathname.includes('/login')) {
+    return <>{children}</>
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pb-20 max-w-[430px] mx-auto border-x border-gray-100 shadow-xl">
+    <div className="min-h-screen bg-gray-50 flex flex-col pb-20 max-w-[430px] mx-auto border-x border-gray-100 shadow-xl relative">
       <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
       
+      {needsOnboarding && user && (
+        <CompleteProfileOverlay 
+          role="rider" 
+          userId={user.id} 
+          onComplete={() => {
+            setNeedsOnboarding(false)
+            window.location.reload()
+          }} 
+        />
+      )}
+
       {/* Main Content Area */}
-      <main className="flex-1 w-full bg-[#F0FDF4]">
+      <main className="flex-1 w-full bg-[#F0FDF4] overflow-y-auto scrollbar-hide">
         {children}
       </main>
 
-      {/* Mobile Bottom Nav */}
       {!isLoginPage && <Rider2BottomNav />}
     </div>
   )

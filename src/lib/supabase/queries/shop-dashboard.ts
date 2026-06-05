@@ -13,6 +13,50 @@ export async function getShopDetailsByOwner(ownerId: string) {
   return data
 }
 
+export async function createShopProfile(ownerId: string, shopName: string, phone: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('shops')
+    .insert({
+      owner_id: ownerId,
+      name: shopName,
+      phone: phone,
+      is_open: false
+    })
+    .select()
+    .single()
+    
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateProfilePhone(userId: string, phone: string) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ phone })
+    .eq('id', userId)
+    
+  if (error) throw new Error(error.message)
+}
+
+export async function toggleBusyModeDB(shopId: string, isBusy: boolean, userId: string) {
+  const supabase = createClient()
+  
+  // 1. Update shop
+  const { error: shopError } = await supabase
+    .from('shops')
+    .update({ busy_mode: isBusy })
+    .eq('id', shopId)
+    
+  if (shopError) throw new Error(shopError.message)
+  
+  // 2. Insert audit log
+  await supabase
+    .from('busy_mode_audits')
+    .insert({ shop_id: shopId, is_busy: isBusy, toggled_by: userId })
+}
+
 export async function getShopActiveOrders(shopId: string): Promise<Order[]> {
   const supabase = createClient()
   

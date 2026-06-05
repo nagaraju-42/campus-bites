@@ -12,6 +12,7 @@ import { getShopDetailsByOwner } from '@/lib/supabase/queries/shop-dashboard'
 import ShopSidebar from '@/components/shop/ShopSidebar'
 import ShopBottomNav from '@/components/shop/ShopBottomNav'
 import AdminImpersonationBanner from '@/components/admin/AdminImpersonationBanner'
+import CompleteProfileOverlay from '@/components/shared/CompleteProfileOverlay'
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -21,6 +22,14 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
   const { setShopId, addOrder, updateOrderStatus } = useShopOrdersStore()
   const [shopOwnerId, setShopOwnerId] = useState<string | null>(null)
+  
+  // Onboarding state
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  const [needsShopCreation, setNeedsShopCreation] = useState(false)
+  
+  // Track shop open status for mid-session closure warning
+  const [shopIsOpen, setShopIsOpen] = useState<boolean | null>(null)
+  const [shopIdForWatch, setShopIdForWatch] = useState<string | null>(null)
 
   // Inject PWA manifest link into document head + register service worker
   useEffect(() => {
@@ -116,39 +125,27 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     async function loadShop() {
       try {
         const shopData = await getShopDetailsByOwner(targetOwnerId!)
+        
+        // Check Onboarding
+        const isProfileIncomplete = !useAuthStore.getState().user?.phone
+        if (!shopData || isProfileIncomplete) {
+          setNeedsShopCreation(!shopData)
+          setNeedsOnboarding(true)
+          setLoading(false)
+          return
+        }
+
         if (shopData) {
           setShopId(shopData.id)
+          setShopIdForWatch(shopData.id)
+          setShopIsOpen(shopData.is_open)
           
           // Fix: Fetch initial orders so they don't disappear on direct page load
           const { getShopActiveOrders } = require('@/lib/supabase/queries/shop-dashboard')
           const activeOrders = await getShopActiveOrders(shopData.id)
-          console.log("DEBUG KDS ACTIVE ORDERS:", activeOrders)
           useShopOrdersStore.getState().setOrders(activeOrders)
 
           setupRealtime(shopData.id)
-        } else {
-          // AUTO-HEAL: If they are a shop owner but don't have a shop yet, create one for them instantly
-          const supabase = createClient()
-          const { data: newShop, error: autoCreateError } = await supabase
-            .from('shops')
-            .insert({
-              owner_id: targetOwnerId,
-              name: 'My New Shop',
-              description: 'A newly registered shop',
-              address: 'Campus',
-              is_open: true
-            })
-            .select()
-            .single()
-
-          if (newShop) {
-            setShopId(newShop.id)
-            setupRealtime(newShop.id)
-            toast.success("We automatically created a default shop for you!")
-          } else {
-            console.error("Auto-heal failed:", autoCreateError)
-            toast.error("No shop found for your account. Please contact admin.")
-          }
         }
       } catch (err) {
         console.error("Failed to load shop", err)
@@ -203,6 +200,25 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
             updateOrderStatus(payload.new.id, payload.new.status)
           }
         )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'shops', filter: `id=eq.${sid}` },
+          (payload) => {
+            const wasOpen = shopIsOpen
+            const isNowOpen = payload.new.is_open
+            setShopIsOpen(isNowOpen)
+            
+            if (wasOpen === true && isNowOpen === false) {
+              // Shop just closed — warn the owner but keep all in-flight orders intact!
+              toast('🔒 Shop closed for new orders. All existing in-progress orders will continue normally.', {
+                duration: 8000,
+                style: { background: '#1e293b', color: '#f8fafc', fontWeight: 'bold' }
+              })
+            } else if (wasOpen === false && isNowOpen === true) {
+              toast.success('✅ Shop is now open for new orders!', { duration: 4000 })
+            }
+          }
+        )
         .subscribe()
 
       return () => {
@@ -220,15 +236,29 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     )
   }
 
-  // Hide sidebar on login page
-  const isLoginPage = pathname === '/shop/login'
+  const isLoginPage = pathname.includes('/login')
+  if (isLoginPage) {
+    return <>{children}</>
+  }
 
   return (
     <div className={`min-h-screen flex flex-col md:flex-row ${isKDS ? 'bg-slate-900' : 'bg-[#EFF6FF]'}`}>
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       
+      {needsOnboarding && user && (
+        <CompleteProfileOverlay 
+          role="shop_owner" 
+          userId={user.id} 
+          needsShopCreation={needsShopCreation} 
+          onComplete={() => {
+            setNeedsOnboarding(false)
+            window.location.reload()
+          }} 
+        />
+      )}
+      
       {/* Desktop Sidebar (Hide in KDS) */}
-      {!isKDS && !isLoginPage && (
+      {!isKDS && (
         <div className="hidden md:flex flex-col w-64 flex-shrink-0 border-r border-gray-200 bg-white sticky top-0 h-screen overflow-y-auto">
           <AdminImpersonationBanner />
           <ShopSidebar />
