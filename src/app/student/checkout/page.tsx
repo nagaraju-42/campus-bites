@@ -170,6 +170,16 @@ export default function CheckoutPage() {
       .select('id, shop_id')
       .in('id', items.map(i => i.id))
       
+    // Patch items with the correct partnerShopId so the backend order_items table registers them correctly
+    // This is critical for KDS to know which items are external, especially if they were reordered via Magic Reorder
+    const itemsWithPartnerInfo = items.map(item => {
+      const dbItem = dbItems?.find(db => db.id === item.id)
+      if (dbItem && dbItem.shop_id !== shopId) {
+        return { ...item, partnerShopId: dbItem.shop_id }
+      }
+      return item
+    })
+      
     if (dbItems) {
       const hasMainShopItem = dbItems.some(dbItem => dbItem.shop_id === shopId)
       if (!hasMainShopItem) {
@@ -184,7 +194,7 @@ export default function CheckoutPage() {
         toast.error('Please enter your table number')
         return
       }
-      if (items.some(i => i.partnerShopId)) {
+      if (itemsWithPartnerInfo.some(i => i.partnerShopId)) {
         toast.error('Dine-In is not available for orders containing add-ons from partner shops.')
         return
       }
@@ -200,18 +210,18 @@ export default function CheckoutPage() {
       }
     }
 
-    setIsPlacingOrder(true)
     try {
+      setIsPlacingOrder(true)
       const { orderId } = await placeOrder({
         studentId: user.id,
-        shopId,
-        cartItems: items,
+        shopId: shopId,
+        cartItems: itemsWithPartnerInfo,
         totalAmount: finalTotal,
-        deliveryFee: getDeliveryFee(),
+        deliveryFee: isDineIn ? 0 : getDeliveryFee(),
         platformFee: getPlatformFee(),
         paymentMethod,
         hostelName: isDineIn ? `[Dine-In] Table: ${tableNumber.trim()}` : `${hostelName.trim()} ${roomNumber.trim() ? '- ' + roomNumber.trim() : ''}`.trim(),
-        roomNumber: 'N/A',
+        roomNumber: isDineIn ? 'N/A' : roomNumber.trim() || 'N/A',
         specialNote,
         orderType: isDineIn ? 'dine_in' : 'delivery',
       })

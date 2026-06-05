@@ -99,44 +99,82 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
         {displayItems.length === 0 ? (
           <p className="text-slate-400 italic">No items found</p>
         ) : (
-          displayItems.map((item, idx) => {
-            const isChecked = checkedItems[idx]
-            
-            const isExternalItem = item.partner_shop_id 
-              ? item.partner_shop_id !== currentShopId 
-              : order.shop_id !== currentShopId;
-
-            return (
-              <div 
-                key={idx} 
-                onClick={() => toggleItem(idx)}
-                className={`flex flex-col gap-1 cursor-pointer transition-all p-3 rounded-xl border ${
-                  isExternalItem 
-                    ? 'bg-purple-500/10 border-purple-500/30' 
-                    : 'bg-slate-700/20 border-transparent hover:bg-slate-700/40'
-                } ${isChecked ? 'opacity-50' : 'opacity-100'}`}
-              >
-                <div className={`flex justify-between items-start ${isChecked ? 'text-slate-500 line-through' : (isExternalItem ? 'text-purple-200' : 'text-slate-100')}`}>
-                  <div className="flex gap-3 items-center">
-                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-emerald-500 border-emerald-500 text-emerald-950' : (isExternalItem ? 'border-purple-500/50' : 'border-slate-500')}`}>
-                      {isChecked && <span className="text-xs font-bold">✓</span>}
-                    </div>
-                    <span className="font-bold text-lg">{item.quantity}x</span>
-                    <div>
-                      <p className="font-bold text-lg">{item.item_name}</p>
+          <>
+            {/* Primary Items */}
+            {displayItems.filter(item => {
+              const isExternal = item.partner_shop_id ? item.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
+              return !isExternal;
+            }).map((item, idx) => {
+              // Find the original index for checkbox state
+              const originalIdx = displayItems.findIndex(i => i === item);
+              const isChecked = checkedItems[originalIdx];
+              return (
+                <div 
+                  key={`primary-${originalIdx}`} 
+                  onClick={() => toggleItem(originalIdx)}
+                  className={`flex flex-col gap-1 cursor-pointer transition-all p-3 rounded-xl border bg-slate-700/20 border-transparent hover:bg-slate-700/40 ${isChecked ? 'opacity-50' : 'opacity-100'}`}
+                >
+                  <div className={`flex justify-between items-start ${isChecked ? 'text-slate-500 line-through' : 'text-slate-100'}`}>
+                    <div className="flex gap-3 items-center">
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-emerald-500 border-emerald-500 text-emerald-950' : 'border-slate-500'}`}>
+                        {isChecked && <span className="text-xs font-bold">✓</span>}
+                      </div>
+                      <span className="font-bold text-lg">{item.quantity}x</span>
+                      <div>
+                        <p className="font-bold text-lg">{item.item_name}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-                {isExternalItem && (
-                  <div className="pl-8">
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md">
-                      Partner Add-on: {item.partner?.name || 'External Shop'}
-                    </span>
-                  </div>
-                )}
+              )
+            })}
+
+            {/* Secondary / Partner Items Grouped in a Nested Box */}
+            {displayItems.filter(item => {
+              const isExternal = item.partner_shop_id ? item.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
+              return isExternal;
+            }).length > 0 && (
+              <div className="mt-4 bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4 shadow-inner">
+                <p className="text-purple-300 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                  Partner Shop Add-ons
+                </p>
+                <div className="space-y-2">
+                  {displayItems.filter(item => {
+                    const isExternal = item.partner_shop_id ? item.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
+                    return isExternal;
+                  }).map((item, idx) => {
+                    const originalIdx = displayItems.findIndex(i => i === item);
+                    const isChecked = checkedItems[originalIdx];
+                    return (
+                      <div 
+                        key={`secondary-${originalIdx}`} 
+                        onClick={() => toggleItem(originalIdx)}
+                        className={`flex flex-col gap-1 cursor-pointer transition-all p-2.5 rounded-xl border ${
+                          isChecked ? 'bg-purple-900/20 border-purple-900/50 opacity-50' : 'bg-purple-800/20 border-purple-500/20 hover:bg-purple-700/30'
+                        }`}
+                      >
+                        <div className={`flex justify-between items-center ${isChecked ? 'text-purple-400/50 line-through' : 'text-purple-100'}`}>
+                          <div className="flex gap-3 items-center">
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-purple-500 border-purple-500 text-purple-950' : 'border-purple-400/50'}`}>
+                              {isChecked && <span className="text-xs font-bold">✓</span>}
+                            </div>
+                            <span className="font-bold text-lg">{item.quantity}x</span>
+                            <div>
+                              <p className="font-bold text-base">{item.item_name}</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 px-2 py-1 rounded-lg">
+                            {item.partner?.name || 'External'}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            )
-          })
+            )}
+          </>
         )}
         {order.special_note && (
           <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
