@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Settings, Save, Plus, Trash2 } from 'lucide-react'
+import { Settings, Save, Plus, Trash2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getDeliveryLocations, setDeliveryLocations } from '@/lib/supabase/queries/admin'
+import { getDeliveryLocations, setDeliveryLocations, getBusyModeAudits, wipeBusyModeAudits } from '@/lib/supabase/queries/admin'
+import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 
@@ -22,6 +23,8 @@ export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [locations, setLocations] = useState<string[]>([])
   const [newLocation, setNewLocation] = useState('')
+  const [audits, setAudits] = useState<any[]>([])
+  const [isWiping, setIsWiping] = useState(false)
 
   useEffect(() => {
     async function fetchSettings() {
@@ -47,6 +50,9 @@ export default function AdminSettingsPage() {
 
         const locs = await getDeliveryLocations()
         setLocations(locs)
+
+        const auditLogs = await getBusyModeAudits()
+        setAudits(auditLogs)
       } catch (err) {
         console.error(err)
       } finally {
@@ -77,6 +83,21 @@ export default function AdminSettingsPage() {
       toast.error('Failed to save settings')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleWipeAudits = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete ALL busy mode audit logs? This action cannot be undone.")) return
+    
+    setIsWiping(true)
+    try {
+      await wipeBusyModeAudits()
+      setAudits([])
+      toast.success("All busy mode audit logs have been wiped.")
+    } catch (err: any) {
+      toast.error('Failed to wipe audit logs')
+    } finally {
+      setIsWiping(false)
     }
   }
 
@@ -202,6 +223,59 @@ export default function AdminSettingsPage() {
           >
             <Plus size={18} /> Add
           </button>
+        </div>
+      </div>
+
+      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-6 shadow-xl mb-6">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+              <AlertCircle size={20} className="text-orange-500" /> Shop Busy Mode Audits
+            </h2>
+            <p className="text-sm text-slate-400 max-w-2xl">
+              Track when shop owners toggle "Busy Mode" (+10 mins ETA). To prevent database bloat and abuse, you can wipe these logs instantly.
+            </p>
+          </div>
+          <button
+            onClick={handleWipeAudits}
+            disabled={isWiping || audits.length === 0}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition flex items-center gap-2 disabled:opacity-50"
+          >
+            <Trash2 size={16} /> {isWiping ? 'Wiping...' : 'Wipe Audit Logs'}
+          </button>
+        </div>
+
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl overflow-hidden">
+          {audits.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">No audit logs found. Database is clean.</div>
+          ) : (
+            <div className="max-h-64 overflow-y-auto">
+              <table className="w-full text-left text-sm text-slate-300">
+                <thead className="bg-slate-800 text-slate-400 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Time</th>
+                    <th className="px-4 py-3 font-medium">Shop Name</th>
+                    <th className="px-4 py-3 font-medium">Action</th>
+                    <th className="px-4 py-3 font-medium">Toggled By</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {audits.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-700/30">
+                      <td className="px-4 py-3 whitespace-nowrap">{formatDate(log.created_at)}</td>
+                      <td className="px-4 py-3 font-bold text-white">{log.shops?.name || 'Unknown'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${log.is_busy ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-600/50 text-slate-300'}`}>
+                          {log.is_busy ? 'Turned ON (+10m)' : 'Turned OFF'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{log.profiles?.full_name || 'System'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

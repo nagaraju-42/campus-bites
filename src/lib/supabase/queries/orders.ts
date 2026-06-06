@@ -25,7 +25,7 @@ export async function getOrderById(orderId: string): Promise<Order | null> {
     .from('orders')
     .select(`
       *,
-      shops ( id, name, logo_url, phone ),
+      shops ( id, name, logo_url, phone, busy_mode ),
       order_items (*),
       rider:profiles!orders_rider_id_fkey(full_name, phone)
     `)

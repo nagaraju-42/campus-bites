@@ -11,6 +11,7 @@ import { formatCurrency, getOrderStatusStep, formatDate } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import OrderChat from '@/components/shared/OrderChat'
+import { PhoneCall } from 'lucide-react'
 
 // STATUS_STEPS moved inside component
 
@@ -22,6 +23,7 @@ export default function TrackOrderPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showChat, setShowChat] = useState(false)
   const [riderMode, setRiderMode] = useState(true)
+  const [isHighLoad, setIsHighLoad] = useState(false)
   const { user } = require('@/store/authStore').useAuthStore()
 
   useEffect(() => {
@@ -40,6 +42,21 @@ export default function TrackOrderPage() {
       } catch (e) {
         // logs might fail if empty or no permissions, safe to ignore
       }
+
+      if (data && (data.status === 'pending' || data.status === 'preparing')) {
+        try {
+          const supabase = createClient()
+          const { count } = await supabase
+            .from('orders')
+            .select('*', { count: 'exact', head: true })
+            .eq('shop_id', data.shop_id)
+            .eq('status', 'preparing')
+            .neq('order_type', 'dine_in')
+          
+          if (count && count > 6) setIsHighLoad(true)
+        } catch (e) {}
+      }
+
       setIsLoading(false)
     }
     loadData()
@@ -124,9 +141,73 @@ export default function TrackOrderPage() {
         </button>
       </div>
 
-      <div className="px-5 py-2">
-        <p className="text-gray-900 font-bold text-sm mb-1">Order ID: {order.order_number}</p>
-        <p className="text-gray-500 text-xs font-medium">Placed on {formatDate(order.placed_at)}</p>
+      <div className="px-5 py-4 bg-gray-50 border-b border-gray-100 flex flex-col items-center">
+        {order.status === 'delivered' ? (
+          <>
+            <p className="text-green-600 font-bold text-lg">Delivered Successfully 🎉</p>
+            <p className="text-gray-500 text-xs font-medium mt-1">At {formatDate(order.delivered_at || new Date().toISOString())}</p>
+          </>
+        ) : order.status === 'cancelled' ? (
+          <>
+            <p className="text-red-600 font-bold text-lg">Order Cancelled</p>
+          </>
+        ) : (
+          <>
+            <div className="flex w-full justify-between items-center mb-1">
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">Estimated Arrival</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] text-gray-400 font-medium hidden sm:block">Query about your order?</p>
+                <a 
+                  href={`tel:+91${(order.shops?.phone || '0000000000').replace('+91', '')}`}
+                  className="flex items-center gap-1 bg-[#16A34A] text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition"
+                >
+                  <PhoneCall size={12} /> Call Shop
+                </a>
+              </div>
+            </div>
+            {(() => {
+              const placedAt = new Date(order.placed_at)
+              
+              // 1. Base ETA: 15 mins (or 25 mins if high load/busy mode)
+              let totalMins = ((order.shops as any)?.busy_mode || isHighLoad) ? 25 : 15
+              let eta = new Date(placedAt.getTime() + totalMins * 60000)
+
+              // 2. Rider Sync ETA: If claimed, get the exact time it was marked out_for_delivery
+              if (order.status === 'out_for_delivery') {
+                const outForDeliveryLog = auditLogs.find(l => l.status_to === 'out_for_delivery')
+                if (outForDeliveryLog) {
+                  const claimTime = new Date(outForDeliveryLog.created_at)
+                  eta = new Date(claimTime.getTime() + 10 * 60000) // 10 mins from claim time
+                }
+              }
+              
+              const etaString = eta.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+              
+              const now = new Date()
+              const diffMins = Math.floor((eta.getTime() - now.getTime()) / 60000)
+              let timeText = diffMins > 0 ? `In ${diffMins} mins` : (order.status === 'out_for_delivery' ? 'Arriving shortly' : 'Arriving soon')
+              
+              // If it's dine in, ETA doesn't strictly apply the same way, but keeping it for consistency
+              if (isDineIn) timeText = 'Please wait at table'
+
+              return (
+                <div className="flex flex-col items-center w-full mt-2">
+                  <p className="text-gray-900 font-display font-bold text-3xl">{etaString}</p>
+                  <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold mt-2 flex items-center gap-1">
+                    {timeText}
+                  </div>
+                </div>
+              )
+            })()}
+          </>
+        )}
+      </div>
+
+      <div className="px-5 py-3">
+        <div className="flex justify-between items-center">
+          <p className="text-gray-900 font-bold text-sm">Order #{order.order_number}</p>
+          <p className="text-gray-500 text-xs font-medium">Placed: {new Date(order.placed_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+        </div>
       </div>
 
       {order.status === 'cancelled' && (
@@ -147,8 +228,16 @@ export default function TrackOrderPage() {
           <div className="absolute top-4 left-[11px] bottom-12 w-0.5 bg-gray-100 z-0"></div>
           
           {STATUS_STEPS.map(({ step, label, time, color }) => {
-            const isCompleted = currentStep >= step
-            const isActive = currentStep === step
+            // Logic for dynamic progress bar (30-min lifecycle)
+            let isCompleted = currentStep >= step
+            let isActive = currentStep === step
+            
+            // Smart ETA visual trick: If time has passed but status hasn't updated, show active
+            if (step === 2 && currentStep < 2) {
+               const minsSincePlaced = Math.floor((new Date().getTime() - new Date(order.placed_at).getTime()) / 60000)
+               if (minsSincePlaced >= 2) isActive = true
+            }
+
             const iconColor = isActive ? color : isCompleted ? 'text-[#16A34A]' : 'text-gray-300'
             
             return (

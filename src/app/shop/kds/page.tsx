@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Bell, BellOff, Sun, Moon } from 'lucide-react'
+import { ArrowLeft, Bell, BellOff, Sun, Moon, AlertCircle } from 'lucide-react'
 import { useWakeLock } from '@/lib/useWakeLock'
 import { registerPushNotifications } from '@/lib/push-notifications'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
@@ -66,7 +66,17 @@ export default function KDSPage() {
 
   // Combine new, preparing, and ready for the kitchen view
   const activeTickets = [...getNewOrders(), ...getPreparingOrders(), ...getReadyOrders()]
-    .sort((a, b) => new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime())
+    .sort((a, b) => {
+      // Prioritize dine-in
+      const aIsDineIn = a.order_type === 'dine_in' || a.hostel_name?.includes('[Dine-In]')
+      const bIsDineIn = b.order_type === 'dine_in' || b.hostel_name?.includes('[Dine-In]')
+      if (aIsDineIn && !bIsDineIn) return -1
+      if (!aIsDineIn && bIsDineIn) return 1
+      return new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime()
+    })
+
+  const preparingDeliveryCount = getPreparingOrders().filter(o => o.order_type !== 'dine_in' && !o.hostel_name?.includes('[Dine-In]')).length
+  const isHighLoad = preparingDeliveryCount > 6
 
   const handleStatusChange = async (orderId: string, status: string) => {
     if (status === 'preparing') {
@@ -158,6 +168,12 @@ export default function KDSPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-4 max-w-lg mx-auto w-full pb-32">
+            {isHighLoad && (
+              <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-xl mb-4 font-bold text-center flex items-center justify-center gap-2 animate-pulse">
+                <AlertCircle size={20} />
+                HIGH LOAD DETECTED: {preparingDeliveryCount} active delivery tickets. New orders will automatically have +10 mins ETA.
+              </div>
+            )}
             <AnimatePresence mode="popLayout">
               {activeTickets.map(order => (
                 <motion.div

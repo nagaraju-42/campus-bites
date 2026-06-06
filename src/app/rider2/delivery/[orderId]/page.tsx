@@ -14,7 +14,7 @@ import { Order } from '@/types'
 export default function ActiveDeliveryPage() {
   const router = useRouter()
   const { orderId } = useParams()
-  const { activeDeliveries, setActiveDeliveries, removeActiveDelivery } = useRiderStore()
+  const { activeDeliveries, setActiveDeliveries, removeActiveDelivery, pickedUpOrders, markOrderPickedUp, removePickedUpOrder } = useRiderStore()
   const { user } = useAuthStore()
   
   const [order, setOrder] = useState<Order | null>(null)
@@ -64,10 +64,19 @@ export default function ActiveDeliveryPage() {
     load()
   }, [orderId, activeDeliveries, router])
 
+  useEffect(() => {
+    if (typeof orderId === 'string' && pickedUpOrders.includes(orderId)) {
+      setStep('dropoff')
+    }
+  }, [orderId, pickedUpOrders])
+
   if (isLoading) return <div className="p-10 text-center font-bold text-green-700">Loading delivery details...</div>
   if (!order) return null
 
   const handlePickup = () => {
+    if (typeof orderId === 'string') {
+      markOrderPickedUp(orderId)
+    }
     setStep('dropoff')
     toast.success('Navigating to student!')
   }
@@ -85,7 +94,8 @@ export default function ActiveDeliveryPage() {
       await completeDelivery(order.id, user?.id || '')
       
       removeActiveDelivery(order.id)
-      toast.success('Delivery Completed!', { icon: '✅' })
+      removePickedUpOrder(order.id)
+      toast.success('Delivery Completed! ₹' + (order as any).delivery_fee + ' earned.', { icon: '💰' })
       router.replace('/rider2/dashboard')
     } catch (err) {
       toast.error('Failed to complete delivery')

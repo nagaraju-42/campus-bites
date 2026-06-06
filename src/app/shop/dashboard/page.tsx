@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { IndianRupee, ShoppingBag, Users, AlertCircle, Bell, Send, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
-import { getShopDetailsByOwner, updateShopStatusDB, getShopActiveOrders, getShopOrderHistory, getShopStats } from '@/lib/supabase/queries/shop-dashboard'
+import { getShopDetailsByOwner, updateShopStatusDB, getShopActiveOrders, getShopOrderHistory, getShopStats, toggleBusyModeDB } from '@/lib/supabase/queries/shop-dashboard'
 import StatCard from '@/components/shop/StatCard'
 import NotificationsTray from '@/components/shared/NotificationsTray'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -22,6 +22,7 @@ export default function ShopDashboardPage() {
   const { user } = useAuthStore()
   const { shopId, isLive, setLiveStatus, setOrders } = useShopOrdersStore()
   const [shopName, setShopName] = useState('')
+  const [isBusyMode, setIsBusyMode] = useState(false)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   
@@ -52,6 +53,7 @@ export default function ShopDashboardPage() {
         
         setShopName(shop.name)
         setLiveStatus(shop.is_open)
+        setIsBusyMode(shop.busy_mode || false)
         setOrders(activeOrders)
         setRecentOrders(completed)
         setStats(shopStats)
@@ -93,6 +95,23 @@ export default function ShopDashboardPage() {
       toast.error('Failed to update shop status')
     } finally {
       setIsToggling(false)
+    }
+  }
+
+  const [isTogglingBusy, setIsTogglingBusy] = useState(false)
+
+  const handleToggleBusyMode = async () => {
+    if (!shopId || !user || isTogglingBusy) return
+    setIsTogglingBusy(true)
+    const newBusyStatus = !isBusyMode
+    try {
+      await toggleBusyModeDB(shopId, newBusyStatus, user.id)
+      setIsBusyMode(newBusyStatus)
+      toast.success(newBusyStatus ? 'Busy Mode ON (+10 mins ETA)' : 'Busy Mode OFF')
+    } catch (err: any) {
+      toast.error('Failed to toggle Busy Mode')
+    } finally {
+      setIsTogglingBusy(false)
     }
   }
 
@@ -147,6 +166,18 @@ export default function ShopDashboardPage() {
               {isToggling ? 'Updating...' : isLive ? 'Close Shop' : 'Open Shop'}
             </button>
           </div>
+          
+          <button 
+            onClick={handleToggleBusyMode}
+            disabled={isTogglingBusy}
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition shadow-sm border ${
+              isTogglingBusy ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200' :
+              isBusyMode ? 'bg-orange-600 text-white border-orange-700 hover:bg-orange-700' : 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50'
+            }`}
+            title="Adds +10 minutes to all new delivery ETAs"
+          >
+            {isTogglingBusy ? 'Updating...' : isBusyMode ? '🔥 Busy Mode ON' : 'Busy Mode OFF'}
+          </button>
         </div>
       </div>
 

@@ -293,3 +293,33 @@ export async function setDeliveryLocations(locations: string[]) {
     if (error) throw new Error(error.message)
   }
 }
+
+// ============================================================================
+// PHASE 3: Busy Mode Audits
+// ============================================================================
+
+export async function getBusyModeAudits() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('busy_mode_audits')
+    .select(`
+      *,
+      shops(name),
+      profiles!busy_mode_audits_toggled_by_fkey(full_name)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(100)
+    
+  if (error) throw new Error(error.message)
+  return data || []
+}
+
+export async function wipeBusyModeAudits() {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('busy_mode_audits')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000') // Deletes all rows safely
+    
+  if (error) throw new Error(error.message)
+}
