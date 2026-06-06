@@ -160,27 +160,36 @@
   }
 }
 
-/* Global Glowing Animations */
-@keyframes fireGlow {
-  0% { box-shadow: inset 0 0 20px 5px #f97316, 0 0 20px 5px #fbd38d; border-color: #f97316; }
-  50% { box-shadow: inset 0 0 40px 10px #ea580c, 0 0 40px 10px #fdba74; border-color: #ea580c; }
-  100% { box-shadow: inset 0 0 20px 5px #f97316, 0 0 20px 5px #fbd38d; border-color: #f97316; }
+/* High-Performance Glowing Animations */
+@keyframes pulseGlowOpacity {
+  0% { opacity: 0.4; transform: scale(0.99); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 .ringing-shop-container {
-  animation: fireGlow 1.5s infinite alternate;
-  border: 8px solid #f97316 !important;
-  transition: all 0.3s ease;
+  position: relative;
 }
-
-@keyframes greenGlow {
-  0% { box-shadow: inset 0 0 20px 5px #16a34a, 0 0 20px 5px #86efac; border-color: #16a34a; }
-  50% { box-shadow: inset 0 0 40px 10px #15803d, 0 0 40px 10px #bbf7d0; border-color: #15803d; }
-  100% { box-shadow: inset 0 0 20px 5px #16a34a, 0 0 20px 5px #86efac; border-color: #16a34a; }
+.ringing-shop-container::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  border: 6px solid #f97316;
+  box-shadow: inset 0 0 30px #ea580c, 0 0 30px #f97316;
+  animation: pulseGlowOpacity 1.5s infinite alternate;
 }
 
 .ringing-rider-container {
-  animation: greenGlow 1.5s infinite alternate;
-  border: 8px solid #16a34a !important;
-  transition: all 0.3s ease;
+  position: relative;
+}
+.ringing-rider-container::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  border: 6px solid #16a34a;
+  box-shadow: inset 0 0 30px #15803d, 0 0 30px #16a34a;
+  animation: pulseGlowOpacity 1.5s infinite alternate;
 }
