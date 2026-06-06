@@ -17,7 +17,7 @@ import { playShopAlarm } from '@/store/shopOrdersStore'
 export default function KDSPage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const { shopId, orders, setOrders, getNewOrders, getPreparingOrders, getReadyOrders } = useShopOrdersStore()
+  const { shopId, orders, setOrders, getNewOrders, getPreparingOrders, getReadyOrders, isDND, setIsDND } = useShopOrdersStore()
   const [time, setTime] = useState(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }))
   const [isLoading, setIsLoading] = useState(true)
   const { isSupported: isWakeSupported, isAwake, toggle: toggleWake } = useWakeLock()
@@ -64,29 +64,7 @@ export default function KDSPage() {
     } else {
       setIsLoading(false)
     }
-
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`shop-kds-${shopId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${shopId}` }, async (payload) => {
-        const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
-        const data = await getShopActiveOrders(shopId!)
-        setOrders(data)
-        playShopAlarm()
-        toast.success('New Order Received!', { icon: '🔔', duration: 10000 })
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `shop_id=eq.${shopId}` }, (payload) => {
-        const { updateOrderStatus } = useShopOrdersStore.getState()
-        if (payload.new.status) {
-          updateOrderStatus(payload.new.id, payload.new.status as any)
-        }
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [shopId])
+  }, [shopId, orders.length, setOrders])
 
   // Combine new, preparing, and ready for the kitchen view
   const activeTickets = [...getNewOrders(), ...getPreparingOrders(), ...getReadyOrders()]
@@ -174,6 +152,12 @@ export default function KDSPage() {
                 {isAwake ? <><Sun size={14} /> Awake</> : <><Moon size={14} /> Sleep</>}
               </button>
             )}
+            <button
+              onClick={() => setIsDND(!isDND)}
+              className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition ${isDND ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600'}`}
+            >
+              {isDND ? <><BellOff size={14} /> Muted</> : <><Bell size={14} /> Sound On</>}
+            </button>
           </div>
         </div>
 

@@ -11,9 +11,12 @@ interface ShopOrdersState {
   updateOrderStatus: (orderId: string, status: Order['status']) => void
   removeOrder: (orderId: string) => void
   setLiveStatus: (status: boolean) => void
-  getNewOrders: () => Order[]
   getPreparingOrders: () => Order[]
   getReadyOrders: () => Order[]
+  isAlarmRinging: boolean
+  isDND: boolean
+  setIsAlarmRinging: (status: boolean) => void
+  setIsDND: (status: boolean) => void
 }
 
 export const useShopOrdersStore = create<ShopOrdersState>((set, get) => ({
@@ -43,6 +46,11 @@ export const useShopOrdersStore = create<ShopOrdersState>((set, get) => ({
   getNewOrders: () => get().orders.filter(o => o.status === 'pending'),
   getPreparingOrders: () => get().orders.filter(o => o.status === 'preparing'),
   getReadyOrders: () => get().orders.filter(o => o.status === 'ready'),
+
+  isAlarmRinging: false,
+  isDND: false,
+  setIsAlarmRinging: (status) => set({ isAlarmRinging: status }),
+  setIsDND: (status) => set({ isDND: status }),
 }))
 
 // Global Audio Controller for KDS
@@ -50,6 +58,17 @@ export let activeKdsAudio: HTMLAudioElement | null = null;
 
 export const playShopAlarm = () => {
   if (typeof window === 'undefined') return;
+  const { isDND } = useShopOrdersStore.getState();
+  useShopOrdersStore.getState().setIsAlarmRinging(true);
+  
+  if (isDND) {
+    // Just visual, auto stop visual after 25s
+    setTimeout(() => {
+      stopShopAlarm();
+    }, 25000);
+    return;
+  }
+
   try {
     if (activeKdsAudio) {
       activeKdsAudio.pause();
@@ -60,14 +79,15 @@ export const playShopAlarm = () => {
     activeKdsAudio.loop = true;
     activeKdsAudio.play().catch(e => console.log("Audio blocked:", e));
     
-    // Auto stop after 20 seconds
+    // Auto stop after 25 seconds
     setTimeout(() => {
       stopShopAlarm();
-    }, 20000);
+    }, 25000);
   } catch (e) {}
 }
 
 export const stopShopAlarm = () => {
+  useShopOrdersStore.getState().setIsAlarmRinging(false);
   if (activeKdsAudio) {
     activeKdsAudio.pause();
     activeKdsAudio.currentTime = 0;

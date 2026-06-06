@@ -12,7 +12,6 @@ export default function ActiveDeliveriesPage() {
   const router = useRouter()
   const { activeDeliveries } = useRiderStore()
   const [timeLeft, setTimeLeft] = useState(300)
-  const [showCollectionPrompt, setShowCollectionPrompt] = useState(false)
 
   useEffect(() => {
     if (activeDeliveries.length > 0) {
@@ -38,23 +37,15 @@ export default function ActiveDeliveriesPage() {
   }, [activeDeliveries.length])
 
   useEffect(() => {
-    if (timeLeft === 0 && activeDeliveries.length > 0 && !showCollectionPrompt) {
+    if (timeLeft === 0 && activeDeliveries.length > 0) {
       const batchId = activeDeliveries.map(o => o.id).sort().join('-')
       if (!localStorage.getItem(`prompted_${batchId}`)) {
-        setShowCollectionPrompt(true)
+        localStorage.setItem(`prompted_${batchId}`, 'true')
         const { playRiderAlarm } = require('@/store/riderStore')
-        playRiderAlarm()
+        playRiderAlarm({ title: 'Time is up!', message: 'The 5-minute collection window has ended. Did you collect all the items from the shop?' })
       }
     }
-  }, [timeLeft, activeDeliveries, showCollectionPrompt])
-
-  const handleAcknowledgeCollection = () => {
-    const batchId = activeDeliveries.map(o => o.id).sort().join('-')
-    localStorage.setItem(`prompted_${batchId}`, 'true')
-    setShowCollectionPrompt(false)
-    const { stopRiderAlarm } = require('@/store/riderStore')
-    stopRiderAlarm()
-  }
+  }, [timeLeft, activeDeliveries])
 
   // Removed auto-redirect to allow riders to view batch management page
 
@@ -81,39 +72,6 @@ export default function ActiveDeliveriesPage() {
 
   return (
     <div className="px-5 pt-8 pb-4">
-      {/* Collection Prompt Overlay */}
-      <AnimatePresence>
-        {showCollectionPrompt && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-6 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col items-center text-center"
-            >
-              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
-                <Bell size={32} className="animate-pulse" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Time is up!</h2>
-              <p className="text-gray-600 mb-6 text-sm">
-                The 5-minute collection window has ended. Did you collect all the items from the shop?
-              </p>
-              <button
-                onClick={handleAcknowledgeCollection}
-                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg active:scale-95 transition"
-              >
-                Yes, I collected them!
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Header */}
       <div className="mb-6 flex justify-between items-end">
         <div>

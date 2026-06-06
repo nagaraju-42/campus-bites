@@ -15,9 +15,11 @@ interface RiderState {
   lastOnlineAt: number | null
   setIsOnline: (status: boolean) => void
   checkAutoOffline: () => void
-  pickedUpOrders: string[]
   markOrderPickedUp: (orderId: string) => void
   removePickedUpOrder: (orderId: string) => void
+  isAlarmRinging: boolean
+  alarmReason: { title: string, message: string } | null
+  setIsAlarmRinging: (status: boolean, reason?: { title: string, message: string } | null) => void
 }
 
 export const useRiderStore = create<RiderState>()(
@@ -28,7 +30,10 @@ export const useRiderStore = create<RiderState>()(
       isOnline: false,
       lastOnlineAt: null,
       pickedUpOrders: [],
+      isAlarmRinging: false,
+      alarmReason: null,
       
+      setIsAlarmRinging: (status, reason = null) => set({ isAlarmRinging: status, alarmReason: reason }),
       setAvailableOrders: (orders) => set({ availableOrders: orders }),
       
       addAvailableOrder: (order) => set((state) => {
@@ -91,8 +96,9 @@ export const useRiderStore = create<RiderState>()(
 // Global Audio Controller for Rider
 export let activeRiderAudio: HTMLAudioElement | null = null;
 
-export const playRiderAlarm = () => {
+export const playRiderAlarm = (reason?: { title: string, message: string }) => {
   if (typeof window === 'undefined') return;
+  useRiderStore.getState().setIsAlarmRinging(true, reason);
   try {
     if (activeRiderAudio) {
       activeRiderAudio.pause();
@@ -103,14 +109,15 @@ export const playRiderAlarm = () => {
     activeRiderAudio.loop = true;
     activeRiderAudio.play().catch(e => console.log("Audio blocked:", e));
     
-    // Auto stop after 15 seconds
+    // Auto stop after 25 seconds
     setTimeout(() => {
       stopRiderAlarm();
-    }, 15000);
+    }, 25000);
   } catch (e) {}
 }
 
 export const stopRiderAlarm = () => {
+  useRiderStore.getState().setIsAlarmRinging(false, null);
   if (activeRiderAudio) {
     activeRiderAudio.pause();
     activeRiderAudio.currentTime = 0;

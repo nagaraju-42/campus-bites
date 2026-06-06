@@ -12,6 +12,8 @@ import ShopSidebar from '@/components/shop/ShopSidebar'
 import ShopBottomNav from '@/components/shop/ShopBottomNav'
 import AdminImpersonationBanner from '@/components/admin/AdminImpersonationBanner'
 import CompleteProfileOverlay from '@/components/shared/CompleteProfileOverlay'
+import { motion, AnimatePresence } from 'framer-motion'
+import { stopShopAlarm } from '@/store/shopOrdersStore'
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -19,7 +21,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const isKDS = pathname === '/shop/kds'
   
   const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
-  const { setShopId, addOrder, updateOrderStatus } = useShopOrdersStore()
+  const { setShopId, addOrder, updateOrderStatus, isAlarmRinging } = useShopOrdersStore()
   const [shopOwnerId, setShopOwnerId] = useState<string | null>(null)
   
   // Onboarding state
@@ -162,41 +164,24 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${sid}` },
           async (payload) => {
-            // Poll up to 5 times (2.5 seconds) to ensure order_items are inserted
-            let fullOrder;
-            for (let i = 0; i < 5; i++) {
-              await new Promise(resolve => setTimeout(resolve, 500))
-              const { data } = await supabase
-                .from('orders')
-                .select(`*, order_items(*)`)
-                .eq('id', payload.new.id)
-                .single()
-              
-              fullOrder = data;
-              if (fullOrder && fullOrder.order_items && fullOrder.order_items.length > 0) {
-                break;
-              }
-            }
-
-            if (fullOrder) {
-              addOrder(fullOrder)
-              // Play loud alarm for KDS
-              const { playShopAlarm } = require('@/store/shopOrdersStore')
-              playShopAlarm()
-              
-              toast.success(`New order received: ${fullOrder.order_number}`, { 
-                id: `order-${fullOrder.id}`, 
-                icon: '🔔', 
-                duration: 45000 
-              })
-            }
+            // Wait 1s to ensure order_items are inserted
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
+            const activeOrders = await getShopActiveOrders(sid)
+            useShopOrdersStore.getState().setOrders(activeOrders)
+            
+            // Play loud alarm for KDS
+            const { playShopAlarm } = require('@/store/shopOrdersStore')
+            playShopAlarm()
           }
         )
         .on(
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'orders', filter: `shop_id=eq.${sid}` },
-          (payload) => {
-            updateOrderStatus(payload.new.id, payload.new.status)
+          async (payload) => {
+            const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
+            const activeOrders = await getShopActiveOrders(sid)
+            useShopOrdersStore.getState().setOrders(activeOrders)
           }
         )
         .on(
@@ -241,8 +226,40 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className={`min-h-screen flex flex-col md:flex-row ${isKDS ? 'bg-slate-900' : 'bg-[#EFF6FF]'}`}>
+    <div className={`min-h-screen flex flex-col md:flex-row ${isKDS ? 'bg-slate-900' : 'bg-[#EFF6FF]'} ${isAlarmRinging ? 'ringing-shop-container' : ''}`}>
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+
+      <AnimatePresence>
+        {isAlarmRinging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-6 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col items-center text-center border-4 border-orange-500 ringing-shop-container"
+            >
+              <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4 text-4xl animate-bounce">
+                🔥
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">New Order Alert!</h2>
+              <p className="text-gray-600 mb-6 text-sm">
+                A new order has arrived. Please accept it to stop the alarm.
+              </p>
+              <button
+                onClick={() => stopShopAlarm()}
+                className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg active:scale-95 transition"
+              >
+                Accept & Stop Alarm
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {needsOnboarding && user && (
         <CompleteProfileOverlay 

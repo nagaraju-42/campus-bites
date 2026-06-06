@@ -10,12 +10,14 @@ import { useRiderStore } from '@/store/riderStore'
 import { getAvailableDeliveries, getActiveDeliveries } from '@/lib/supabase/queries/rider'
 import RiderBottomNav from '@/components/rider/RiderBottomNav'
 import { Order } from '@/types'
+import { motion, AnimatePresence } from 'framer-motion'
+import { stopRiderAlarm } from '@/store/riderStore'
 
 export default function RiderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
-  const { setAvailableOrders, addAvailableOrder, setActiveDeliveries, checkAutoOffline, setIsOnline } = useRiderStore()
+  const { setAvailableOrders, addAvailableOrder, setActiveDeliveries, checkAutoOffline, setIsOnline, isAlarmRinging, alarmReason } = useRiderStore()
   const [riderId, setRiderId] = useState<string | null>(null)
 
   // Inject PWA manifest link into document head + register service worker
@@ -134,26 +136,24 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `status=eq.ready` },
         async (payload) => {
-          // A shop just marked an order as ready! 
-          // Fetch full order data to put in pool
-          const { data: fullOrder } = await supabase
-            .from('orders')
-            .select(`*, shops(name, description), order_items(*, partner:partner_shop_id(name), menu_items(name))`)
-            .eq('id', payload.new.id)
-            .single()
-
-          if (fullOrder && !fullOrder.rider_id && (!fullOrder.order_type || fullOrder.order_type === 'delivery')) {
-            addAvailableOrder(fullOrder)
-            // Play loud alarm for Rider
-            const { playRiderAlarm } = require('@/store/riderStore')
-            playRiderAlarm()
-            
-            toast.success('New delivery available!', { 
-              id: `order-ready-${fullOrder.id}`, 
-              icon: '🛵', 
-              duration: 45000 
-            })
-          }
+          // Wait briefly to ensure any related updates are committed
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          const { getAvailableDeliveries } = await import('@/lib/supabase/queries/rider')
+          const available = await getAvailableDeliveries()
+          useRiderStore.getState().setAvailableOrders(available)
+          
+          const { playRiderAlarm } = require('@/store/riderStore')
+          playRiderAlarm({ title: 'New Delivery Available!', message: `A new order is ready for pickup in the pool!` })
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `status=eq.delivered` },
+        async (payload) => {
+          const { getActiveDeliveries } = await import('@/lib/supabase/queries/rider')
+          const active = await getActiveDeliveries(riderId!)
+          useRiderStore.getState().setActiveDeliveries(active)
         }
       )
       .subscribe()
@@ -176,8 +176,40 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
   const isLoginPage = pathname === '/rider/login'
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pb-20 max-w-[430px] mx-auto border-x border-gray-100 shadow-xl">
+    <div className={`min-h-screen flex flex-col pb-20 max-w-[430px] mx-auto shadow-xl relative ${isAlarmRinging ? 'ringing-rider-container bg-green-50' : 'bg-gray-50 border-x border-gray-100'}`}>
       <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
+
+      <AnimatePresence>
+        {isAlarmRinging && alarmReason && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-6 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col items-center text-center border-4 border-green-500 ringing-rider-container"
+            >
+              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 text-4xl animate-bounce">
+                🔔
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{alarmReason.title}</h2>
+              <p className="text-gray-600 mb-6 text-sm">
+                {alarmReason.message}
+              </p>
+              <button
+                onClick={() => stopRiderAlarm()}
+                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg active:scale-95 transition"
+              >
+                Acknowledge
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Main Content Area */}
       <main className="flex-1 w-full bg-[#F0FDF4]">
