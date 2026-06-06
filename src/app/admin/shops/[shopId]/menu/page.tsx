@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Plus, Search, Edit2, Trash2, ArrowLeft, Image as ImageIcon, Save, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
+import { adminCreateMenuItem, adminUpdateMenuItem, adminArchiveMenuItem } from '@/app/actions/adminMenu'
 
 const ImageSizeBadge = ({ url }: { url?: string }) => {
   const [size, setSize] = useState<string | null>(null);
@@ -78,8 +79,7 @@ export default function AdminShopMenuPage() {
   const handleSaveEdit = async () => {
     if (!editForm.id) return
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from('menu_items').update({
+      await adminUpdateMenuItem(editForm.id, {
         name: editForm.name,
         description: editForm.description,
         price: editForm.price,
@@ -88,9 +88,7 @@ export default function AdminShopMenuPage() {
         is_featured: editForm.is_featured,
         category_id: editForm.category_id || null,
         image_url: editForm.image_url
-      }).eq('id', editForm.id)
-
-      if (error) throw error
+      })
 
       setItems(items.map(item => item.id === editForm.id ? { ...item, ...editForm } : item))
       setIsEditing(null)
@@ -103,14 +101,7 @@ export default function AdminShopMenuPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this item?')) return
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from('menu_items').update({ 
-        is_archived: true, 
-        is_available: false 
-      }).eq('id', id)
-      
-      if (error) throw error
-      
+      await adminArchiveMenuItem(id)
       setItems(items.filter(item => item.id !== id))
       toast.success('Item deleted')
     } catch (err) {
@@ -120,25 +111,13 @@ export default function AdminShopMenuPage() {
 
   const handleCreateNew = async () => {
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase.from('menu_items').insert({
-        shop_id: shopId,
-        name: 'New Item',
-        price: 0,
-        category: 'Uncategorized',
-        is_veg: true,
-        is_available: false,
-        is_featured: false,
-        is_archived: false,
-      }).select().single()
-
-      if (error) throw error
+      const data = await adminCreateMenuItem(shopId as string)
       setItems([data, ...items])
       setEditForm(data)
       setIsEditing(data.id)
     } catch (err: any) {
       console.error("Create Item Error:", err);
-      toast.error(err.message || 'Failed to create new item')
+      toast.error('Failed to create new item')
     }
   }
 
