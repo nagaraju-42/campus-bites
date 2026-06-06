@@ -15,6 +15,7 @@ interface RiderState {
   lastOnlineAt: number | null
   setIsOnline: (status: boolean) => void
   checkAutoOffline: () => void
+  pickedUpOrders: string[]
   markOrderPickedUp: (orderId: string) => void
   removePickedUpOrder: (orderId: string) => void
   isAlarmRinging: boolean

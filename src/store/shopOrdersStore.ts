@@ -11,6 +11,7 @@ interface ShopOrdersState {
   updateOrderStatus: (orderId: string, status: Order['status']) => void
   removeOrder: (orderId: string) => void
   setLiveStatus: (status: boolean) => void
+  getNewOrders: () => Order[]
   getPreparingOrders: () => Order[]
   getReadyOrders: () => Order[]
   isAlarmRinging: boolean

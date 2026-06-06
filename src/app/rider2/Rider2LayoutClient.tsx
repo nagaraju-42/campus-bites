@@ -184,6 +184,54 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
     }
   }, [riderId, user?.id, setAvailableOrders, setActiveDeliveries, addAvailableOrder, setLoading])
 
+  // RELIABLE POLLING FALLBACK (5 seconds)
+  // Bypasses any Supabase Realtime limitations or dropped socket connections
+  useEffect(() => {
+    let isMounted = true;
+    
+    const pollOrders = async () => {
+      try {
+        const { getAvailableDeliveries, getActiveDeliveries } = await import('@/lib/supabase/queries/rider')
+        const currentRiderId = useAuthStore.getState().user?.id
+        
+        // Fetch available
+        const available = await getAvailableDeliveries()
+        if (!isMounted) return;
+        
+        const currentAvailable = useRiderStore.getState().availableOrders
+        const newAvailable = available.filter(ao => !currentAvailable.some(co => co.id === ao.id && co.status === ao.status))
+        
+        if (newAvailable.length > 0) {
+          useRiderStore.getState().setAvailableOrders(available)
+          const hasNewReady = newAvailable.some(no => no.status === 'ready' && !currentAvailable.some(co => co.id === no.id));
+          if (hasNewReady) {
+            const { playRiderAlarm } = require('@/store/riderStore')
+            playRiderAlarm({ title: 'New Delivery Available!', message: `A new order is ready for pickup in the pool!` })
+          }
+        }
+
+        // Fetch active for this rider
+        if (currentRiderId) {
+          const active = await getActiveDeliveries(currentRiderId)
+          if (!isMounted) return;
+          const currentActive = useRiderStore.getState().activeDeliveries
+          const newActive = active.filter(ao => !currentActive.some(co => co.id === ao.id && co.status === ao.status))
+          if (newActive.length > 0) {
+            useRiderStore.getState().setActiveDeliveries(active)
+          }
+        }
+      } catch (err) {
+        console.error("Polling error:", err)
+      }
+    };
+
+    const interval = setInterval(pollOrders, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [])
+
   if (isLoading && !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#F0FDF4]">

@@ -219,6 +219,26 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
             }
           }
         )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'order_items', filter: `partner_shop_id=eq.${sid}` },
+          async (payload) => {
+            // A partner order item was inserted! This means a new partner order has arrived.
+            await new Promise(resolve => setTimeout(resolve, 500))
+            const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
+            const activeOrders = await getShopActiveOrders(sid)
+            
+            // Check if we actually got a new order that isn't in our state yet
+            const currentOrders = useShopOrdersStore.getState().orders
+            const newOrderCount = activeOrders.filter(ao => !currentOrders.some(co => co.id === ao.id)).length
+            
+            if (newOrderCount > 0) {
+              useShopOrdersStore.getState().setOrders(activeOrders)
+              const { playShopAlarm } = require('@/store/shopOrdersStore')
+              playShopAlarm()
+            }
+          }
+        )
         .subscribe()
 
       return () => {
@@ -226,6 +246,49 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       }
     }
   }, [shopOwnerId, user?.id, setShopId, addOrder, updateOrderStatus, setLoading])
+
+  // RELIABLE POLLING FALLBACK (5 seconds)
+  // Bypasses any Supabase Realtime RLS subquery limitations and Next.js caching
+  useEffect(() => {
+    if (!shopOwnerId) return;
+    let isMounted = true;
+    
+    const pollOrders = async () => {
+      try {
+        const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
+        const currentSid = useShopOrdersStore.getState().shopId;
+        if (!currentSid) return;
+        
+        // Fetch fresh data
+        const activeOrders = await getShopActiveOrders(currentSid)
+        if (!isMounted) return;
+        
+        const currentOrders = useShopOrdersStore.getState().orders
+        
+        // Detect if there are new orders that we missed via Realtime
+        const newOrders = activeOrders.filter(ao => !currentOrders.some(co => co.id === ao.id && co.status === ao.status))
+        
+        if (newOrders.length > 0) {
+          useShopOrdersStore.getState().setOrders(activeOrders)
+          
+          // If we see a completely new pending order, ring the alarm
+          const hasNewPending = newOrders.some(no => no.status === 'pending' && !currentOrders.some(co => co.id === no.id));
+          if (hasNewPending) {
+            const { playShopAlarm } = require('@/store/shopOrdersStore')
+            playShopAlarm()
+          }
+        }
+      } catch (err) {
+        console.error("Polling error:", err)
+      }
+    };
+
+    const interval = setInterval(pollOrders, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [shopOwnerId])
 
   if (isLoading && !user) {
     return (
