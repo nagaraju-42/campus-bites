@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
-import { getShopDetailsByOwner } from '@/lib/supabase/queries/shop-dashboard'
+import { getShopById } from '@/lib/supabase/queries/shops'
 import toast from 'react-hot-toast'
 import { Shop } from '@/types'
 
@@ -16,12 +16,8 @@ export default function ShopSettingsPage() {
   useEffect(() => {
     if (!shopId) return
     async function load() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const shopData = await getShopDetailsByOwner(user.id)
-        setShop(shopData)
-      }
+      const shopData = await getShopById(shopId)
+      setShop(shopData)
     }
     load()
   }, [shopId])

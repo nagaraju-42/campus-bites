@@ -6,6 +6,28 @@ import { Plus, Search, Edit2, Trash2, ArrowLeft, Image as ImageIcon, Save, Check
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
+const ImageSizeBadge = ({ url }: { url?: string }) => {
+  const [size, setSize] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (!url || !url.startsWith('http')) return setSize(null);
+    fetch(`/api/image-size?url=${encodeURIComponent(url)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.bytes) {
+          const kb = (data.bytes / 1024).toFixed(1);
+          setSize(`${kb} KB`);
+        } else {
+          setSize('Unknown');
+        }
+      })
+      .catch(() => setSize('Error'));
+  }, [url]);
+
+  if (!size) return null;
+  return <span className="ml-2 text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">{size}</span>;
+}
+
 export default function AdminShopMenuPage() {
   const { shopId } = useParams()
   const router = useRouter()
@@ -49,7 +71,7 @@ export default function AdminShopMenuPage() {
         price: editForm.price,
         is_veg: editForm.is_veg,
         is_available: editForm.is_available,
-        category_id: editForm.category_id,
+        category_id: editForm.category_id || null,
         image_url: editForm.image_url
       }).eq('id', editForm.id)
 
@@ -82,6 +104,7 @@ export default function AdminShopMenuPage() {
         shop_id: shopId,
         name: 'New Item',
         price: 0,
+        category: 'Uncategorized',
         is_veg: true,
         is_available: false,
       }).select().single()
@@ -90,8 +113,9 @@ export default function AdminShopMenuPage() {
       setItems([data, ...items])
       setEditForm(data)
       setIsEditing(data.id)
-    } catch (err) {
-      toast.error('Failed to create new item')
+    } catch (err: any) {
+      console.error("Create Item Error:", err);
+      toast.error(err.message || 'Failed to create new item')
     }
   }
 
@@ -170,7 +194,10 @@ export default function AdminShopMenuPage() {
                       />
                     </div>
                     <div className="col-span-12 md:col-span-3">
-                      <label className="block text-xs font-bold text-slate-400 mb-1">Image URL (WebP)</label>
+                      <div className="flex items-center mb-1">
+                        <label className="block text-xs font-bold text-slate-400">Image URL (WebP)</label>
+                        <ImageSizeBadge url={editForm.image_url} />
+                      </div>
                       <input 
                         type="text" value={editForm.image_url || ''} onChange={e => setEditForm({...editForm, image_url: e.target.value})}
                         className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-1.5 text-white" 
@@ -179,7 +206,7 @@ export default function AdminShopMenuPage() {
                     <div className="col-span-6 md:col-span-2">
                       <label className="block text-xs font-bold text-slate-400 mb-1">Price (₹)</label>
                       <input 
-                        type="number" value={editForm.price} onChange={e => setEditForm({...editForm, price: parseFloat(e.target.value)})}
+                        type="number" value={editForm.price === '' || isNaN(editForm.price) ? '' : editForm.price} onChange={e => setEditForm({...editForm, price: e.target.value === '' ? '' : parseFloat(e.target.value)})}
                         className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-1.5 text-white" 
                       />
                     </div>
@@ -193,10 +220,14 @@ export default function AdminShopMenuPage() {
                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </div>
-                    <div className="col-span-6 md:col-span-1 flex flex-col items-center justify-center pt-5">
+                    <div className="col-span-6 md:col-span-1 flex flex-col items-start justify-center pt-5 gap-2">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={editForm.is_available} onChange={e => setEditForm({...editForm, is_available: e.target.checked})} className="rounded text-green-500 focus:ring-green-500" />
                         <span className="text-xs font-bold">In Stock</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={editForm.is_veg} onChange={e => setEditForm({...editForm, is_veg: e.target.checked})} className="rounded text-green-500 focus:ring-green-500" />
+                        <span className="text-xs font-bold">Pure Veg</span>
                       </label>
                     </div>
                     <div className="col-span-6 md:col-span-1 flex flex-col justify-end gap-2 pb-0.5">
@@ -228,9 +259,12 @@ export default function AdminShopMenuPage() {
                     </span>
                     <span className="font-bold text-white text-base">{item.name}</span>
                   </div>
-                  <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">
-                    {categories.find(c => c.id === item.category_id)?.name || 'Uncategorized'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">
+                      {categories.find(c => c.id === item.category_id)?.name || 'Uncategorized'}
+                    </span>
+                    <ImageSizeBadge url={item.image_url} />
+                  </div>
                 </td>
                 <td className="px-4 py-3 font-mono font-bold text-white text-base">
                   ₹{item.price}
