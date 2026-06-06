@@ -42,6 +42,7 @@ export default function ShopSettingsPage() {
         .update({
           name: shop.name,
           description: shop.description,
+          phone: shop.phone,
           dine_in_enabled: shop.dine_in_enabled,
         })
         .eq('id', shop.id)
@@ -85,6 +86,19 @@ export default function ShopSettingsPage() {
             onChange={handleChange}
             className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-gray-50 text-gray-900 focus:outline-none focus:border-[#2563EB] focus:bg-white shadow-sm transition resize-none"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1.5">Shop Phone Number</label>
+          <input
+            type="tel"
+            name="phone"
+            value={shop.phone || ''}
+            onChange={handleChange}
+            placeholder="+91..."
+            className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-gray-50 text-gray-900 focus:outline-none focus:border-[#2563EB] focus:bg-white shadow-sm transition"
+          />
+          <p className="text-xs text-gray-400 mt-1">This number will be visible to students and riders to contact you.</p>
         </div>
 
         <div>

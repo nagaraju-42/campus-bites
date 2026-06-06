@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Star, Clock, Plus, Minus, ShoppingCart, Info, Search } from 'lucide-react'
-import { getShopById } from '@/lib/supabase/queries/shops'
+import { getShopById, getPrimaryShopsForPartner } from '@/lib/supabase/queries/shops'
 import { getMenuItemsByShop, groupMenuByCategory, getCollaborativeMenuItems } from '@/lib/supabase/queries/menu'
 import { Shop, MenuItem } from '@/types'
 import { useCartStore } from '@/store/cartStore'
@@ -20,6 +20,7 @@ export default function MenuPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('Menu')
   const [partnerShops, setPartnerShops] = useState<any[]>([])
+  const [primaryShops, setPrimaryShops] = useState<any[]>([])
 
   const { items, addItem, updateQuantity, getTotalItems, getTotalPrice, shopId: cartShopId } = useCartStore()
 
@@ -33,13 +34,15 @@ export default function MenuPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [shopData, menuData] = await Promise.all([
+        const [shopData, menuData, primaryData] = await Promise.all([
           getShopById(shopId),
           getCollaborativeMenuItems(shopId),
+          getPrimaryShopsForPartner(shopId)
         ])
         setShop(shopData)
         setGroupedMenu(groupMenuByCategory(menuData.items))
         setPartnerShops(menuData.partnerShops)
+        setPrimaryShops(primaryData)
       } finally {
         setIsLoading(false)
       }
@@ -51,6 +54,34 @@ export default function MenuPage() {
     if (!isShopAccessible) {
       toast.error(`This shop is currently closed for ${orderMode === 'dine_in' ? 'dine-in' : 'delivery'}.`)
       return
+    }
+
+    if (primaryShops.length > 0) {
+      const allowedPrimaryIds = primaryShops.map(p => p.primary_shop_id)
+      const hasPrimaryCart = cartShopId && allowedPrimaryIds.includes(cartShopId)
+      const hasPrimaryItem = items.some(i => i.shopId === cartShopId && !i.partnerShopId)
+
+      if (!hasPrimaryCart || !hasPrimaryItem) {
+        const primaryShopName = primaryShops[0]?.shops?.name || 'the primary shop'
+        toast.error((t) => (
+          <div className="flex flex-col gap-2">
+            <p className="font-bold text-sm">Add-on Item Only!</p>
+            <p className="text-xs text-gray-700">
+              {shop?.name} is a partner of {primaryShopName}. You must add at least one item from {primaryShopName} first!
+            </p>
+            <button 
+              onClick={() => {
+                toast.dismiss(t.id)
+                router.push(`/student/menu/${primaryShops[0].primary_shop_id}`)
+              }}
+              className="mt-1 bg-gray-900 text-white text-xs font-bold py-1.5 px-3 rounded-lg w-fit"
+            >
+              Go to {primaryShopName}
+            </button>
+          </div>
+        ), { duration: 5000 })
+        return
+      }
     }
 
     if (cartShopId && cartShopId !== shopId) {
@@ -128,6 +159,11 @@ export default function MenuPage() {
           {partnerShops && partnerShops.length > 0 && (
             <p className="text-xs text-white/90 mb-1 font-medium bg-black/40 inline-block px-2 py-1 rounded backdrop-blur-sm">
               🤝 Partnered with {partnerShops.map(p => p.name).join(', ')}
+            </p>
+          )}
+          {primaryShops && primaryShops.length > 0 && (
+            <p className="text-xs text-white mb-1 font-bold bg-blue-600/90 inline-block px-2 py-1 rounded backdrop-blur-sm border border-blue-400">
+              🤝 Partner Shop of {primaryShops.map(p => p.shops?.name).filter(Boolean).join(', ')}
             </p>
           )}
           <div className="flex items-center gap-2 text-white/90 text-xs font-medium mb-1 mt-1">

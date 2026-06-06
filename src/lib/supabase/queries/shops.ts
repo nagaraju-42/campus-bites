@@ -25,3 +25,15 @@ export async function getShopById(shopId: string): Promise<Shop | null> {
   if (error) return null
   return data
 }
+
+export async function getPrimaryShopsForPartner(partnerShopId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('shop_collaborations')
+    .select('primary_shop_id, shops!shop_collaborations_primary_shop_id_fkey(id, name)')
+    .eq('partner_shop_id', partnerShopId)
+    .eq('is_active', true)
+
+  if (error) return []
+  return data ?? []
+}

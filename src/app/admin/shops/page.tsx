@@ -13,7 +13,7 @@ export default function AdminShopsPage() {
   const [shops, setShops] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingShop, setEditingShop] = useState<any | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', address: '', description: '', cover_image: '' })
+  const [editForm, setEditForm] = useState({ name: '', address: '', description: '', cover_image: '', phone: '' })
   
   const router = useRouter()
   const { user, setAdminUser, setUser } = useAuthStore()
@@ -45,14 +45,14 @@ export default function AdminShopsPage() {
 
   const handleEditClick = (shop: any) => {
     setEditingShop(shop)
-    setEditForm({ name: shop.name, address: shop.address || '', description: shop.description || '', cover_image: shop.cover_image || '' })
+    setEditForm({ name: shop.name, address: shop.address || '', description: shop.description || '', cover_image: shop.cover_image || '', phone: shop.phone || '' })
   }
 
   const handleSaveEdit = async () => {
     if (!editingShop) return
     try {
       await updateShopDetails(editingShop.id, editForm)
-      setShops(shops.map(s => s.id === editingShop.id ? { ...s, name: editForm.name, address: editForm.address, description: editForm.description, cover_image: editForm.cover_image } : s))
+      setShops(shops.map(s => s.id === editingShop.id ? { ...s, name: editForm.name, address: editForm.address, description: editForm.description, cover_image: editForm.cover_image, phone: editForm.phone } : s))
       toast.success('Shop details updated!')
       setEditingShop(null)
     } catch (err) {
@@ -202,6 +202,10 @@ export default function AdminShopsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description (Keywords)</label>
                     <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" rows={2}></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input type="tel" placeholder="+91..." value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
