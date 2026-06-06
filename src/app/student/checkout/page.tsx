@@ -65,6 +65,32 @@ export default function CheckoutPage() {
     loadSettings()
   }, [shopId])
 
+  // Realtime shop status watcher — detects mid-checkout shop closure
+  // This is the key edge case fix: student is on checkout, shop closes → show warning immediately
+  // NOTE: this does NOT affect already-placed orders (they are always in transition state and kept alive)
+  useEffect(() => {
+    if (!shopId) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`shop-status-${shopId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'shops', filter: `id=eq.${shopId}` },
+        (payload) => {
+          const isNowOpen = payload.new.is_open
+          setShopInfo((prev: any) => prev ? { ...prev, is_open: isNowOpen } : prev)
+          if (!isNowOpen) {
+            toast.error('⚠️ This shop just closed for new delivery orders. You cannot place a new order right now.', { duration: 6000 })
+          } else {
+            toast.success('✅ Shop is now open! You can place your order.', { duration: 4000 })
+          }
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [shopId])
+
+
   useEffect(() => {
     if (studentProfile) {
       const currentHostel = studentProfile.hostel_name || ''
