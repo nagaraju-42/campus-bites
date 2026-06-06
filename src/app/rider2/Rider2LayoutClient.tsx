@@ -141,7 +141,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
         async (payload) => {
           const { data: fullOrder } = await supabase
             .from('orders')
-            .select(`*, shops(name, description), order_items(*, partner:partner_shop_id(name))`)
+            .select(`*, shops(name, description), order_items(*, partner:partner_shop_id(name), menu_items(name))`)
             .eq('id', payload.new.id)
             .single()
 

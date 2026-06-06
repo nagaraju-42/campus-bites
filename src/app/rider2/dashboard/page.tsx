@@ -23,6 +23,7 @@ export default function Rider2DashboardPage() {
   
   // Interactive KDS Checklist state
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
+  const [showCollectionPrompt, setShowCollectionPrompt] = useState(false)
 
   const toggleCheck = (id: string) => {
     setCheckedItems(prev => ({...prev, [id]: !prev[id]}))
@@ -136,9 +137,59 @@ export default function Rider2DashboardPage() {
     }
   }, [activeDeliveries.length])
 
+  useEffect(() => {
+    if (timeLeft === 0 && activeDeliveries.length > 0 && !showCollectionPrompt) {
+      const batchId = activeDeliveries.map(o => o.id).sort().join('-')
+      if (!localStorage.getItem(`prompted_${batchId}`)) {
+        setShowCollectionPrompt(true)
+        const { playRiderAlarm } = require('@/store/riderStore')
+        playRiderAlarm()
+      }
+    }
+  }, [timeLeft, activeDeliveries, showCollectionPrompt])
+
+  const handleAcknowledgeCollection = () => {
+    const batchId = activeDeliveries.map(o => o.id).sort().join('-')
+    localStorage.setItem(`prompted_${batchId}`, 'true')
+    setShowCollectionPrompt(false)
+    const { stopRiderAlarm } = require('@/store/riderStore')
+    stopRiderAlarm()
+  }
 
   return (
     <div className="px-5 pt-8 pb-4">
+      {/* Collection Prompt Overlay */}
+      <AnimatePresence>
+        {showCollectionPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-6 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col items-center text-center"
+            >
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                <Bell size={32} className="animate-pulse" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Time is up!</h2>
+              <p className="text-gray-600 mb-6 text-sm">
+                The 5-minute collection window has ended. Did you collect all the items from the shop?
+              </p>
+              <button
+                onClick={handleAcknowledgeCollection}
+                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg active:scale-95 transition"
+              >
+                Yes, I collected them!
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>

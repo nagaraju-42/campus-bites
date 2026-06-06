@@ -68,7 +68,8 @@ export default function TrackOrderPage() {
         event: 'UPDATE', schema: 'public', table: 'orders',
         filter: `id=eq.${orderId}`,
       }, async (payload) => {
-        setOrder((prev) => prev ? { ...prev, status: payload.new.status as OrderStatus } : prev)
+        const updatedOrder = await getOrderById(orderId)
+        setOrder(updatedOrder)
         // Also refresh logs when status updates
         try {
           const logs = await getOrderAuditLogs(orderId)

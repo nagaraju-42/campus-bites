@@ -11,6 +11,8 @@ import { useAuthStore } from '@/store/authStore'
 import { updateOrderStatusDB, cancelOrderAsShop } from '@/lib/supabase/queries/shop-dashboard'
 import TicketCard from '@/components/shop/TicketCard'
 import toast from 'react-hot-toast'
+import { createClient } from '@/lib/supabase/client'
+import { playShopAlarm } from '@/store/shopOrdersStore'
 
 export default function KDSPage() {
   const router = useRouter()
@@ -62,7 +64,29 @@ export default function KDSPage() {
     } else {
       setIsLoading(false)
     }
-  }, [shopId, orders.length, setOrders])
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`shop-kds-${shopId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${shopId}` }, async (payload) => {
+        const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
+        const data = await getShopActiveOrders(shopId!)
+        setOrders(data)
+        playShopAlarm()
+        toast.success('New Order Received!', { icon: '🔔', duration: 10000 })
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `shop_id=eq.${shopId}` }, (payload) => {
+        const { updateOrderStatus } = useShopOrdersStore.getState()
+        if (payload.new.status) {
+          updateOrderStatus(payload.new.id, payload.new.status as any)
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [shopId])
 
   // Combine new, preparing, and ready for the kitchen view
   const activeTickets = [...getNewOrders(), ...getPreparingOrders(), ...getReadyOrders()]

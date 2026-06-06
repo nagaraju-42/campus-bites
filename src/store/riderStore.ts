@@ -103,10 +103,10 @@ export const playRiderAlarm = () => {
     activeRiderAudio.loop = true;
     activeRiderAudio.play().catch(e => console.log("Audio blocked:", e));
     
-    // Auto stop after 20 seconds
+    // Auto stop after 15 seconds
     setTimeout(() => {
       stopRiderAlarm();
-    }, 20000);
+    }, 15000);
   } catch (e) {}
 }
 
