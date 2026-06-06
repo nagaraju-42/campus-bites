@@ -157,12 +157,22 @@ export default function TrackOrderPage() {
               <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">Estimated Arrival</p>
               <div className="flex items-center gap-2">
                 <p className="text-[10px] text-gray-400 font-medium hidden sm:block">Query about your order?</p>
-                <a 
-                  href={`tel:+91${(order.shops?.phone || '0000000000').replace('+91', '')}`}
-                  className="flex items-center gap-1 bg-[#16A34A] text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition"
-                >
-                  <PhoneCall size={12} /> Call Shop
-                </a>
+                <div className="flex flex-col items-end gap-1.5">
+                  <a 
+                    href={`tel:+91${(order.shops?.phone || '0000000000').replace('+91', '')}`}
+                    className="flex items-center gap-1 bg-[#16A34A] text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition"
+                  >
+                    <PhoneCall size={12} /> Call Shop
+                  </a>
+                  {order.rider_id && order.rider?.phone && (
+                    <a 
+                      href={`tel:+91${order.rider.phone.replace('+91', '')}`}
+                      className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition"
+                    >
+                      <PhoneCall size={12} /> Call Rider
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
             {(() => {
