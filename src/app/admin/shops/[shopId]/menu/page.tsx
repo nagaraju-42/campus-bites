@@ -53,13 +53,27 @@ export default function AdminShopMenuPage() {
       const { data: catData } = await supabase.from('app_categories').select('*')
       if (catData) setCategories(catData)
 
-      const { data: itemsData } = await supabase.from('menu_items').select('*').eq('shop_id', shopId).order('name')
+      const { data: itemsData } = await supabase.from('menu_items').select('*').eq('shop_id', shopId).neq('is_archived', true).order('name')
       if (itemsData) setItems(itemsData)
 
       setIsLoading(false)
     }
     loadData()
   }, [shopId])
+
+  const handleAutoCalculate = async () => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.rpc('auto_calculate_bestsellers', { p_shop_id: shopId })
+      if (error) throw error
+      toast.success('Bestsellers recalculated successfully!')
+      // Reload items
+      const { data: itemsData } = await supabase.from('menu_items').select('*').eq('shop_id', shopId).order('name')
+      if (itemsData) setItems(itemsData)
+    } catch (err) {
+      toast.error('Failed to calculate bestsellers')
+    }
+  }
 
   const handleSaveEdit = async () => {
     if (!editForm.id) return
@@ -71,6 +85,7 @@ export default function AdminShopMenuPage() {
         price: editForm.price,
         is_veg: editForm.is_veg,
         is_available: editForm.is_available,
+        is_featured: editForm.is_featured,
         category_id: editForm.category_id || null,
         image_url: editForm.image_url
       }).eq('id', editForm.id)
@@ -89,11 +104,17 @@ export default function AdminShopMenuPage() {
     if (!confirm('Are you sure you want to delete this item?')) return
     try {
       const supabase = createClient()
-      await supabase.from('menu_items').delete().eq('id', id)
+      const { error } = await supabase.from('menu_items').update({ 
+        is_archived: true, 
+        is_available: false 
+      }).eq('id', id)
+      
+      if (error) throw error
+      
       setItems(items.filter(item => item.id !== id))
       toast.success('Item deleted')
     } catch (err) {
-      toast.error('Failed to delete')
+      toast.error('Failed to delete item')
     }
   }
 
@@ -107,6 +128,8 @@ export default function AdminShopMenuPage() {
         category: 'Uncategorized',
         is_veg: true,
         is_available: false,
+        is_featured: false,
+        is_archived: false,
       }).select().single()
 
       if (error) throw error
@@ -139,12 +162,20 @@ export default function AdminShopMenuPage() {
             <p className="text-slate-400 text-sm">Shop: <span className="text-orange-400 font-bold">{shopName}</span></p>
           </div>
         </div>
-        <button 
-          onClick={handleCreateNew}
-          className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg transition"
-        >
-          <Plus size={16} /> Add Item
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleAutoCalculate}
+            className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg shadow-yellow-900/20 transition"
+          >
+            <CheckCircle size={16} /> Auto-Calculate Bestsellers
+          </button>
+          <button 
+            onClick={handleCreateNew}
+            className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg transition"
+          >
+            <Plus size={18} /> Add Item
+          </button>
+        </div>
       </div>
 
       <div className="bg-[#1E293B] border border-slate-800 rounded-2xl p-4 shadow-xl mb-6 flex gap-4 items-center flex-wrap">
@@ -229,6 +260,10 @@ export default function AdminShopMenuPage() {
                         <input type="checkbox" checked={editForm.is_veg} onChange={e => setEditForm({...editForm, is_veg: e.target.checked})} className="rounded text-green-500 focus:ring-green-500" />
                         <span className="text-xs font-bold">Pure Veg</span>
                       </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={editForm.is_featured || false} onChange={e => setEditForm({...editForm, is_featured: e.target.checked})} className="rounded text-yellow-500 focus:ring-yellow-500" />
+                        <span className="text-xs font-bold text-yellow-500 flex items-center gap-1">⭐ Featured</span>
+                      </label>
                     </div>
                     <div className="col-span-6 md:col-span-1 flex flex-col justify-end gap-2 pb-0.5">
                       <button onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1">
@@ -258,6 +293,11 @@ export default function AdminShopMenuPage() {
                       <span className={`w-1.5 h-1.5 rounded-full ${item.is_veg ? 'bg-green-500' : 'bg-red-500'}`}></span>
                     </span>
                     <span className="font-bold text-white text-base">{item.name}</span>
+                    {item.is_featured && (
+                      <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded font-bold border border-yellow-500/30 flex items-center gap-1">
+                        ⭐ Featured
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">

@@ -87,6 +87,10 @@ export interface MenuItem {
   price: number
   image_url: string | null
   is_available: boolean
+  is_veg?: boolean
+  is_featured?: boolean
+  is_archived?: boolean
+  category_id?: string | null
   created_at: string
 }
 

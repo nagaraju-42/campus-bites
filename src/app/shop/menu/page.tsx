@@ -61,7 +61,11 @@ export default function ShopMenuPage() {
     if (!confirm('Are you sure you want to delete this item?')) return
     try {
       const supabase = createClient()
-      const { error } = await supabase.from('menu_items').delete().eq('id', id)
+      const { error } = await supabase.from('menu_items').update({ 
+        is_archived: true, 
+        is_available: false 
+      }).eq('id', id)
+      
       if (error) throw error
       setItems(items.filter(i => i.id !== id))
       toast.success('Item deleted')

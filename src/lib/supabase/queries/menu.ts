@@ -71,6 +71,7 @@ export async function getAllMenuItemsByShop(shopId: string): Promise<MenuItem[]>
     .from('menu_items')
     .select('*')
     .eq('shop_id', shopId)
+    .neq('is_archived', true)
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
@@ -112,9 +113,29 @@ export async function searchMenuItems(query: string): Promise<any[]> {
 
 // Groups items by category
 export function groupMenuByCategory(items: MenuItem[]) {
-  return items.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = []
-    acc[item.category].push(item)
+  const grouped = items.reduce((acc, item) => {
+    const cat = item.category || 'Uncategorized'
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(item)
+
+    if (item.is_featured) {
+      if (!acc['Bestsellers']) acc['Bestsellers'] = []
+      acc['Bestsellers'].push(item)
+    }
+
     return acc
   }, {} as Record<string, MenuItem[]>)
+
+  // Ensure Bestsellers is at the top
+  const sortedGrouped: Record<string, MenuItem[]> = {}
+  if (grouped['Bestsellers']) {
+    sortedGrouped['Bestsellers'] = grouped['Bestsellers']
+  }
+  for (const key in grouped) {
+    if (key !== 'Bestsellers') {
+      sortedGrouped[key] = grouped[key]
+    }
+  }
+
+  return sortedGrouped
 }

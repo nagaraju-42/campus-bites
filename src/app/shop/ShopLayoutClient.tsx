@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Toaster } from 'react-hot-toast'
 import toast from 'react-hot-toast'
-import useSound from 'use-sound'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
@@ -141,7 +140,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           setShopIsOpen(shopData.is_open)
           
           // Fix: Fetch initial orders so they don't disappear on direct page load
-          const { getShopActiveOrders } = require('@/lib/supabase/queries/shop-dashboard')
+          const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
           const activeOrders = await getShopActiveOrders(shopData.id)
           useShopOrdersStore.getState().setOrders(activeOrders)
 
