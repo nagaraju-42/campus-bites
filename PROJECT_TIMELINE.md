@@ -39,6 +39,8 @@
 └── Project Migrations
     ├── Full SQL Database Dump generation
     └── Removed direct DB credentials from codebase (SQL-Editor only mode)
+├── Next.js Configuration
+│   └── Whitelisted external image domains (Cloudinary, Imgur, Postimages) in `next.config.ts` to fix broken `<Image>` rendering
 
 ---
 *Future updates will grow sequentially from this tree.*
