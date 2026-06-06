@@ -15,11 +15,11 @@ export default function ShopSettingsPage() {
 
   useEffect(() => {
     if (!shopId) return
-    async function load() {
-      const shopData = await getShopById(shopId)
+    async function load(id: string) {
+      const shopData = await getShopById(id)
       setShop(shopData)
     }
-    load()
+    load(shopId)
   }, [shopId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
