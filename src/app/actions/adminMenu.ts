@@ -45,3 +45,13 @@ export async function adminArchiveMenuItem(id: string) {
   
   if (error) throw new Error(error.message)
 }
+
+export async function adminRestoreMenuItem(id: string) {
+  const supabase = getSupabaseAdmin()
+  const { error } = await supabase.from('menu_items').update({ 
+    is_archived: false,
+    is_available: false 
+  }).eq('id', id)
+  
+  if (error) throw new Error(error.message)
+}

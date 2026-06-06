@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Plus, Search, Edit2, Trash2, ArrowLeft, Image as ImageIcon, Save, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
-import { adminCreateMenuItem, adminUpdateMenuItem, adminArchiveMenuItem } from '@/app/actions/adminMenu'
+import { adminCreateMenuItem, adminUpdateMenuItem, adminArchiveMenuItem, adminRestoreMenuItem } from '@/app/actions/adminMenu'
 
 const ImageSizeBadge = ({ url }: { url?: string }) => {
   const [size, setSize] = useState<string | null>(null);
@@ -40,6 +40,7 @@ export default function AdminShopMenuPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [showArchived, setShowArchived] = useState(false)
 
   const [isEditing, setIsEditing] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
@@ -54,7 +55,7 @@ export default function AdminShopMenuPage() {
       const { data: catData } = await supabase.from('app_categories').select('*')
       if (catData) setCategories(catData)
 
-      const { data: itemsData } = await supabase.from('menu_items').select('*').eq('shop_id', shopId).neq('is_archived', true).order('name')
+      const { data: itemsData } = await supabase.from('menu_items').select('*').eq('shop_id', shopId).order('name')
       if (itemsData) setItems(itemsData)
 
       setIsLoading(false)
@@ -102,10 +103,21 @@ export default function AdminShopMenuPage() {
     if (!confirm('Are you sure you want to delete this item?')) return
     try {
       await adminArchiveMenuItem(id)
-      setItems(items.filter(item => item.id !== id))
-      toast.success('Item deleted')
+      setItems(items.map(item => item.id === id ? { ...item, is_archived: true, is_available: false } : item))
+      toast.success('Item moved to archive')
     } catch (err) {
       toast.error('Failed to delete item')
+    }
+  }
+
+  const handleRestore = async (id: string) => {
+    if (!confirm('Restore this item to the menu?')) return
+    try {
+      await adminRestoreMenuItem(id)
+      setItems(items.map(item => item.id === id ? { ...item, is_archived: false } : item))
+      toast.success('Item restored')
+    } catch (err) {
+      toast.error('Failed to restore item')
     }
   }
 
@@ -122,6 +134,10 @@ export default function AdminShopMenuPage() {
   }
 
   const filteredItems = items.filter(item => {
+    const isArchived = Boolean(item.is_archived)
+    if (showArchived && !isArchived) return false
+    if (!showArchived && isArchived) return false
+    
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase())
     const matchesCategory = activeCategory === 'all' || item.category_id === activeCategory
     return matchesSearch && matchesCategory
@@ -149,8 +165,16 @@ export default function AdminShopMenuPage() {
             <CheckCircle size={16} /> Auto-Calculate Bestsellers
           </button>
           <button 
+            onClick={() => setShowArchived(!showArchived)}
+            className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition ${
+              showArchived ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            {showArchived ? 'View Active' : 'View Archived'}
+          </button>
+          <button 
             onClick={handleCreateNew}
-            className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg transition"
+            className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg shadow-green-900/20 transition"
           >
             <Plus size={18} /> Add Item
           </button>
@@ -304,12 +328,20 @@ export default function AdminShopMenuPage() {
                   </button>
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
-                  <button onClick={() => { setEditForm(item); setIsEditing(item.id); }} className="text-slate-400 hover:text-blue-400 p-2 bg-slate-800 rounded-lg transition" title="Edit">
-                    <Edit2 size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(item.id)} className="text-slate-400 hover:text-red-400 p-2 bg-slate-800 rounded-lg transition" title="Delete">
-                    <Trash2 size={16} />
-                  </button>
+                  {item.is_archived ? (
+                    <button onClick={() => handleRestore(item.id)} className="text-slate-400 hover:text-green-400 p-2 bg-slate-800 rounded-lg transition font-bold text-xs" title="Restore">
+                      Restore
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => { setEditForm(item); setIsEditing(item.id); }} className="text-slate-400 hover:text-blue-400 p-2 bg-slate-800 rounded-lg transition" title="Edit">
+                        <Edit2 size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(item.id)} className="text-slate-400 hover:text-red-400 p-2 bg-slate-800 rounded-lg transition" title="Delete">
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
