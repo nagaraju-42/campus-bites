@@ -95,19 +95,34 @@ export const useRiderStore = create<RiderState>()(
 
 // Global Audio Controller for Rider
 export let activeRiderAudio: HTMLAudioElement | null = null;
+export let isRiderAudioUnlocked = false;
+
+export const initRiderAudio = () => {
+  if (typeof window === 'undefined' || isRiderAudioUnlocked) return;
+  activeRiderAudio = new Audio('/sounds/bell-alarm.mp3');
+  activeRiderAudio.volume = 0; // Mute for unlock
+  activeRiderAudio.play().then(() => {
+    activeRiderAudio?.pause();
+    if (activeRiderAudio) activeRiderAudio.volume = 1.0;
+    isRiderAudioUnlocked = true;
+  }).catch(() => {});
+}
 
 export const playRiderAlarm = (reason?: { title: string, message: string }) => {
   if (typeof window === 'undefined') return;
   useRiderStore.getState().setIsAlarmRinging(true, reason);
   try {
-    if (activeRiderAudio) {
-      activeRiderAudio.pause();
-      activeRiderAudio.currentTime = 0;
+    if (!activeRiderAudio) {
+      activeRiderAudio = new Audio('/sounds/bell-alarm.mp3');
     }
-    activeRiderAudio = new Audio('/sounds/bell-alarm.mp3');
+    activeRiderAudio.currentTime = 0;
     activeRiderAudio.volume = 1.0;
     activeRiderAudio.loop = true;
-    activeRiderAudio.play().catch(e => console.log("Audio blocked:", e));
+    
+    const playPromise = activeRiderAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(e => console.log("Audio blocked:", e));
+    }
     
     // Auto stop after 25 seconds
     setTimeout(() => {

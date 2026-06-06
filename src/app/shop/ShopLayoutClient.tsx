@@ -24,6 +24,22 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const { setShopId, addOrder, updateOrderStatus, isAlarmRinging } = useShopOrdersStore()
   const [shopOwnerId, setShopOwnerId] = useState<string | null>(null)
   
+  // Auto-unlock audio for background tabs on first interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      const { initShopAudio } = require('@/store/shopOrdersStore')
+      initShopAudio()
+      window.removeEventListener('click', unlockAudio)
+      window.removeEventListener('touchstart', unlockAudio)
+    }
+    window.addEventListener('click', unlockAudio)
+    window.addEventListener('touchstart', unlockAudio)
+    return () => {
+      window.removeEventListener('click', unlockAudio)
+      window.removeEventListener('touchstart', unlockAudio)
+    }
+  }, [])
+  
   // Onboarding state
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
   const [needsShopCreation, setNeedsShopCreation] = useState(false)

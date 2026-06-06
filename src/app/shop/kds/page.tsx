@@ -39,7 +39,7 @@ export default function KDSPage() {
         toast.success('Background notifications enabled!')
       }
     } catch (err: any) {
-      toast.error(`Push Error: ${err.message}`, { duration: 6000 })
+      console.warn('Push registration skipped:', err.message)
     }
   }
 

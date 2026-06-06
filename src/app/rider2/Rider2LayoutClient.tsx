@@ -22,6 +22,22 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
   const [riderId, setRiderId] = useState<string | null>(null)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
+  // Auto-unlock audio for background tabs on first interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      const { initRiderAudio } = require('@/store/riderStore')
+      initRiderAudio()
+      window.removeEventListener('click', unlockAudio)
+      window.removeEventListener('touchstart', unlockAudio)
+    }
+    window.addEventListener('click', unlockAudio)
+    window.addEventListener('touchstart', unlockAudio)
+    return () => {
+      window.removeEventListener('click', unlockAudio)
+      window.removeEventListener('touchstart', unlockAudio)
+    }
+  }, [])
+
   // Inject PWA manifest link into document head + register service worker
   useEffect(() => {
     const existing = document.querySelector('link[rel="manifest"]')

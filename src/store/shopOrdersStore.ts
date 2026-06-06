@@ -55,6 +55,20 @@ export const useShopOrdersStore = create<ShopOrdersState>((set, get) => ({
 
 // Global Audio Controller for KDS
 export let activeKdsAudio: HTMLAudioElement | null = null;
+export let isAudioUnlocked = false;
+
+export const initShopAudio = () => {
+  if (typeof window === 'undefined' || isAudioUnlocked) return;
+  activeKdsAudio = new Audio('/sounds/bell-alarm.mp3');
+  activeKdsAudio.volume = 0; // Mute for unlock
+  activeKdsAudio.play().then(() => {
+    activeKdsAudio?.pause();
+    if (activeKdsAudio) activeKdsAudio.volume = 1.0;
+    isAudioUnlocked = true;
+  }).catch(() => {
+    // If it fails, we just try again on the next interaction
+  });
+}
 
 export const playShopAlarm = () => {
   if (typeof window === 'undefined') return;
@@ -70,14 +84,18 @@ export const playShopAlarm = () => {
   }
 
   try {
-    if (activeKdsAudio) {
-      activeKdsAudio.pause();
-      activeKdsAudio.currentTime = 0;
+    if (!activeKdsAudio) {
+      activeKdsAudio = new Audio('/sounds/bell-alarm.mp3');
     }
-    activeKdsAudio = new Audio('/sounds/bell-alarm.mp3');
+    activeKdsAudio.currentTime = 0;
     activeKdsAudio.volume = 1.0;
     activeKdsAudio.loop = true;
-    activeKdsAudio.play().catch(e => console.log("Audio blocked:", e));
+    
+    // Using a setTimeout hack can sometimes help background tabs if play fails immediately
+    const playPromise = activeKdsAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(e => console.log("Audio blocked:", e));
+    }
     
     // Auto stop after 25 seconds
     setTimeout(() => {
