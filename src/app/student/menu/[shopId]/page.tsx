@@ -211,11 +211,16 @@ export default function MenuPage() {
         
         {/* Left Categories Sidebar */}
         <div className="w-1/3 space-y-1 sticky top-16 self-start">
-          <button className="w-full text-left px-3 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-xs shadow-md">
-            Bestsellers
-          </button>
           {Object.keys(groupedMenu).map((cat) => (
-            <button key={cat} className="w-full text-left px-3 py-3 rounded-xl bg-transparent text-gray-600 font-bold text-xs hover:bg-gray-100 transition">
+            <button 
+              key={cat} 
+              onClick={() => {
+                document.getElementById(`category-${cat}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className={`w-full text-left px-3 py-3 rounded-xl font-bold text-xs transition ${
+                cat === 'Bestsellers' ? 'bg-[#DC2626] text-white shadow-md' : 'bg-transparent text-gray-600 hover:bg-gray-100'
+              }`}
+            >
               {cat}
             </button>
           ))}
@@ -224,7 +229,10 @@ export default function MenuPage() {
         {/* Right Menu Items */}
         <div className="w-2/3 space-y-4">
           {Object.entries(groupedMenu).map(([category, menuItems]) => (
-            <div key={category} className="space-y-4">
+            <div key={category} id={`category-${category}`} className="space-y-4 pt-4 -mt-4">
+              <h2 className="font-bold text-lg text-gray-900 sticky top-16 bg-gray-50/95 py-2 z-10 backdrop-blur-sm border-b border-gray-200">
+                {category}
+              </h2>
               {menuItems.map((item) => {
                 const qty = getItemQuantity(item.id)
                 return (
