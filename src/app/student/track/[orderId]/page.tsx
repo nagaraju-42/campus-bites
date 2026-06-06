@@ -280,14 +280,24 @@ export default function TrackOrderPage() {
         {/* Rider Info Card (Dynamic) */}
         {!isDineIn && riderMode && (
           order.rider_id && order.rider ? (
-            <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-xl">
-                👨‍🦰
+            <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-xl">
+                  👨‍🦰
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900 text-sm">{order.rider.full_name}</p>
+                  <p className="text-gray-500 text-xs font-medium">Your delivery partner</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="font-bold text-gray-900 text-sm">{order.rider.full_name}</p>
-                <p className="text-gray-500 text-xs font-medium">Your delivery partner</p>
-              </div>
+              {order.rider.phone && (
+                <a 
+                  href={`tel:+91${order.rider.phone.replace('+91', '')}`}
+                  className="w-10 h-10 bg-[#16A34A] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition"
+                >
+                  <PhoneCall size={16} />
+                </a>
+              )}
             </div>
           ) : order.status === 'ready' || order.status === 'preparing' || order.status === 'pending' ? (
             <div className="bg-gray-50 border border-gray-200 shadow-sm rounded-2xl p-4 flex items-center gap-3 animate-pulse">

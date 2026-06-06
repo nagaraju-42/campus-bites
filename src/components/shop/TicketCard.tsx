@@ -197,7 +197,7 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
             <div className="flex gap-2">
               {order.student.phone && (
                 <a 
-                  href={`tel:${order.student.phone}`} 
+                  href={`tel:+91${order.student.phone.replace('+91', '')}`} 
                   className="flex-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition"
                 >
                   <Phone size={16} /> Call

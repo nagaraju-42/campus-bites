@@ -154,7 +154,17 @@ export default function ActiveDeliveryPage() {
         {/* Dynamic Card Content */}
         {step === 'pickup' ? (
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{order.shops?.name}</h2>
+            <div className="flex justify-between items-start mb-2">
+              <h2 className="text-2xl font-bold text-gray-900">{order.shops?.name}</h2>
+              {order.shops?.phone && (
+                <a 
+                  href={`tel:+91${order.shops.phone.replace('+91', '')}`}
+                  className="bg-[#16A34A] text-white p-2 rounded-full shadow-sm active:scale-95 transition"
+                >
+                  <Phone size={16} />
+                </a>
+              )}
+            </div>
             <p className="text-gray-500 font-medium text-sm flex items-start gap-2 mb-6">
               <MapPin size={16} className="mt-0.5 text-[#16A34A]" />
               {order.shops?.description || 'Pickup from counter'}
@@ -245,7 +255,7 @@ export default function ActiveDeliveryPage() {
                   <MessageSquare size={20} />
                 </button>
                 <a 
-                  href={`tel:+91${(order as any).profiles?.phone || ''}`}
+                  href={`tel:+91${((order as any).profiles?.phone || '').replace('+91', '')}`}
                   className="w-12 h-12 bg-[#16A34A] rounded-full flex items-center justify-center text-white shadow-md shadow-green-200 active:scale-95 transition"
                 >
                   <Phone size={20} />
