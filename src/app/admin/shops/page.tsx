@@ -82,11 +82,18 @@ export default function AdminShopsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-display font-bold text-white tracking-wide">Restaurant Partners</h1>
           <p className="text-slate-400 mt-1">Approve or suspend platform restaurants</p>
         </div>
+        <button
+          onClick={() => toast('To add a new shop, first create a Shop Owner user in User Management. They will be prompted to create their shop upon first login.', { icon: 'ℹ️', duration: 6000 })}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg"
+        >
+          <Plus size={20} />
+          Add Shop
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -99,23 +106,23 @@ export default function AdminShopsPage() {
             <div key={shop.id} className="bg-[#1E293B] rounded-2xl border border-slate-700/50 p-6 flex flex-col shadow-lg relative overflow-hidden group">
               <div className={`absolute top-0 left-0 w-1 h-full ${shop.is_open ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
               
-              <div className="flex justify-between items-start mb-4 pl-2">
+              <div className="flex flex-col xl:flex-row justify-between items-start mb-4 pl-2 gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400">
+                  <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 flex-shrink-0">
                     <Store size={24} />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white text-lg leading-tight">{shop.name}</h3>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-white text-lg leading-tight truncate">{shop.name}</h3>
                     <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                       {shop.is_open ? (
-                         <><ShieldCheck size={14} className="text-emerald-500" /> Active on Platform</>
+                         <><ShieldCheck size={14} className="text-emerald-500 flex-shrink-0" /> <span className="truncate">Active</span></>
                       ) : (
-                         <><ShieldAlert size={14} className="text-red-500" /> Suspended / Offline</>
+                         <><ShieldAlert size={14} className="text-red-500 flex-shrink-0" /> <span className="truncate">Suspended</span></>
                       )}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1.5 justify-start xl:justify-end">
                   <button
                     onClick={() => handleEditClick(shop)}
                     className="text-slate-400 hover:text-white p-2 bg-slate-800 rounded-lg transition"
@@ -133,7 +140,7 @@ export default function AdminShopsPage() {
                 <button
                   onClick={() => router.push(`/admin/shops/${shop.id}/menu`)}
                   className="text-slate-400 hover:text-green-400 p-2 bg-slate-800 rounded-lg transition"
-                  title="Manage Menu (Blinkit Style)"
+                  title="Manage Menu"
                 >
                   <Menu size={16} />
                 </button>
@@ -146,7 +153,7 @@ export default function AdminShopsPage() {
                 </button>
                 <button
                   onClick={() => handleDeleteShop(shop.id)}
-                  className="text-slate-400 hover:text-red-500 p-2 bg-slate-800 rounded-lg transition"
+                  className="text-slate-400 hover:text-red-500 p-2 bg-slate-800/50 hover:bg-red-500/10 rounded-lg transition"
                   title="Delete Shop"
                 >
                   <Trash2 size={16} />

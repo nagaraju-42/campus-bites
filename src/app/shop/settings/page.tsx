@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Save } from 'lucide-react'
+import { Save, LogOut } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
 import { getShopById } from '@/lib/supabase/queries/shops'
@@ -12,6 +13,13 @@ export default function ShopSettingsPage() {
   const { shopId } = useShopOrdersStore()
   const [shop, setShop] = useState<Shop | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.replace('/shop/login')
+  }
 
   useEffect(() => {
     if (!shopId) return
@@ -125,14 +133,22 @@ export default function ShopSettingsPage() {
           </label>
         </div>
 
-        <div className="pt-4 border-t border-gray-100">
+        <div className="pt-4 border-t border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center">
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-[#2563EB] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-sm disabled:opacity-70"
+            className="bg-[#2563EB] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-sm disabled:opacity-70 w-full md:w-auto justify-center"
           >
             <Save size={18} />
             {isSaving ? 'Saving...' : 'Save Changes'}
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            className="text-red-600 font-bold flex items-center gap-2 hover:bg-red-50 px-4 py-3 rounded-xl transition w-full md:hidden justify-center border border-red-100 bg-white"
+          >
+            <LogOut size={18} />
+            Sign Out
           </button>
         </div>
       </div>
