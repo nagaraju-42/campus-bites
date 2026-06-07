@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X, Eye, Trash2, Menu, Star } from 'lucide-react'
+import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X, Eye, Trash2, Menu, Star, Plus } from 'lucide-react'
 import { getAllShops, updateShopApproval, updateShopDetails, softDeleteShop } from '@/lib/supabase/queries/admin'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
