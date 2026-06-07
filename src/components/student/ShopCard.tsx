@@ -81,11 +81,20 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop,
       </div>
 
       {/* Info Section */}
-      <div className="p-4 relative">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0 pr-4">
-            <h3 className="font-display font-bold text-gray-900 text-xl truncate">{shop.name}</h3>
-            <p className="text-gray-500 text-xs mt-1 truncate font-medium">
+      <div className="p-4 relative mt-1">
+        <div className="flex items-start gap-3">
+          <div className="relative w-14 h-14 rounded-xl bg-white shadow-md border-2 border-white overflow-hidden flex-shrink-0 -mt-10 z-10">
+            {shop.logo_url ? (
+              <Image src={shop.logo_url} alt={`${shop.name} logo`} fill className="object-cover" sizes="56px" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500 font-bold text-xl uppercase">
+                {shop.name.charAt(0)}
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0 pr-1">
+            <h3 className="font-display font-bold text-gray-900 text-lg leading-tight truncate">{shop.name}</h3>
+            <p className="text-gray-500 text-[11px] mt-0.5 truncate font-medium">
               {shop.description || 'Biryani, Fast Food, Beverages'}
             </p>
           </div>

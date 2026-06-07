@@ -209,27 +209,36 @@ export default function MenuPage() {
         )}
 
         {/* Shop Info inside image */}
-        <div className="absolute bottom-6 left-5 z-20">
-          <h1 className="text-3xl font-display font-bold text-white mb-1">{shop?.name}</h1>
-          {partnerShops && partnerShops.length > 0 && (
-            <p className="text-xs text-white/90 mb-1 font-medium bg-black/40 inline-block px-2 py-1 rounded backdrop-blur-sm">
-              🤝 Partnered with {partnerShops.map(p => p.name).join(', ')}
-            </p>
-          )}
-          {primaryShops && primaryShops.length > 0 && (
-            <p className="text-xs text-white mb-1 font-bold bg-blue-600/90 inline-block px-2 py-1 rounded backdrop-blur-sm border border-blue-400">
-              🤝 Partner Shop of {primaryShops.map(p => p.shops?.name).filter(Boolean).join(', ')}
-            </p>
-          )}
-          <div className="flex items-center gap-2 text-white/90 text-xs font-medium mb-1 mt-1">
-            <Star size={12} className="text-[#EAB308]" fill="currentColor" />
-            <span className="font-bold">4.6 (230+)</span>
-            <span>•</span>
-            <span>30 mins</span>
-            <span>•</span>
-            <span>₹40 min</span>
+        <div className="absolute bottom-6 left-5 z-20 flex gap-4 items-end">
+          <div className="relative w-[72px] h-[72px] rounded-2xl bg-white shadow-lg border-2 border-white overflow-hidden flex-shrink-0">
+            {shop?.logo_url ? (
+              <Image src={shop.logo_url} alt="Logo" fill className="object-cover" sizes="72px" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-3xl">🏪</div>
+            )}
           </div>
-          <p className="text-white/70 text-xs">{shop?.description}</p>
+          <div>
+            <h1 className="text-3xl font-display font-bold text-white mb-1 drop-shadow-md">{shop?.name}</h1>
+            {partnerShops && partnerShops.length > 0 && (
+              <p className="text-xs text-white/90 mb-1 font-medium bg-black/40 inline-block px-2 py-1 rounded backdrop-blur-sm">
+                🤝 Partnered with {partnerShops.map(p => p.name).join(', ')}
+              </p>
+            )}
+            {primaryShops && primaryShops.length > 0 && (
+              <p className="text-xs text-white mb-1 font-bold bg-blue-600/90 inline-block px-2 py-1 rounded backdrop-blur-sm border border-blue-400">
+                🤝 Partner Shop of {primaryShops.map(p => p.shops?.name).filter(Boolean).join(', ')}
+              </p>
+            )}
+            <div className="flex items-center gap-2 text-white/90 text-xs font-medium mb-1 mt-1 drop-shadow-sm">
+              <Star size={12} className="text-[#EAB308]" fill="currentColor" />
+              <span className="font-bold">4.6 (230+)</span>
+              <span>•</span>
+              <span>30 mins</span>
+              <span>•</span>
+              <span>₹40 min</span>
+            </div>
+            <p className="text-white/80 text-xs drop-shadow-sm max-w-[200px] line-clamp-1">{shop?.description}</p>
+          </div>
         </div>
         
         {/* Open badge */}

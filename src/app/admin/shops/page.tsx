@@ -108,8 +108,12 @@ export default function AdminShopsPage() {
               
               <div className="flex flex-col xl:flex-row justify-between items-start mb-4 pl-2 gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 flex-shrink-0">
-                    <Store size={24} />
+                  <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 flex-shrink-0 overflow-hidden border border-slate-700/50">
+                    {shop.logo_url ? (
+                      <img src={shop.logo_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Store size={24} />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-white text-lg leading-tight truncate">{shop.name}</h3>
