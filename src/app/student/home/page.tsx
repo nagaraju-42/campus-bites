@@ -174,26 +174,18 @@ export default function StudentHomePage() {
                 <p className="text-red-100 text-sm font-medium">Hello, {user?.full_name || 'Student'}!</p>
               </div>
               <div className="flex flex-col gap-2 p-6 mt-2">
-                <SheetClose asChild>
-                  <Link href="/student/profile" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
-                    <User size={20} /> <span className="font-bold">Profile</span>
-                  </Link>
+                <SheetClose render={<Link href="/student/profile" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition" />}>
+                  <User size={20} /> <span className="font-bold">Profile</span>
                 </SheetClose>
-                <SheetClose asChild>
-                  <Link href="/student/orders" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
-                    <ClipboardList size={20} /> <span className="font-bold">My Orders</span>
-                  </Link>
+                <SheetClose render={<Link href="/student/orders" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition" />}>
+                  <ClipboardList size={20} /> <span className="font-bold">My Orders</span>
                 </SheetClose>
-                <SheetClose asChild>
-                  <Link href="/student/cart" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
-                    <ShoppingCart size={20} /> <span className="font-bold">Cart</span>
-                  </Link>
+                <SheetClose render={<Link href="/student/cart" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition" />}>
+                  <ShoppingCart size={20} /> <span className="font-bold">Cart</span>
                 </SheetClose>
                 <div className="h-px bg-gray-200 my-2" />
-                <SheetClose asChild>
-                  <button onClick={() => useAuthStore.getState().setUser(null)} className="flex items-center gap-4 text-red-500 hover:bg-red-50 p-3 rounded-2xl transition w-full text-left">
-                    <LogOut size={20} /> <span className="font-bold">Logout</span>
-                  </button>
+                <SheetClose render={<button onClick={() => useAuthStore.getState().setUser(null)} className="flex items-center gap-4 text-red-500 hover:bg-red-50 p-3 rounded-2xl transition w-full text-left" />}>
+                  <LogOut size={20} /> <span className="font-bold">Logout</span>
                 </SheetClose>
               </div>
             </SheetContent>
