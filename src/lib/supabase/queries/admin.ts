@@ -304,20 +304,42 @@ export async function getBusyModeAudits() {
     .from('busy_mode_audits')
     .select(`
       *,
-      shops(name),
-      profiles!busy_mode_audits_toggled_by_fkey(full_name)
+      shops(name)
     `)
     .order('created_at', { ascending: false })
     .limit(100)
     
   if (error) throw new Error(error.message)
-  return data || []
+  if (!data || data.length === 0) return []
+
+  const userIds = [...new Set(data.map(d => d.toggled_by).filter(Boolean))]
+  let profiles: any[] = []
+  if (userIds.length > 0) {
+    const { data: pData } = await supabase.from('profiles').select('id, full_name').in('id', userIds)
+    if (pData) profiles = pData
+  }
+
+  return data.map(audit => ({
+    ...audit,
+    profiles: profiles.find(p => p.id === audit.toggled_by) || { full_name: 'Unknown' }
+  }))
 }
 
 export async function wipeBusyModeAudits() {
   const supabase = createClient()
   const { error } = await supabase
     .from('busy_mode_audits')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000') // Deletes all rows safely
+    
+  if (error) throw new Error(error.message)
+}
+
+export async function wipeOrderAuditLogs() {
+  const supabase = createClient()
+  
+  const { error } = await supabase
+    .from('order_audit_logs')
     .delete()
     .neq('id', '00000000-0000-0000-0000-000000000000') // Deletes all rows safely
     

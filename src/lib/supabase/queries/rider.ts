@@ -2,17 +2,25 @@ import { createClient } from '@/lib/supabase/client'
 import { Order } from '@/types'
 
 export async function getAvailableDeliveries(): Promise<Order[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('orders')
-    .select(`*, shops(name, description), order_items(*, partner:partner_shop_id(name), menu_items(name))`)
-    .eq('status', 'ready')
-    .or('order_type.eq.delivery,order_type.is.null')
-    .is('rider_id', null)
-    .order('placed_at', { ascending: true })
+  try {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`*, shops(name, description), order_items(*, partner:partner_shop_id(name), menu_items(name))`)
+      .eq('status', 'ready')
+      .or('order_type.eq.delivery,order_type.is.null')
+      .is('rider_id', null)
+      .order('placed_at', { ascending: true })
 
-  if (error) throw new Error(error.message)
-  return data || []
+    if (error) {
+      console.error(error)
+      return []
+    }
+    return data || []
+  } catch (err) {
+    console.error('Failed to fetch available deliveries:', err)
+    return []
+  }
 }
 
 export async function claimDelivery(orderId: string, riderId: string) {
@@ -64,14 +72,22 @@ export async function getRiderEarnings(riderId: string) {
 }
 
 export async function getActiveDeliveries(riderId: string): Promise<Order[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('orders')
-    .select(`*, shops(name), profiles!student_id(full_name, phone), order_items(*, partner:partner_shop_id(name), menu_items(name))`)
-    .eq('rider_id', riderId)
-    .eq('status', 'out_for_delivery')
-    .or('order_type.eq.delivery,order_type.is.null')
+  try {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`*, shops(name), profiles!student_id(full_name, phone), order_items(*, partner:partner_shop_id(name), menu_items(name))`)
+      .eq('rider_id', riderId)
+      .eq('status', 'out_for_delivery')
+      .or('order_type.eq.delivery,order_type.is.null')
 
-  if (error && error.code !== 'PGRST116') throw new Error(error.message)
-  return data || []
+    if (error && error.code !== 'PGRST116') {
+      console.error(error)
+      return []
+    }
+    return data || []
+  } catch (err) {
+    console.error('Failed to fetch active deliveries:', err)
+    return []
+  }
 }

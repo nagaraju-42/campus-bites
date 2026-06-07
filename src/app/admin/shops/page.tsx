@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X, Eye, Trash2, Menu } from 'lucide-react'
+import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X, Eye, Trash2, Menu, Star } from 'lucide-react'
 import { getAllShops, updateShopApproval, updateShopDetails, softDeleteShop } from '@/lib/supabase/queries/admin'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
@@ -13,7 +13,7 @@ export default function AdminShopsPage() {
   const [shops, setShops] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingShop, setEditingShop] = useState<any | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', address: '', description: '', cover_image: '', phone: '' })
+  const [editForm, setEditForm] = useState({ name: '', address: '', description: '', cover_image: '', logo_url: '', phone: '' })
   
   const router = useRouter()
   const { user, setAdminUser, setUser } = useAuthStore()
@@ -45,14 +45,14 @@ export default function AdminShopsPage() {
 
   const handleEditClick = (shop: any) => {
     setEditingShop(shop)
-    setEditForm({ name: shop.name, address: shop.address || '', description: shop.description || '', cover_image: shop.cover_image || '', phone: shop.phone || '' })
+    setEditForm({ name: shop.name, address: shop.address || '', description: shop.description || '', cover_image: shop.cover_image || '', logo_url: shop.logo_url || '', phone: shop.phone || '' })
   }
 
   const handleSaveEdit = async () => {
     if (!editingShop) return
     try {
       await updateShopDetails(editingShop.id, editForm)
-      setShops(shops.map(s => s.id === editingShop.id ? { ...s, name: editForm.name, address: editForm.address, description: editForm.description, cover_image: editForm.cover_image, phone: editForm.phone } : s))
+      setShops(shops.map(s => s.id === editingShop.id ? { ...s, name: editForm.name, address: editForm.address, description: editForm.description, cover_image: editForm.cover_image, logo_url: editForm.logo_url, phone: editForm.phone } : s))
       toast.success('Shop details updated!')
       setEditingShop(null)
     } catch (err) {
@@ -138,6 +138,13 @@ export default function AdminShopsPage() {
                   <Menu size={16} />
                 </button>
                 <button
+                  onClick={() => router.push(`/admin/shops/${shop.id}/reviews`)}
+                  className="text-slate-400 hover:text-yellow-400 p-2 bg-slate-800 rounded-lg transition"
+                  title="Manage Reviews"
+                >
+                  <Star size={16} />
+                </button>
+                <button
                   onClick={() => handleDeleteShop(shop.id)}
                   className="text-slate-400 hover:text-red-500 p-2 bg-slate-800 rounded-lg transition"
                   title="Delete Shop"
@@ -187,12 +194,23 @@ export default function AdminShopsPage() {
               <div className="overflow-y-auto max-h-[70vh] mb-4 pr-2">
                 <div className="space-y-4">
                   <div className="mb-2">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Shop Cover Image</label>
-                    <ImageUploadWebP 
-                      bucket="campus_assets" 
-                      folderPath={`shops/${editingShop.id}`}
-                      currentImage={editForm.cover_image}
-                      onUploadSuccess={(url) => setEditForm(prev => ({ ...prev, cover_image: url }))}
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Shop Icon (Logo URL)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Paste Cloudinary WebP link here..." 
+                      value={editForm.logo_url} 
+                      onChange={e => setEditForm({...editForm, logo_url: e.target.value})} 
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white text-sm" 
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Shop Cover Image (URL)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Paste Cloudinary WebP link here..." 
+                      value={editForm.cover_image} 
+                      onChange={e => setEditForm({...editForm, cover_image: e.target.value})} 
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white text-sm" 
                     />
                   </div>
                   <div>

@@ -279,6 +279,34 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
+      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-6 shadow-xl mb-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+              <AlertCircle size={20} className="text-blue-500" /> Order Audit Logs (Cleanup)
+            </h2>
+            <p className="text-sm text-slate-400 max-w-2xl">
+              Clear ALL order history tracking logs (state changes). This will free up database space but will not affect your actual orders or revenue stats.
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              if (!window.confirm("Are you sure you want to permanently delete ALL order audit logs?")) return
+              try {
+                const res = await fetch('/api/admin/wipe-audit-logs', { method: 'POST' })
+                if (!res.ok) throw new Error('Failed to wipe logs')
+                toast.success("All order audit logs wiped.")
+              } catch (err: any) {
+                toast.error("Failed to wipe order audit logs")
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition flex items-center gap-2"
+          >
+            <Trash2 size={16} /> Clear All Order Logs
+          </button>
+        </div>
+      </div>
+
     </div>
   )
 }

@@ -105,7 +105,7 @@ export default function AdminOrdersGodMode() {
       </div>
 
       {/* Orders List */}
-      <div className="bg-[#1E293B] rounded-2xl border border-slate-700/50 shadow-lg overflow-hidden">
+      <div className="bg-[#1E293B] rounded-2xl border border-slate-700/50 shadow-lg overflow-x-auto">
         {isLoading ? (
           <div className="p-10 text-center text-slate-500">Loading platform orders...</div>
         ) : filteredOrders.length === 0 ? (

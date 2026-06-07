@@ -85,6 +85,10 @@ export default function KDSPage() {
       const { stopShopAlarm } = require('@/store/shopOrdersStore')
       stopShopAlarm()
     }
+    // Optimistic Update
+    const { updateOrderStatus } = useShopOrdersStore.getState()
+    updateOrderStatus(orderId, status as any)
+    
     try {
       await updateOrderStatusDB(orderId, status, user?.id)
       if (status === 'ready') {
@@ -92,16 +96,19 @@ export default function KDSPage() {
       }
     } catch (err) {
       toast.error('Failed to update status')
+      // Revert could go here, but polling will fix it anyway
     }
   }
 
   const handleCancelOrder = async (orderId: string, reason: string) => {
     if (!reason) return
     
+    // Optimistic Update
+    const { updateOrderStatus } = useShopOrdersStore.getState()
+    updateOrderStatus(orderId, 'cancelled')
+    
     try {
       await cancelOrderAsShop(orderId, user?.id || '', reason)
-      const { updateOrderStatus } = useShopOrdersStore.getState()
-      updateOrderStatus(orderId, 'cancelled')
       toast.success('Order cancelled and student notified.')
     } catch (err) {
       toast.error('Failed to cancel order')

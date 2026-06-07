@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
+import Image from 'next/image'
 
 export default function CartPage() {
   const router = useRouter()
@@ -67,16 +68,39 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center max-w-[430px] mx-auto px-6">
-        <span className="text-7xl mb-4">🛒</span>
-        <h2 className="text-xl font-display font-bold text-gray-900">Your cart is empty</h2>
-        <p className="text-gray-400 text-sm mt-2 text-center">Add items from a shop to get started</p>
-        <button
-          onClick={() => router.push('/student/home')}
-          className="mt-6 bg-[#6D28D9] text-white px-8 py-3 rounded-2xl font-bold hover:bg-purple-800 transition"
-        >
-          Browse Shops
-        </button>
+      <div className="min-h-screen bg-gray-50 flex flex-col max-w-[430px] mx-auto relative overflow-hidden">
+        {/* Dynamic Header */}
+        <div className="bg-[#DC2626] px-5 pt-12 pb-6 rounded-b-3xl relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+          <div className="flex items-center gap-3 text-white relative z-10">
+            <button onClick={() => router.back()} className="p-1 bg-black/10 rounded-full"><ArrowLeft size={22} /></button>
+            <h1 className="text-xl font-display font-bold flex-1">My Cart</h1>
+          </div>
+        </div>
+
+        {/* Empty State Dashboard */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 -mt-10">
+          <div className="bg-white p-8 rounded-3xl shadow-xl shadow-red-900/5 border border-red-50 flex flex-col items-center text-center w-full relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-50 rounded-full blur-2xl"></div>
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-orange-50 rounded-full blur-2xl"></div>
+            
+            <div className="w-24 h-24 bg-gradient-to-tr from-red-100 to-orange-50 rounded-full flex items-center justify-center mb-6 shadow-inner relative z-10">
+              <span className="text-5xl drop-shadow-md">🛒</span>
+            </div>
+            
+            <h2 className="text-2xl font-display font-bold text-gray-900 mb-2 relative z-10">Good food is waiting</h2>
+            <p className="text-gray-500 text-sm mb-8 relative z-10 leading-relaxed">
+              Your cart is empty. Add items from your favorite shops and enjoy lightning-fast delivery!
+            </p>
+            
+            <button
+              onClick={() => router.push('/student/home')}
+              className="w-full bg-[#DC2626] text-white py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-red-200 transition-all active:scale-95 relative z-10"
+            >
+              Browse Shops
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -84,7 +108,7 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-32 max-w-[430px] mx-auto">
       {/* Header */}
-      <div className="bg-[#6D28D9] px-5 pt-12 pb-6 rounded-b-3xl">
+      <div className="bg-[#DC2626] px-5 pt-12 pb-6 rounded-b-3xl">
         <div className="flex items-center gap-3 text-white">
           <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
           <h1 className="text-xl font-display font-bold flex-1">My Cart</h1>
@@ -105,9 +129,12 @@ export default function CartPage() {
                   index < items.length - 1 ? 'border-b border-gray-50' : ''
                 }`}
               >
-                {/* Item Image Placeholder */}
-                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xl">🍲</span>
+                <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                  {item.image_url ? (
+                    <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="64px" />
+                  ) : (
+                    <span className="text-2xl">🍲</span>
+                  )}
                 </div>
                 
                 <div className="flex-1 min-w-0">
@@ -156,7 +183,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Suggested Items (Cross-Sell) */}
       {suggestedItems.length > 0 && (
         <div className="px-5 pb-6">
           <h3 className="font-bold text-gray-900 mb-3 text-sm flex items-center gap-2">
@@ -164,13 +190,19 @@ export default function CartPage() {
           </h3>
           <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
             {suggestedItems.map(item => (
-              <div key={item.id} className="min-w-[140px] bg-white p-3 rounded-2xl shadow-sm border border-gray-100 snap-start flex flex-col justify-between">
+              <div key={item.id} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm border border-gray-100 snap-start flex flex-col justify-between">
                 <div>
-                  <div className="w-full h-20 bg-orange-50 rounded-xl flex items-center justify-center mb-2">
-                    <span className="text-2xl">🍰</span>
+                  <div className="w-full aspect-square bg-gray-50 rounded-xl flex items-center justify-center mb-2 relative overflow-hidden">
+                    {item.image_url ? (
+                      <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="140px" />
+                    ) : (
+                      <span className="text-4xl">🍰</span>
+                    )}
                   </div>
-                  <p className="font-bold text-gray-900 text-xs line-clamp-2">{item.name}</p>
-                  <p className="font-bold text-[#6D28D9] text-sm mt-1">{formatCurrency(item.price)}</p>
+                  <div className="px-1">
+                    <p className="font-bold text-gray-900 text-xs line-clamp-2 leading-snug">{item.name}</p>
+                    <p className="font-bold text-gray-900 text-sm mt-1">{formatCurrency(item.price)}</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => addItem({
@@ -180,11 +212,12 @@ export default function CartPage() {
                     shopName: suggestedItems[0].partnerShopName,
                     name: item.name,
                     price: item.price,
-                    quantity: 1
+                    quantity: 1,
+                    image_url: item.image_url || undefined
                   })}
-                  className="mt-3 w-full bg-[#6D28D9]/10 text-[#6D28D9] font-bold text-xs py-2 rounded-xl hover:bg-[#6D28D9]/20 transition"
+                  className="mt-3 w-full bg-green-50 text-green-700 border border-green-200 font-bold text-xs py-2 rounded-xl hover:bg-green-100 transition tracking-wider uppercase"
                 >
-                  + Add
+                  ADD
                 </button>
               </div>
             ))}
@@ -196,7 +229,7 @@ export default function CartPage() {
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-40">
         <button
           onClick={handleCheckout}
-          className="w-full bg-[#6D28D9] text-white py-4 rounded-2xl font-bold flex items-center justify-center shadow-xl shadow-purple-200 hover:bg-purple-800 transition active:scale-95"
+          className="w-full bg-[#DC2626] text-white py-4 rounded-2xl font-bold flex items-center justify-center shadow-xl shadow-red-200 hover:bg-red-700 transition active:scale-95"
         >
           Proceed to Checkout
         </button>

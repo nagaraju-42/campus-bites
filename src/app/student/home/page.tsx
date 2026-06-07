@@ -162,35 +162,35 @@ export default function StudentHomePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20 max-w-[430px] mx-auto">
       {/* Header */}
-      <div className="bg-[#EAB308] px-5 pt-12 pb-6 rounded-b-3xl">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-[#DC2626] px-5 pt-12 pb-8 rounded-b-3xl shadow-md">
+        <div className="flex items-center justify-between mb-6">
           <Sheet>
             <SheetTrigger>
-              <div className="text-gray-900 hover:opacity-70 transition cursor-pointer"><Menu size={24} /></div>
+              <div className="text-white hover:bg-black/10 p-2 rounded-full transition cursor-pointer"><Menu size={24} /></div>
             </SheetTrigger>
             <SheetContent side="left" className="w-[80%] max-w-[300px] sm:max-w-[300px] p-0 bg-gray-50">
-              <div className="bg-[#EAB308] p-6 pb-8 rounded-br-3xl">
-                <h2 className="text-2xl font-display font-bold text-gray-900 mt-4">TapNosh</h2>
-                <p className="text-yellow-900 text-sm font-medium">Hello, {user?.full_name || 'Student'}!</p>
+              <div className="bg-[#DC2626] p-6 pb-8 rounded-br-3xl shadow-inner">
+                <h2 className="text-2xl font-display font-bold text-white mt-4">TapNosh</h2>
+                <p className="text-red-100 text-sm font-medium">Hello, {user?.full_name || 'Student'}!</p>
               </div>
               <div className="flex flex-col gap-2 p-6 mt-2">
-                <SheetClose>
+                <SheetClose asChild>
                   <Link href="/student/profile" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
                     <User size={20} /> <span className="font-bold">Profile</span>
                   </Link>
                 </SheetClose>
-                <SheetClose>
+                <SheetClose asChild>
                   <Link href="/student/orders" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
                     <ClipboardList size={20} /> <span className="font-bold">My Orders</span>
                   </Link>
                 </SheetClose>
-                <SheetClose>
+                <SheetClose asChild>
                   <Link href="/student/cart" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition">
                     <ShoppingCart size={20} /> <span className="font-bold">Cart</span>
                   </Link>
                 </SheetClose>
                 <div className="h-px bg-gray-200 my-2" />
-                <SheetClose>
+                <SheetClose asChild>
                   <button onClick={() => useAuthStore.getState().setUser(null)} className="flex items-center gap-4 text-red-500 hover:bg-red-50 p-3 rounded-2xl transition w-full text-left">
                     <LogOut size={20} /> <span className="font-bold">Logout</span>
                   </button>
@@ -199,87 +199,89 @@ export default function StudentHomePage() {
             </SheetContent>
           </Sheet>
           <div className="flex flex-col items-center">
-            <div className="flex items-center gap-1.5 text-gray-900 font-bold">
-              <MapPin size={14} />
+            <div className="flex items-center gap-1.5 text-white font-bold text-lg">
+              <MapPin size={16} />
               <span>Anurag University</span>
             </div>
-            <p className="text-yellow-900 text-xs font-medium">Jodimetla, Hyderabad ▼</p>
+            <p className="text-red-100 text-xs font-medium">Jodimetla, Hyderabad ▼</p>
           </div>
-          <button onClick={() => setIsNotificationsOpen(true)} className="relative hover:scale-110 transition">
-            <Bell size={24} className="text-gray-900" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#EAB308]"></span>
+          <button onClick={() => setIsNotificationsOpen(true)} className="relative text-white hover:bg-black/10 p-2 rounded-full transition">
+            <Bell size={24} />
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-[#DC2626]"></span>
           </button>
         </div>
 
+        {/* Order Mode Toggle */}
+        {globalDineInEnabled && (
+          <div className="bg-black/20 p-1 rounded-xl flex items-center mb-5 backdrop-blur-sm">
+            <button
+              onClick={() => setOrderMode('delivery')}
+              className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${orderMode === 'delivery' ? 'bg-white text-[#DC2626] shadow-sm' : 'text-white/80 hover:text-white'}`}
+            >
+              🛵 Delivery
+            </button>
+            <button
+              onClick={() => setOrderMode('dine_in')}
+              className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${orderMode === 'dine_in' ? 'bg-white text-[#DC2626] shadow-sm' : 'text-white/80 hover:text-white'}`}
+            >
+              🍽️ Dine-In
+            </button>
+          </div>
+        )}
+
         {/* Search Bar */}
-        <div className="mt-6 relative" onClick={() => setIsSearchOpen(true)}>
+        <div className="relative" onClick={() => setIsSearchOpen(true)}>
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <div className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white text-sm text-gray-400 shadow-sm font-medium cursor-text flex items-center">
-            Search for food or shops...
+          <div className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white text-sm text-gray-400 shadow-sm font-medium cursor-text flex items-center border border-transparent hover:border-red-200 transition">
+            Search for your favorite food or shop...
           </div>
         </div>
       </div>
-
-      {/* Order Mode Toggle (Global Settings Driven) */}
-      {globalDineInEnabled && (
-        <div className="mx-5 -mt-5 mb-4 relative z-20 flex bg-white rounded-2xl p-1.5 shadow-lg border border-gray-100">
-          <button
-            onClick={() => setOrderMode('delivery')}
-            className={`flex-1 py-2.5 font-bold text-sm rounded-xl transition-all ${orderMode === 'delivery' ? 'bg-[#0F766E] text-white shadow-md scale-[1.02]' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            🛵 Delivery
-          </button>
-          <button
-            onClick={() => setOrderMode('dine_in')}
-            className={`flex-1 py-2.5 font-bold text-sm rounded-xl transition-all ${orderMode === 'dine_in' ? 'bg-[#0F766E] text-white shadow-md scale-[1.02]' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            🍽️ Dine-In
-          </button>
-        </div>
-      )}
-
-      <div className="px-5 py-4 space-y-6">
-        {/* Category Icons */}
-        <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2 pt-2 px-1">
+      <div className="px-5 py-4 space-y-8">
+        {/* Category Horizontal Scroll */}
+        <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2 pt-2 px-1 snap-x hide-scrollbar">
           {dbCategories.map((cat, i) => (
             <div 
               key={cat.name} 
               onClick={() => setActiveCategory(cat.name)}
-              className={`flex items-center gap-2.5 flex-shrink-0 cursor-pointer px-5 py-3 rounded-2xl shadow-sm border transition-all ${
+              className={`flex items-center gap-2 flex-shrink-0 cursor-pointer px-4 py-2.5 rounded-full shadow-sm border transition-all snap-start ${
                 activeCategory === cat.name 
                   ? 'bg-gray-900 border-gray-900 shadow-md scale-[1.02]' 
-                  : 'bg-white border-gray-100 hover:border-gray-200'
+                  : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'
               }`}
             >
                 <img 
                   src={cat.icon_url}
                   alt={cat.name}
-                  className="w-6 h-6 object-contain drop-shadow-sm"
+                  className="w-5 h-5 object-contain drop-shadow-sm"
                 />
-              <span className={`text-sm font-bold ${activeCategory === cat.name ? 'text-white' : 'text-gray-700'}`}>{cat.name}</span>
+              <span className={`text-xs font-bold ${activeCategory === cat.name ? 'text-white' : 'text-gray-700'}`}>
+                {cat.name}
+              </span>
             </div>
           ))}
         </div>
 
         {/* Magic 1-Click Reorder */}
         {lastOrder && (
-          <div className="bg-[#18181B] rounded-3xl p-5 shadow-xl relative overflow-hidden border border-gray-800">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-[#EAB308] rounded-full opacity-10 blur-3xl"></div>
+          <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-5 shadow-xl relative overflow-hidden border border-gray-800">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-[#DC2626] rounded-full opacity-20 blur-[50px] mix-blend-screen"></div>
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-500 rounded-full opacity-10 blur-[40px] mix-blend-screen"></div>
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="text-xl">✨</span>
-                  <h3 className="text-[#EAB308] font-bold text-lg font-display">Order it again!</h3>
+                  <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400 font-bold text-lg font-display">Order it again!</h3>
                 </div>
-                <p className="text-gray-300 text-sm font-medium mb-3">Your last meal from <span className="font-bold text-white">{lastOrder.shops?.name}</span></p>
-                <div className="flex gap-2 flex-wrap mb-4">
+                <p className="text-gray-400 text-sm font-medium mb-4">Your last meal from <span className="font-bold text-white">{lastOrder.shops?.name}</span></p>
+                <div className="flex gap-2 flex-wrap mb-5">
                   {lastOrder.order_items?.slice(0, 2).map((item, idx) => (
-                    <span key={idx} className="bg-white/10 text-gray-200 text-xs font-bold px-2 py-1 rounded-md">
+                    <span key={idx} className="bg-white/10 backdrop-blur-sm border border-white/10 text-gray-200 text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-sm">
                       {item.quantity}x {item.item_name}
                     </span>
                   ))}
                   {lastOrder.order_items && lastOrder.order_items.length > 2 && (
-                    <span className="bg-white/10 text-gray-200 text-xs font-bold px-2 py-1 rounded-md">
+                    <span className="bg-white/10 backdrop-blur-sm border border-white/10 text-gray-200 text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-sm">
                       +{lastOrder.order_items.length - 2} more
                     </span>
                   )}
@@ -287,9 +289,9 @@ export default function StudentHomePage() {
               </div>
               <button 
                 onClick={handleMagicReorder}
-                className="w-full bg-[#EAB308] text-gray-900 font-bold py-3 rounded-xl shadow-lg shadow-yellow-500/20 transition active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-[#DC2626] text-white font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] transition active:scale-[0.98] flex items-center justify-center gap-2 tracking-wide"
               >
-                <RotateCcw size={18} /> Add to Cart
+                <RotateCcw size={18} /> ADD TO CART
               </button>
             </div>
           </div>
@@ -298,8 +300,8 @@ export default function StudentHomePage() {
         {/* Nearby Shops Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display font-bold text-gray-900">Nearby Shops</h2>
-            <button className="text-[#EAB308] text-sm font-bold">See all</button>
+            <h2 className="text-xl font-display font-bold text-gray-900">Nearby Shops</h2>
+            <button className="text-[#DC2626] text-sm font-bold bg-red-50 px-3 py-1.5 rounded-lg">See all</button>
           </div>
 
           {isLoading ? (
@@ -333,13 +335,13 @@ export default function StudentHomePage() {
         {promotions.length > 0 ? (
           <div className="space-y-4 mt-4">
             {promotions.map((promo) => (
-              <div key={promo.id} className="bg-[#18181B] rounded-3xl p-5 flex items-center justify-between shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#EAB308] rounded-full opacity-10 blur-2xl"></div>
+              <div key={promo.id} className="bg-gradient-to-br from-[#18181B] to-gray-900 rounded-3xl p-5 flex items-center justify-between shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#DC2626] rounded-full opacity-10 blur-2xl"></div>
                 <div className="z-10">
-                  <p className="text-[#EAB308] font-bold text-xl font-display mb-1">Flat {promo.discount_percent}% OFF</p>
+                  <p className="text-[#DC2626] font-bold text-xl font-display mb-1">Flat {promo.discount_percent}% OFF</p>
                   <p className="text-gray-300 text-xs font-medium">{promo.banner_text}</p>
-                  <div className="mt-3 inline-block bg-white/10 px-3 py-1.5 rounded-lg border border-white/20">
-                    <span className="text-xs text-white font-mono font-bold tracking-wider">CODE: {promo.code}</span>
+                  <div className="mt-3 inline-block bg-[#DC2626]/10 px-3 py-1.5 rounded-lg border border-[#DC2626]/20">
+                    <span className="text-xs text-red-400 font-mono font-bold tracking-wider">CODE: {promo.code}</span>
                   </div>
                 </div>
                 <span className="text-6xl z-10 drop-shadow-xl relative right-2">🥘</span>
@@ -347,12 +349,12 @@ export default function StudentHomePage() {
             ))}
           </div>
         ) : (
-          <div className="bg-[#18181B] rounded-3xl p-5 flex items-center justify-between shadow-xl mt-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#EAB308] rounded-full opacity-10 blur-2xl"></div>
+          <div className="bg-gradient-to-br from-[#18181B] to-gray-900 rounded-3xl p-5 flex items-center justify-between shadow-xl mt-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#DC2626] rounded-full opacity-10 blur-2xl"></div>
             <div className="z-10">
-              <p className="text-[#EAB308] font-bold text-xl font-display mb-1">Flat 10% OFF</p>
+              <p className="text-[#DC2626] font-bold text-xl font-display mb-1">Flat 10% OFF</p>
               <p className="text-gray-300 text-xs font-medium">On your first order 🎉</p>
-              <button className="mt-3 text-xs bg-[#EAB308] text-gray-900 font-bold px-3 py-1.5 rounded-lg">ORDER NOW</button>
+              <button className="mt-3 text-xs bg-[#DC2626] text-white font-bold px-4 py-2 rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.3)]">ORDER NOW</button>
             </div>
             <span className="text-6xl z-10 drop-shadow-xl relative right-2">🥘</span>
           </div>

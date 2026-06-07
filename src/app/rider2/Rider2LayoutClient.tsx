@@ -13,6 +13,7 @@ import { Order } from '@/types'
 import CompleteProfileOverlay from '@/components/shared/CompleteProfileOverlay'
 import { motion, AnimatePresence } from 'framer-motion'
 import { stopRiderAlarm } from '@/store/riderStore'
+import GlobalRiderTimer from '@/components/rider2/GlobalRiderTimer'
 
 export default function RiderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -252,36 +253,37 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
       <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
 
       <AnimatePresence>
-        {isAlarmRinging && alarmReason && (
+        {isAlarmRinging && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-6 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-5"
           >
-            <motion.div
+            <motion.div 
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col items-center text-center border-4 border-green-500 ringing-rider-container"
+              className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center text-center"
             >
-              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 text-4xl animate-bounce">
-                🔔
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                <span className="text-4xl">🚨</span>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{alarmReason.title}</h2>
-              <p className="text-gray-600 mb-6 text-sm">
-                {alarmReason.message}
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{alarmReason?.title || "Alarm"}</h2>
+              <p className="text-gray-600 mb-8">{alarmReason?.message || "Wake up! Action required."}</p>
+              
               <button
-                onClick={() => stopRiderAlarm()}
-                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg active:scale-95 transition"
+                onClick={stopRiderAlarm}
+                className="w-full bg-red-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-red-600/30 active:scale-95 transition"
               >
-                Acknowledge
+                DISMISS ALARM
               </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <GlobalRiderTimer />
       
       {needsOnboarding && user && (
         <CompleteProfileOverlay 

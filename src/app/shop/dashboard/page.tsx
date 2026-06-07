@@ -144,7 +144,7 @@ export default function ShopDashboardPage() {
           <p className="text-gray-500 font-medium text-sm">Welcome back, {shopName}</p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <button 
             onClick={() => setIsNotificationsOpen(true)}
             className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-200 relative hover:bg-gray-50 transition"

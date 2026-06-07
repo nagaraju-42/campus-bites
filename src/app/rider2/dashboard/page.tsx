@@ -108,7 +108,7 @@ export default function Rider2DashboardPage() {
   // Since we don't have claim time easily available, we can mock the 5-min timer for now 
   // or calculate it based on when the first order in the active batch was placed/ready.
   // We will assume 5 mins from NOW once they see this page for active deliveries.
-  const [timeLeft, setTimeLeft] = useState(300) // 5 mins in seconds
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
     if (activeDeliveries.length > 0) {
@@ -121,31 +121,42 @@ export default function Rider2DashboardPage() {
         localStorage.setItem(`batch_${batchId}`, claimTime)
       }
       
-      const oldestUpdate = parseInt(claimTime)
-      const now = new Date().getTime()
-      const elapsedSeconds = Math.floor((now - oldestUpdate) / 1000)
-      const initialTimeLeft = Math.max(300 - elapsedSeconds, 0)
-      setTimeLeft(initialTimeLeft)
-
-      const timer = setInterval(() => {
-        setTimeLeft(prev => prev > 0 ? prev - 1 : 0)
-      }, 1000)
+      const updateElapsed = () => {
+        const now = new Date().getTime()
+        const elapsed = Math.floor((now - parseInt(claimTime!)) / 1000)
+        setElapsedSeconds(elapsed)
+      }
+      
+      updateElapsed()
+      const timer = setInterval(updateElapsed, 1000)
       return () => clearInterval(timer)
     } else {
-      setTimeLeft(300)
+      setElapsedSeconds(0)
     }
   }, [activeDeliveries.length])
 
   useEffect(() => {
-    if (timeLeft === 0 && activeDeliveries.length > 0) {
+    // Play alarm when 5 min collection window ends
+    if (elapsedSeconds === 300 && activeDeliveries.length > 0) {
       const batchId = activeDeliveries.map(o => o.id).sort().join('-')
       if (!localStorage.getItem(`prompted_${batchId}`)) {
         localStorage.setItem(`prompted_${batchId}`, 'true')
         const { playRiderAlarm } = require('@/store/riderStore')
-        playRiderAlarm({ title: 'Time is up!', message: 'The 5-minute collection window has ended. Did you collect all the items from the shop?' })
+        playRiderAlarm({ title: 'Collection Time Up!', message: 'The 5-minute collection window has ended. You now have 20 minutes to deliver!' })
       }
     }
-  }, [timeLeft, activeDeliveries])
+  }, [elapsedSeconds, activeDeliveries])
+
+  const isCollectionPhase = elapsedSeconds < 300
+  const timerTitle = isCollectionPhase ? 'Collection Window' : 'Delivery Window'
+  const timerSubtext = isCollectionPhase ? 'Deliver within 25 mins' : 'Hurry! Drop off the order'
+  
+  let displayTimeLeft = 0
+  if (isCollectionPhase) {
+    displayTimeLeft = Math.max(300 - elapsedSeconds, 0)
+  } else {
+    displayTimeLeft = Math.max(1500 - elapsedSeconds, 0) // 25 mins total
+  }
 
   return (
     <div className="px-5 pt-8 pb-4">
@@ -270,13 +281,13 @@ export default function Rider2DashboardPage() {
             <div className="space-y-4 mb-8">
               {/* Collection Timer */}
               {activeDeliveries.some(o => o.status === 'out_for_delivery') && (
-                <div className={`p-4 rounded-xl border ${timeLeft < 60 ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-50 border-blue-200 text-blue-800'} flex justify-between items-center shadow-sm`}>
+                <div className={`p-4 rounded-xl border ${displayTimeLeft < 60 ? 'bg-red-50 border-red-200 text-red-800' : isCollectionPhase ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-orange-50 border-orange-200 text-orange-800'} flex justify-between items-center shadow-sm`}>
                   <div>
-                    <p className="font-bold text-sm uppercase tracking-wider">Collection Window</p>
-                    <p className="text-xs mt-0.5 opacity-80">Deliver within 25 mins</p>
+                    <p className="font-bold text-sm uppercase tracking-wider">{timerTitle}</p>
+                    <p className="text-xs mt-0.5 opacity-80">{timerSubtext}</p>
                   </div>
                   <div className="text-2xl font-mono font-bold tracking-widest">
-                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                    {Math.floor(displayTimeLeft / 60)}:{(displayTimeLeft % 60).toString().padStart(2, '0')}
                   </div>
                 </div>
               )}
@@ -324,15 +335,17 @@ export default function Rider2DashboardPage() {
                             {orderIdx > 0 && <hr className="my-3 border-dashed border-gray-200" />}
                             
                             {/* Order header row */}
-                            <div className="flex justify-between items-center mb-2">
-                              <div>
-                                <span className="font-bold text-gray-800 text-sm">#{order.order_number}</span>
-                                <span className="text-xs text-gray-500 ml-2">→ {order.hostel_name}</span>
+                            <Link href={`/rider2/delivery/${order.id}`} className="block">
+                              <div className="flex justify-between items-center mb-2 p-2 -mx-2 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition cursor-pointer">
+                                <div>
+                                  <span className="font-bold text-gray-800 text-sm">#{order.order_number}</span>
+                                  <span className="text-xs text-gray-500 ml-2">→ {order.hostel_name}</span>
+                                </div>
+                                <span className="text-[11px] bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-bold">
+                                  Deliver →
+                                </span>
                               </div>
-                              <Link href={`/rider2/delivery/${order.id}`} className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-lg font-bold">
-                                Deliver
-                              </Link>
-                            </div>
+                            </Link>
 
                             {/* Items */}
                             <div className="space-y-1.5">

@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
+import ShopReviews from '@/components/shop/ShopReviews'
 
 export default function MenuPage() {
   const { shopId } = useParams<{ shopId: string }>()
@@ -21,6 +22,11 @@ export default function MenuPage() {
   const [activeTab, setActiveTab] = useState('Menu')
   const [partnerShops, setPartnerShops] = useState<any[]>([])
   const [primaryShops, setPrimaryShops] = useState<any[]>([])
+  const [ownerDetails, setOwnerDetails] = useState<any>(null)
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showSearch, setShowSearch] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string>('')
 
   const { items, addItem, updateQuantity, getTotalItems, getTotalPrice, shopId: cartShopId } = useCartStore()
 
@@ -43,12 +49,44 @@ export default function MenuPage() {
         setGroupedMenu(groupMenuByCategory(menuData.items))
         setPartnerShops(menuData.partnerShops)
         setPrimaryShops(primaryData)
+
+        if (shopData?.owner_id) {
+          const { createClient } = await import('@/lib/supabase/client')
+          const supabase = createClient()
+          const { data: owner } = await supabase.from('profiles').select('full_name, phone, email').eq('id', shopData.owner_id).single()
+          if (owner) setOwnerDetails(owner)
+        }
+
       } finally {
         setIsLoading(false)
       }
     }
     load()
   }, [shopId])
+
+  useEffect(() => {
+    if (activeTab !== 'Menu' || showSearch) return
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const categoryId = entry.target.id.replace('category-', '')
+          setActiveCategory(categoryId)
+        }
+      })
+    }, { rootMargin: '-120px 0px -60% 0px' })
+
+    Object.keys(groupedMenu).forEach(cat => {
+      const el = document.getElementById(`category-${cat}`)
+      if (el) observer.observe(el)
+    })
+
+    if (!activeCategory && Object.keys(groupedMenu).length > 0) {
+      setActiveCategory(Object.keys(groupedMenu)[0])
+    }
+
+    return () => observer.disconnect()
+  }, [groupedMenu, activeTab, showSearch])
 
   const handleAddToCart = (item: MenuItem) => {
     if (!isShopAccessible) {
@@ -148,10 +186,27 @@ export default function MenuPage() {
             <ArrowLeft size={22} />
           </button>
           <div className="flex gap-3">
-            <button className="text-white p-2 bg-black/20 rounded-full backdrop-blur-sm"><Search size={18} /></button>
-            <button className="text-white p-2 bg-black/20 rounded-full backdrop-blur-sm"><Info size={18} /></button>
+            <button onClick={() => { setShowSearch(!showSearch); if(showSearch) setSearchQuery('') }} className="text-white p-2 bg-black/20 rounded-full backdrop-blur-sm">
+              <Search size={18} />
+            </button>
+            <button onClick={() => setActiveTab('Info')} className="text-white p-2 bg-black/20 rounded-full backdrop-blur-sm">
+              <Info size={18} />
+            </button>
           </div>
         </div>
+        
+        {showSearch && (
+          <div className="absolute top-16 left-0 w-full px-5 z-20">
+            <input 
+              autoFocus
+              type="text" 
+              placeholder="Search items..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-white text-gray-900 px-4 py-2.5 rounded-xl shadow-lg focus:outline-none"
+            />
+          </div>
+        )}
 
         {/* Shop Info inside image */}
         <div className="absolute bottom-6 left-5 z-20">
@@ -194,7 +249,7 @@ export default function MenuPage() {
       )}
 
       <div className={`px-5 py-4 flex gap-8 border-b border-gray-200 sticky ${!isShopAccessible ? 'top-8' : 'top-0'} bg-gray-50 z-10`}>
-        {['Menu', 'Reviews (230)', 'Info'].map((tab) => (
+        {['Menu', 'Reviews', 'Info'].map((tab) => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -206,79 +261,148 @@ export default function MenuPage() {
         ))}
       </div>
 
-      {/* Two Column Layout like image: Left sidebar categories, right items */}
-      <div className="flex px-4 py-4 gap-4">
-        
-        {/* Left Categories Sidebar */}
-        <div className="w-1/3 space-y-1 sticky top-16 self-start">
-          {Object.keys(groupedMenu).map((cat) => (
-            <button 
-              key={cat} 
-              onClick={() => {
-                document.getElementById(`category-${cat}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className={`w-full text-left px-3 py-3 rounded-xl font-bold text-xs transition ${
-                cat === 'Bestsellers' ? 'bg-[#DC2626] text-white shadow-md' : 'bg-transparent text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+      {activeTab === 'Reviews' && (
+        <ShopReviews shopId={shopId} shopName={shop?.name || ''} />
+      )}
 
-        {/* Right Menu Items */}
-        <div className="w-2/3 space-y-4">
-          {Object.entries(groupedMenu).map(([category, menuItems]) => (
-            <div key={category} id={`category-${category}`} className="space-y-4 pt-4 -mt-4">
-              <h2 className="font-bold text-lg text-gray-900 sticky top-16 bg-gray-50/95 py-2 z-10 backdrop-blur-sm border-b border-gray-200">
-                {category}
-              </h2>
-              {menuItems.map((item) => {
-                const qty = getItemQuantity(item.id)
+      {activeTab === 'Info' && (
+        <div className="px-5 py-6 space-y-6">
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Info size={18} className="text-[#DC2626]"/> Shop Information
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Address</p>
+                <p className="text-sm text-gray-900 font-medium">{shop?.address}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Operating Hours</p>
+                <p className="text-sm text-gray-900 font-medium">{shop?.opening_time || '9:00 AM'} - {shop?.closing_time || '10:00 PM'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Description</p>
+                <p className="text-sm text-gray-900 leading-relaxed">{shop?.description || 'No description provided.'}</p>
+              </div>
+            </div>
+          </div>
+
+          {ownerDetails && (
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Star size={18} className="text-[#DC2626]"/> Owner Details
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Name</p>
+                  <p className="text-sm text-gray-900 font-medium">{ownerDetails.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Phone</p>
+                  <p className="text-sm text-gray-900 font-medium">{ownerDetails.phone || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Email</p>
+                  <p className="text-sm text-gray-900 font-medium">{ownerDetails.email}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'Menu' && (
+        <>
+          {/* Horizontal Categories Strip (Blinkit Style) */}
+      <div className="px-4 py-3 sticky top-[4.5rem] bg-gray-50/95 backdrop-blur-md z-30 border-b border-gray-200 overflow-x-auto hide-scrollbar flex gap-2 snap-x">
+        {Object.keys(groupedMenu).map((cat) => (
+          <button 
+            key={cat} 
+            onClick={() => {
+              const el = document.getElementById(`category-${cat}`);
+              if (el) {
+                const yOffset = -120; // offset for sticky headers
+                const y = el.getBoundingClientRect().top + window.scrollY + yOffset;
+                window.scrollTo({top: y, behavior: 'smooth'});
+              }
+            }}
+            className={`whitespace-nowrap px-4 py-1.5 rounded-full font-bold text-xs transition snap-start border ${
+              cat === activeCategory 
+              ? 'bg-[#DC2626] text-white border-[#DC2626] shadow-md shadow-red-200' 
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100 shadow-sm'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid Layout Menu Items (Blinkit Style) */}
+      <div className="px-4 py-4 space-y-6">
+        {Object.entries(groupedMenu).map(([category, menuItems]) => {
+          const filteredItems = menuItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+          if (filteredItems.length === 0) return null
+          
+          return (
+            <div key={category} id={`category-${category}`} className="pt-2">
+              <h2 className="font-bold text-lg text-gray-900 mb-4">{category}</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {filteredItems.map((item) => {
+                  const qty = getItemQuantity(item.id)
                 return (
-                  <div key={item.id} className={`bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex items-center gap-3 ${!item.is_available ? 'opacity-60 grayscale' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 text-xs">
+                  <div key={item.id} className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex flex-col ${!item.is_available ? 'opacity-60 grayscale' : ''}`}>
+                    {/* Top: Large Square Image */}
+                    <div className="w-full aspect-square rounded-xl overflow-hidden relative bg-gray-50 mb-2 flex items-center justify-center">
+                      {item.image_url ? (
+                        <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="160px" />
+                      ) : (
+                        <span className="text-4xl">🍲</span>
+                      )}
+                      {!item.is_available ? (
+                        <div className="absolute bottom-2 left-2 right-2 bg-red-500/90 text-white text-[9px] font-bold px-2 py-1 rounded text-center backdrop-blur-sm uppercase">
+                          Out of Stock
+                        </div>
+                      ) : !isShopAccessible && (
+                        <div className="absolute bottom-2 left-2 right-2 bg-gray-900/80 text-white text-[9px] font-bold px-2 py-1 rounded text-center backdrop-blur-sm uppercase">
+                          Closed
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Middle: Title & Price */}
+                    <div className="flex-1 px-1">
+                      <h3 className="font-bold text-gray-900 text-xs line-clamp-2 leading-snug h-8">
                         {item.name}
                       </h3>
                       {(item as any).partner_shop_name && (
-                        <p className="text-[9px] font-bold text-purple-600 bg-purple-50 inline-block px-1.5 py-0.5 rounded mt-0.5">
+                        <p className="text-[9px] font-bold text-purple-600 bg-purple-50 inline-block px-1.5 py-0.5 rounded mt-1">
                           by {(item as any).partner_shop_name}
                         </p>
                       )}
-                      <p className="text-gray-900 font-bold text-xs mt-1">{formatCurrency(item.price)}</p>
+                      <p className="text-gray-900 font-bold text-sm mt-1">{formatCurrency(item.price)}</p>
                     </div>
-                    <div className="flex flex-col items-center gap-2">
-                      {item.image_url ? (
-                        <div className="w-14 h-14 rounded-xl overflow-hidden relative">
-                          <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="56px" />
-                        </div>
-                      ) : (
-                        <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-xl">🍲</div>
-                      )}
-                      {!item.is_available ? (
-                        <div className="bg-red-50 text-red-600 text-[9px] font-bold px-2 py-1 rounded-md shadow-sm border border-red-100 relative -mt-4 z-10 uppercase">
-                          Out of Stock
-                        </div>
-                      ) : !isShopAccessible ? (
-                        <div className="bg-gray-100 text-gray-500 text-[9px] font-bold px-2 py-1 rounded-md shadow-sm border border-gray-200 relative -mt-4 z-10 uppercase">
-                          Closed
+
+                    {/* Bottom: Blinkit-style prominent ADD button */}
+                    <div className="mt-3 px-1 pb-1">
+                      {(!item.is_available || !isShopAccessible) ? (
+                        <div className="w-full h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 font-bold text-xs">
+                          UNAVAILABLE
                         </div>
                       ) : qty === 0 ? (
                         <button
                           onClick={() => handleAddToCart(item)}
-                          className="w-7 h-7 bg-[#DC2626] rounded-md flex items-center justify-center shadow-sm relative -mt-5 z-10"
+                          className="w-full h-8 bg-green-50 text-green-700 border border-green-200 rounded-lg flex items-center justify-center shadow-sm font-bold text-xs uppercase tracking-wider hover:bg-green-100 transition active:scale-95"
                         >
-                          <Plus size={16} className="text-white" />
+                          ADD
                         </button>
                       ) : (
-                        <div className="flex items-center gap-1 bg-white rounded-md shadow-sm border border-gray-200 relative -mt-5 z-10 px-1 py-0.5">
-                          <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-5 h-5 flex items-center justify-center">
-                            <Minus size={12} className="text-[#DC2626]" />
+                        <div className="w-full h-8 flex items-center justify-between bg-[#16A34A] rounded-lg shadow-sm px-1 shadow-green-200">
+                          <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-8 h-full flex items-center justify-center active:bg-green-700 rounded-l-md transition">
+                            <Minus size={14} className="text-white" />
                           </button>
-                          <span className="text-gray-900 font-bold text-xs w-3 text-center">{qty}</span>
-                          <button onClick={() => handleAddToCart(item)} className="w-5 h-5 flex items-center justify-center">
-                            <Plus size={12} className="text-[#DC2626]" />
+                          <span className="text-white font-bold text-sm flex-1 text-center">{qty}</span>
+                          <button onClick={() => handleAddToCart(item)} className="w-8 h-full flex items-center justify-center active:bg-green-700 rounded-r-md transition">
+                            <Plus size={14} className="text-white" />
                           </button>
                         </div>
                       )}
@@ -287,9 +411,12 @@ export default function MenuPage() {
                 )
               })}
             </div>
-          ))}
-        </div>
+          </div>
+        )
+      })}
       </div>
+      </>
+      )}
 
       {/* Cart Bottom Bar */}
       <AnimatePresence>
