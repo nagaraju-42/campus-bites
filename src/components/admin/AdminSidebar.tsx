@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart, Store, Users, Banknote, LogOut, Tag, MessageSquare, Link2 } from 'lucide-react'
+import { BarChart, Store, Users, Banknote, LogOut, Tag, MessageSquare, Link2, Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/admin/users', label: 'User Management', Icon: Users },
   { href: '/admin/promotions', label: 'Promotions', Icon: Tag },
   { href: '/admin/payouts', label: 'Financials', Icon: Banknote },
+  { href: '/admin/push-test', label: 'Push Notifications', Icon: Bell },
   { href: '/admin/settings', label: 'Settings', Icon: Store },
   { href: '/admin/support', label: 'Support Inbox', Icon: MessageSquare },
 ]

@@ -189,6 +189,12 @@ export default function CheckoutPage() {
       return
     }
 
+    // Enforce Minimum Order Amount
+    if (shopInfo && (shopInfo.min_order_amount ?? 0) > 0 && subtotal < shopInfo.min_order_amount!) {
+      toast.error(`Minimum order amount for this shop is ₹${shopInfo.min_order_amount}. Add ₹${(shopInfo.min_order_amount! - subtotal).toFixed(2)} more to checkout.`, { duration: 5000 })
+      return
+    }
+
     // Check if ALL items are partner items by querying the DB to be absolutely 100% sure (ignores cached client state)
     const supabase = createClient()
     const { data: dbItems } = await supabase
@@ -498,11 +504,17 @@ export default function CheckoutPage() {
 
       {/* Place Order Button */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-30">
+        {shopInfo && (shopInfo.min_order_amount ?? 0) > 0 && subtotal < shopInfo.min_order_amount! && (
+          <div className="mb-3 bg-red-50 border border-red-200 text-red-600 text-xs font-bold px-4 py-3 rounded-xl shadow-lg flex items-center justify-between">
+            <span>Minimum order: ₹{shopInfo.min_order_amount}</span>
+            <span>Add ₹{(shopInfo.min_order_amount! - subtotal).toFixed(2)} more</span>
+          </div>
+        )}
         <button
           onClick={handlePlaceOrder}
-          disabled={isPlacingOrder || hasActiveOrder || isCheckingActive}
+          disabled={isPlacingOrder || hasActiveOrder || isCheckingActive || !!(shopInfo && (shopInfo.min_order_amount ?? 0) > 0 && subtotal < shopInfo.min_order_amount!)}
           className={`w-full text-white py-4 rounded-2xl font-bold text-base shadow-xl flex justify-center transition active:scale-95 ${
-            hasActiveOrder || isCheckingActive 
+            hasActiveOrder || isCheckingActive || !!(shopInfo && (shopInfo.min_order_amount ?? 0) > 0 && subtotal < shopInfo.min_order_amount!)
             ? 'bg-gray-400 cursor-not-allowed shadow-none' 
             : 'bg-[#0F766E] shadow-teal-200 hover:bg-teal-800'
           }`}

@@ -13,7 +13,7 @@ export default function AdminShopsPage() {
   const [shops, setShops] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingShop, setEditingShop] = useState<any | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', address: '', description: '', cover_image: '', logo_url: '', phone: '' })
+  const [editForm, setEditForm] = useState({ name: '', address: '', description: '', cover_image: '', logo_url: '', phone: '', min_order_amount: 0 })
   
   const router = useRouter()
   const { user, setAdminUser, setUser } = useAuthStore()
@@ -45,14 +45,14 @@ export default function AdminShopsPage() {
 
   const handleEditClick = (shop: any) => {
     setEditingShop(shop)
-    setEditForm({ name: shop.name, address: shop.address || '', description: shop.description || '', cover_image: shop.cover_image || '', logo_url: shop.logo_url || '', phone: shop.phone || '' })
+    setEditForm({ name: shop.name, address: shop.address || '', description: shop.description || '', cover_image: shop.cover_image || '', logo_url: shop.logo_url || '', phone: shop.phone || '', min_order_amount: shop.min_order_amount || 0 })
   }
 
   const handleSaveEdit = async () => {
     if (!editingShop) return
     try {
       await updateShopDetails(editingShop.id, editForm)
-      setShops(shops.map(s => s.id === editingShop.id ? { ...s, name: editForm.name, address: editForm.address, description: editForm.description, cover_image: editForm.cover_image, logo_url: editForm.logo_url, phone: editForm.phone } : s))
+      setShops(shops.map(s => s.id === editingShop.id ? { ...s, name: editForm.name, address: editForm.address, description: editForm.description, cover_image: editForm.cover_image, logo_url: editForm.logo_url, phone: editForm.phone, min_order_amount: Number(editForm.min_order_amount) || 0 } : s))
       toast.success('Shop details updated!')
       setEditingShop(null)
     } catch (err) {
@@ -239,6 +239,10 @@ export default function AdminShopsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                     <input type="text" value={editForm.address} onChange={e => setEditForm({...editForm, address: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Min. Order Amount (₹)</label>
+                    <input type="number" min="0" value={editForm.min_order_amount} onChange={e => setEditForm({...editForm, min_order_amount: Number(e.target.value) || 0})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white" />
                   </div>
                 </div>
               </div>

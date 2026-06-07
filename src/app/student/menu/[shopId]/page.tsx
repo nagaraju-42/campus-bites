@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Star, Clock, Plus, Minus, ShoppingCart, Info, Search } from 'lucide-react'
+import { ArrowLeft, Star, Clock, Plus, Minus, ShoppingCart, Info, Search, ChevronDown } from 'lucide-react'
 import { getShopById, getPrimaryShopsForPartner } from '@/lib/supabase/queries/shops'
 import { getMenuItemsByShop, groupMenuByCategory, getCollaborativeMenuItems } from '@/lib/supabase/queries/menu'
 import { Shop, MenuItem } from '@/types'
@@ -27,6 +27,7 @@ export default function MenuPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('')
+  const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null)
 
   const { items, addItem, updateQuantity, getTotalItems, getTotalPrice, shopId: cartShopId } = useCartStore()
 
@@ -35,7 +36,7 @@ export default function MenuPage() {
   const isShopAccessible = shop ? (shop.is_open || (orderMode === 'dine_in' && shop.dine_in_enabled)) : true
 
   const getItemQuantity = (itemId: string) =>
-    items.find((i) => i.id === itemId)?.quantity ?? 0
+    items.filter((i) => i.id === itemId).reduce((sum, i) => sum + i.quantity, 0)
 
   useEffect(() => {
     async function load() {
@@ -88,9 +89,14 @@ export default function MenuPage() {
     return () => observer.disconnect()
   }, [groupedMenu, activeTab, showSearch])
 
-  const handleAddToCart = (item: MenuItem) => {
+  const handleAddToCart = (item: MenuItem, variantName?: string, variantPrice?: number) => {
     if (!isShopAccessible) {
       toast.error(`This shop is currently closed for ${orderMode === 'dine_in' ? 'dine-in' : 'delivery'}.`)
+      return
+    }
+
+    if (item.variants && item.variants.length > 0 && !variantName) {
+      setSelectedVariantItem(item)
       return
     }
 
@@ -135,10 +141,11 @@ export default function MenuPage() {
                   shopId: shopId, 
                   partnerShopId: item.shop_id !== shopId ? item.shop_id : undefined,
                   shopName: shop?.name ?? '', 
-                  name: item.name, 
-                  price: item.price, 
+                  name: variantName ? `${item.name} (${variantName})` : item.name, 
+                  price: variantPrice ?? item.price, 
                   quantity: 1, 
-                  image_url: item.image_url ?? undefined 
+                  image_url: item.image_url ?? undefined,
+                  variantName: variantName
                 }); 
                 toast.dismiss(t.id) 
               }}
@@ -156,10 +163,11 @@ export default function MenuPage() {
       shopId: shopId, 
       partnerShopId: item.shop_id !== shopId ? item.shop_id : undefined,
       shopName: shop?.name ?? '', 
-      name: item.name, 
-      price: item.price, 
+      name: variantName ? `${item.name} (${variantName})` : item.name, 
+      price: variantPrice ?? item.price, 
       quantity: 1, 
-      image_url: item.image_url ?? undefined 
+      image_url: item.image_url ?? undefined,
+      variantName: variantName
     })
   }
 
@@ -349,7 +357,12 @@ export default function MenuPage() {
       {/* Grid Layout Menu Items (Blinkit Style) */}
       <div className="px-4 py-4 space-y-6">
         {Object.entries(groupedMenu).map(([category, menuItems]) => {
-          const filteredItems = menuItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+          const filteredItems = menuItems
+            .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+            .sort((a, b) => {
+              if (a.is_available === b.is_available) return 0;
+              return a.is_available ? -1 : 1;
+            })
           if (filteredItems.length === 0) return null
           
           return (
@@ -369,7 +382,7 @@ export default function MenuPage() {
                       )}
                       {!item.is_available ? (
                         <div className="absolute bottom-2 left-2 right-2 bg-red-500/90 text-white text-[9px] font-bold px-2 py-1 rounded text-center backdrop-blur-sm uppercase">
-                          Out of Stock
+                          Sold Out
                         </div>
                       ) : !isShopAccessible && (
                         <div className="absolute bottom-2 left-2 right-2 bg-gray-900/80 text-white text-[9px] font-bold px-2 py-1 rounded text-center backdrop-blur-sm uppercase">
@@ -388,7 +401,20 @@ export default function MenuPage() {
                           by {(item as any).partner_shop_name}
                         </p>
                       )}
-                      <p className="text-gray-900 font-bold text-sm mt-1">{formatCurrency(item.price)}</p>
+                      
+                      {item.variants && item.variants.length > 0 ? (
+                        <div className="mt-1">
+                          <button 
+                            onClick={() => setSelectedVariantItem(item)}
+                            className="text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
+                          >
+                            {item.variants[0].name} <ChevronDown size={10} />
+                          </button>
+                          <p className="text-gray-900 font-bold text-sm mt-1">{formatCurrency(item.variants[0].price)}</p>
+                        </div>
+                      ) : (
+                        <p className="text-gray-900 font-bold text-sm mt-1">{formatCurrency(item.price)}</p>
+                      )}
                     </div>
 
                     {/* Bottom: Blinkit-style prominent ADD button */}
@@ -399,14 +425,26 @@ export default function MenuPage() {
                         </div>
                       ) : qty === 0 ? (
                         <button
-                          onClick={() => handleAddToCart(item)}
+                          onClick={() => {
+                            if (item.variants && item.variants.length > 0) {
+                              setSelectedVariantItem(item)
+                            } else {
+                              handleAddToCart(item)
+                            }
+                          }}
                           className="w-full h-8 bg-green-50 text-green-700 border border-green-200 rounded-lg flex items-center justify-center shadow-sm font-bold text-xs uppercase tracking-wider hover:bg-green-100 transition active:scale-95"
                         >
                           ADD
                         </button>
                       ) : (
                         <div className="w-full h-8 flex items-center justify-between bg-[#16A34A] rounded-lg shadow-sm px-1 shadow-green-200">
-                          <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-8 h-full flex items-center justify-center active:bg-green-700 rounded-l-md transition">
+                          <button onClick={() => {
+                            if (item.variants && item.variants.length > 0) {
+                              setSelectedVariantItem(item)
+                            } else {
+                              updateQuantity(item.id, qty - 1)
+                            }
+                          }} className="w-8 h-full flex items-center justify-center active:bg-green-700 rounded-l-md transition">
                             <Minus size={14} className="text-white" />
                           </button>
                           <span className="text-white font-bold text-sm flex-1 text-center">{qty}</span>
@@ -447,6 +485,82 @@ export default function MenuPage() {
               <span className="text-sm font-bold bg-white text-[#DC2626] px-4 py-1.5 rounded-xl">View Cart</span>
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Variant Selection Bottom Sheet */}
+      <AnimatePresence>
+        {selectedVariantItem && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setSelectedVariantItem(null)}
+              className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: '100%' }} 
+              animate={{ y: 0 }} 
+              exit={{ y: '100%' }} 
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-3xl z-[60] overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 backdrop-blur-md">
+                <div>
+                  <h3 className="font-bold text-gray-900">{selectedVariantItem.name}</h3>
+                  <p className="text-xs text-gray-500 font-medium">Select quantity/size</p>
+                </div>
+                <button onClick={() => setSelectedVariantItem(null)} className="p-2 bg-gray-200/50 rounded-full text-gray-500 hover:bg-gray-200">
+                  <ArrowLeft size={18} className="rotate-[-90deg]" />
+                </button>
+              </div>
+              
+              <div className="p-4">
+                <div className="flex overflow-x-auto hide-scrollbar gap-3 snap-x">
+                  {selectedVariantItem.variants?.map((variant, idx) => {
+                    const cartItem = items.find(i => i.id === selectedVariantItem.id && i.variantName === variant.name)
+                    const vQty = cartItem?.quantity || 0
+                    const isVariantSoldOut = variant.is_available === false
+
+                    return (
+                      <div key={idx} className={`snap-start min-w-[140px] flex flex-col p-3 border rounded-2xl shadow-sm bg-white ${isVariantSoldOut ? 'opacity-60 grayscale border-gray-100' : 'border-green-100'}`}>
+                        <div className="mb-3">
+                          <p className="font-bold text-gray-900 text-sm line-clamp-1">{variant.name}</p>
+                          <p className="text-sm font-bold text-gray-600 mt-0.5">{formatCurrency(variant.price)}</p>
+                        </div>
+                        
+                        <div className="w-full h-9 mt-auto">
+                          {isVariantSoldOut ? (
+                            <div className="w-full h-full bg-gray-100 text-gray-400 rounded-xl flex items-center justify-center font-bold text-xs uppercase">
+                              SOLD OUT
+                            </div>
+                          ) : vQty === 0 ? (
+                            <button
+                              onClick={() => handleAddToCart(selectedVariantItem, variant.name, variant.price)}
+                              className="w-full h-full bg-green-50 text-green-700 border border-green-200 rounded-xl flex items-center justify-center font-bold text-xs uppercase hover:bg-green-100 transition"
+                            >
+                              ADD
+                            </button>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-between bg-[#16A34A] rounded-xl shadow-sm px-1 shadow-green-200">
+                              <button onClick={() => updateQuantity(selectedVariantItem.id, vQty - 1, variant.name)} className="w-8 h-full flex items-center justify-center active:bg-green-700 rounded-l-md transition">
+                                <Minus size={14} className="text-white" />
+                              </button>
+                              <span className="text-white font-bold text-sm flex-1 text-center">{vQty}</span>
+                              <button onClick={() => handleAddToCart(selectedVariantItem, variant.name, variant.price)} className="w-8 h-full flex items-center justify-center active:bg-green-700 rounded-r-md transition">
+                                <Plus size={14} className="text-white" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

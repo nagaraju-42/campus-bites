@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, Bell, Search, Menu } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getApprovedShops } from '@/lib/supabase/queries/shops'
@@ -40,9 +40,11 @@ export default function StudentHomePage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [lastOrder, setLastOrder] = useState<Order | null>(null)
-  
   const [globalDineInEnabled, setGlobalDineInEnabled] = useState(false)
   const [orderMode, setOrderMode] = useState<'delivery' | 'dine_in'>('delivery')
+  const [deliveryLocations, setDeliveryLocations] = useState<string[]>([])
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const { studentProfile, setStudentProfile } = useAuthStore()
 
   useEffect(() => {
     async function fetchData() {
@@ -64,6 +66,13 @@ export default function StudentHomePage() {
         const { data: settings } = await supabase.from('app_settings').select('dine_in_enabled').limit(1).single()
         if (settings) {
           setGlobalDineInEnabled(settings.dine_in_enabled)
+        }
+
+        const { data: locData } = await supabase.from('app_settings').select('value').eq('key', 'delivery_locations').single()
+        if (locData && locData.value) {
+          try {
+            setDeliveryLocations(JSON.parse(locData.value))
+          } catch(e) {}
         }
 
         // Fetch last order for Magic Reorder
@@ -95,6 +104,19 @@ export default function StudentHomePage() {
     }))
     setCart(lastOrder.shop_id, cartItems)
     router.push('/student/checkout')
+  }
+
+  const handleSelectLocation = async (loc: string) => {
+    if (!user) return
+    setIsLocationModalOpen(false)
+    try {
+      const supabase = createClient()
+      await supabase.from('student_profiles').update({ hostel_name: loc }).eq('id', user.id)
+      setStudentProfile({ ...studentProfile!, hostel_name: loc })
+      toast.success('Delivery location updated!')
+    } catch (e) {
+      toast.error('Failed to update location')
+    }
   }
 
   // Realtime Broadcast Listener
@@ -190,12 +212,12 @@ export default function StudentHomePage() {
               </div>
             </SheetContent>
           </Sheet>
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center cursor-pointer hover:bg-black/10 px-4 py-1.5 rounded-2xl transition" onClick={() => setIsLocationModalOpen(true)}>
             <div className="flex items-center gap-1.5 text-white font-bold text-lg">
               <MapPin size={16} />
-              <span>Anurag University</span>
+              <span className="truncate max-w-[200px]">{studentProfile?.hostel_name || 'Select Location'}</span>
             </div>
-            <p className="text-red-100 text-xs font-medium">Jodimetla, Hyderabad ▼</p>
+            <p className="text-red-100 text-xs font-medium mt-0.5">Deliver to this address ▼</p>
           </div>
           <button onClick={() => setIsNotificationsOpen(true)} className="relative text-white hover:bg-black/10 p-2 rounded-full transition">
             <Bell size={24} />
@@ -355,6 +377,81 @@ export default function StudentHomePage() {
       
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <NotificationsTray isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
+
+      {/* Location Selection Modal */}
+      <AnimatePresence>
+        {isLocationModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
+              onClick={() => setIsLocationModalOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-w-[430px] mx-auto shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg">Select Delivery Location</h3>
+                  <p className="text-xs text-gray-500 font-medium">Choose your hostel or location</p>
+                </div>
+                <button 
+                  onClick={() => setIsLocationModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full transition"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="overflow-y-auto p-5 space-y-2 flex-1">
+                {deliveryLocations.map((loc, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => handleSelectLocation(loc)}
+                    className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition ${
+                      studentProfile?.hostel_name === loc 
+                        ? 'border-[#DC2626] bg-red-50' 
+                        : 'border-gray-100 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${studentProfile?.hostel_name === loc ? 'bg-[#DC2626] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        <MapPin size={16} />
+                      </div>
+                      <span className={`font-bold ${studentProfile?.hostel_name === loc ? 'text-[#DC2626]' : 'text-gray-700'}`}>{loc}</span>
+                    </div>
+                    {studentProfile?.hostel_name === loc && (
+                      <span className="text-[#DC2626] text-sm font-bold">✓</span>
+                    )}
+                  </div>
+                ))}
+                
+                <div 
+                  onClick={() => {
+                    setIsLocationModalOpen(false)
+                    router.push('/student/profile')
+                  }}
+                  className="p-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 flex items-center gap-3 cursor-pointer hover:bg-gray-100 transition mt-4"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center">
+                    <MapPin size={16} />
+                  </div>
+                  <div>
+                    <span className="font-bold text-gray-700 block">Select nearest hostel</span>
+                    <span className="text-xs text-gray-500">Update custom address in profile</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

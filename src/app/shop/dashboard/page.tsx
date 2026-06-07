@@ -13,6 +13,7 @@ import { Order } from '@/types'
 import toast from 'react-hot-toast'
 import { broadcastNotification } from '@/lib/supabase/queries/notifications'
 import WhatsAppQRShare from '@/components/shop/WhatsAppQRShare'
+import FinancialsWidget from '@/components/shop/FinancialsWidget'
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'month' | 'all_time'
 
@@ -209,10 +210,10 @@ export default function ShopDashboardPage() {
       </div>
 
       {/* Charts & Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Recent Activity */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-full">
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-full">
           <h2 className="font-bold text-gray-900 mb-6 flex items-center justify-between">
             <span>Recent Completed Orders</span>
             <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">Live Today</span>
@@ -237,46 +238,54 @@ export default function ShopDashboardPage() {
           </div>
         </div>
 
-        {/* Broadcast Notification Widget */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h2 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-              📢 Broadcast Message
-            </h2>
-            <p className="text-gray-500 text-xs font-medium mb-4">Send an instant alert to all students on the platform.</p>
-            
-            <textarea 
-              value={broadcastMessage}
-              onChange={(e) => setBroadcastMessage(e.target.value)}
-              placeholder="e.g. Fresh Samosas are ready! Grab them before they are gone."
-              className="w-full border border-gray-200 rounded-xl p-3 h-24 mb-3 focus:outline-none focus:border-blue-500 resize-none text-sm font-medium"
-            />
-
-            <div className="flex flex-wrap gap-2 mb-4">
-              {broadcastPresets.map((preset, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => setBroadcastMessage(preset)}
-                  className="bg-gray-50 text-gray-600 border border-gray-200 text-[10px] font-bold px-2 py-1 rounded-md hover:bg-gray-100 transition text-left"
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button 
-            onClick={handleBroadcast}
-            disabled={isBroadcasting || !broadcastMessage.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <Send size={16} /> {isBroadcasting ? 'Broadcasting...' : 'Send to All Students'}
-          </button>
+        {/* Financials Widget */}
+        <div className="h-full">
+          {shopId && <FinancialsWidget shopId={shopId} />}
         </div>
 
-        {/* WhatsApp Share Widget */}
-        <div className="h-full">
-          {shopId && <WhatsAppQRShare shopId={shopId} />}
+        {/* Broadcast & Actions Stack */}
+        <div className="space-y-6">
+          {/* Broadcast Notification Widget */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+            <div>
+              <h2 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                📢 Broadcast Message
+              </h2>
+              <p className="text-gray-500 text-xs font-medium mb-4">Send an instant alert to all students on the platform.</p>
+              
+              <textarea 
+                value={broadcastMessage}
+                onChange={(e) => setBroadcastMessage(e.target.value)}
+                placeholder="e.g. Fresh Samosas are ready! Grab them before they are gone."
+                className="w-full border border-gray-200 rounded-xl p-3 h-24 mb-3 focus:outline-none focus:border-blue-500 resize-none text-sm font-medium"
+              />
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                {broadcastPresets.map((preset, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setBroadcastMessage(preset)}
+                    className="bg-gray-50 text-gray-600 border border-gray-200 text-[10px] font-bold px-2 py-1 rounded-md hover:bg-gray-100 transition text-left"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button 
+              onClick={handleBroadcast}
+              disabled={isBroadcasting || !broadcastMessage.trim()}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Send size={16} /> {isBroadcasting ? 'Broadcasting...' : 'Send to All Students'}
+            </button>
+          </div>
+
+          {/* WhatsApp Share Widget */}
+          <div>
+            {shopId && <WhatsAppQRShare shopId={shopId} />}
+          </div>
         </div>
 
       </div>

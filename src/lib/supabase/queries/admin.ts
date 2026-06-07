@@ -93,7 +93,7 @@ export async function updateShopApproval(shopId: string, is_approved: boolean) {
   if (error) throw new Error(error.message)
 }
 
-export async function updateShopDetails(shopId: string, updates: { name?: string, address?: string, description?: string, cover_image?: string, phone?: string }) {
+export async function updateShopDetails(shopId: string, updates: { name?: string, address?: string, description?: string, cover_image?: string, phone?: string, logo_url?: string, min_order_amount?: number }) {
   const supabase = createClient()
   const { error } = await supabase.from('shops').update(updates).eq('id', shopId)
   if (error) throw new Error(error.message)
@@ -173,7 +173,8 @@ export async function getAllPlatformOrders() {
     .from('orders')
     .select(`
       *,
-      shops:shop_id(name)
+      shops:shop_id(name),
+      order_items(*)
     `)
     .order('placed_at', { ascending: false })
     .limit(100)
@@ -224,6 +225,28 @@ export async function forceCancelOrder(orderId: string, adminId: string, reason:
   if (error) throw new Error(error.message)
   
   await logOrderAudit(orderId, adminId, order?.status || 'unknown', 'cancelled')
+}
+
+export async function adminDeleteOrderItem(orderId: string, itemId: string, itemTotalCost: number, adminId: string, itemName: string) {
+  const supabase = createClient()
+  
+  // 1. Delete item
+  const { error: deleteError } = await supabase.from('order_items').delete().eq('id', itemId)
+  if (deleteError) throw new Error(deleteError.message)
+  
+  // 2. Fetch current total
+  const { data: order } = await supabase.from('orders').select('total_amount, special_note, status').eq('id', orderId).single()
+  if (!order) throw new Error("Order not found")
+  
+  // 3. Update total
+  const newTotal = Math.max(0, order.total_amount - itemTotalCost)
+  const appendNote = order.special_note ? `${order.special_note} | Admin removed item: ${itemName}` : `Admin removed item: ${itemName}`
+  
+  const { error: updateError } = await supabase.from('orders').update({ total_amount: newTotal, special_note: appendNote }).eq('id', orderId)
+  if (updateError) throw new Error(updateError.message)
+  
+  // 4. Log audit
+  await logOrderAudit(orderId, adminId, order.status, order.status)
 }
 
 export async function getOrderAuditLogs(orderId: string) {

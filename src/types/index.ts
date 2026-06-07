@@ -66,6 +66,7 @@ export interface Shop {
   opening_time: string | null
   closing_time: string | null
   dine_in_enabled?: boolean | null
+  min_order_amount?: number
   created_at: string
   // Joined fields
   categories?: string[]
@@ -91,6 +92,7 @@ export interface MenuItem {
   is_featured?: boolean
   is_archived?: boolean
   category_id?: string | null
+  variants?: { name: string, price: number, is_available?: boolean }[] | null
   created_at: string
 }
 

@@ -328,61 +328,82 @@ export default function Rider2DashboardPage() {
                             <span className="text-purple-600 text-xs font-bold">⚡ Collect add-ons from partner shops before delivery</span>
                           </div>
                         )}
-
-                        {/* Orders separated by dividers */}
-                        {shopGroup.orders.map((order: any, orderIdx: number) => (
-                          <div key={order.id}>
-                            {orderIdx > 0 && <hr className="my-3 border-dashed border-gray-200" />}
+                        {/* Orders Grouped by Hostel */}
+                        {Object.entries(
+                          shopGroup.orders.reduce((acc, order: any) => {
+                            const hostel = order.hostel_name || 'Unknown Location'
+                            if (!acc[hostel]) acc[hostel] = []
+                            acc[hostel].push(order)
+                            return acc
+                          }, {} as Record<string, any[]>)
+                        ).map(([hostelName, hostelOrders], hostelIdx) => (
+                          <div key={hostelName} className="mb-4 last:mb-0">
+                            {hostelIdx > 0 && <hr className="my-4 border-dashed border-gray-200" />}
                             
-                            {/* Order header row */}
-                            <Link href={`/rider2/delivery/${order.id}`} className="block">
-                              <div className="flex justify-between items-center mb-2 p-2 -mx-2 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition cursor-pointer">
-                                <div>
-                                  <span className="font-bold text-gray-800 text-sm">#{order.order_number}</span>
-                                  <span className="text-xs text-gray-500 ml-2">→ {order.hostel_name}</span>
-                                </div>
-                                <span className="text-[11px] bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-bold">
-                                  Deliver →
-                                </span>
-                              </div>
-                            </Link>
+                            {/* Hostel Sub-header */}
+                            <div className="flex items-center gap-2 mb-3 px-2 py-1 bg-green-50 rounded-lg border border-green-100">
+                              <span className="text-green-700">📍</span>
+                              <span className="font-bold text-green-900 text-sm flex-1">{hostelName}</span>
+                              <span className="text-[10px] font-bold bg-green-200 text-green-800 px-2 py-0.5 rounded-full">
+                                {(hostelOrders as any[]).length} {(hostelOrders as any[]).length === 1 ? 'order' : 'orders'}
+                              </span>
+                            </div>
 
-                            {/* Items */}
-                            <div className="space-y-1.5">
-                              {order.order_items?.map((item: any, idx: number) => {
-                                const isExternal = !!item.partner_shop_id
-                                const checkKey = `${order.id}-${item.id}`
-                                const isChecked = checkedItems[checkKey]
-                                return (
-                                  <div
-                                    key={idx}
-                                    onClick={() => toggleCheck(checkKey)}
-                                    className={`flex justify-between items-center px-3 py-2 rounded-xl border transition cursor-pointer select-none ${
-                                      isChecked
-                                        ? 'bg-gray-50 border-gray-200 opacity-50'
-                                        : isExternal
-                                          ? 'bg-purple-50 border-purple-100'
-                                          : 'bg-green-50 border-green-100'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div className={`w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center ${
-                                        isChecked ? 'bg-gray-300' : isExternal ? 'bg-purple-500' : 'bg-green-500'
-                                      }`}>
-                                        {isChecked && <Check size={11} strokeWidth={3} className="text-white" />}
+                            {/* Orders for this hostel */}
+                            <div className="space-y-4">
+                              {(hostelOrders as any[]).map((order: any, orderIdx: number) => (
+                                <div key={order.id} className="pl-2 border-l-2 border-gray-100">
+                                  {/* Order header row */}
+                                  <Link href={`/rider2/delivery/${order.id}`} className="block">
+                                    <div className="flex justify-between items-center mb-2 p-2 -mx-2 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition cursor-pointer">
+                                      <div>
+                                        <span className="font-bold text-gray-800 text-sm">#{order.order_number}</span>
                                       </div>
-                                      <span className={`text-sm font-bold ${isChecked ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                                        {item.quantity}× {item.menu_items?.name || 'Item'}
+                                      <span className="text-[11px] bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-bold">
+                                        Deliver →
                                       </span>
                                     </div>
-                                    {isExternal && (
-                                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full flex-shrink-0">
-                                        {item.partner?.name}
-                                      </span>
-                                    )}
+                                  </Link>
+
+                                  {/* Items */}
+                                  <div className="space-y-1.5">
+                                    {order.order_items?.map((item: any, idx: number) => {
+                                      const isExternal = !!item.partner_shop_id
+                                      const checkKey = `${order.id}-${item.id}`
+                                      const isChecked = checkedItems[checkKey]
+                                      return (
+                                        <div
+                                          key={idx}
+                                          onClick={() => toggleCheck(checkKey)}
+                                          className={`flex justify-between items-center px-3 py-2 rounded-xl border transition cursor-pointer select-none ${
+                                            isChecked
+                                              ? 'bg-gray-50 border-gray-200 opacity-50'
+                                              : isExternal
+                                                ? 'bg-purple-50 border-purple-100'
+                                                : 'bg-green-50 border-green-100'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <div className={`w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center ${
+                                              isChecked ? 'bg-gray-300' : isExternal ? 'bg-purple-500' : 'bg-green-500'
+                                            }`}>
+                                              {isChecked && <Check size={11} strokeWidth={3} className="text-white" />}
+                                            </div>
+                                            <span className={`text-sm font-bold ${isChecked ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                                              {item.quantity}× {item.item_name || item.menu_items?.name || 'Item'}
+                                            </span>
+                                          </div>
+                                          {isExternal && (
+                                            <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full flex-shrink-0">
+                                              {item.partner?.name}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
                                   </div>
-                                )
-                              })}
+                                </div>
+                              ))}
                             </div>
                           </div>
                         ))}

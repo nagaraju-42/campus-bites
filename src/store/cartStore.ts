@@ -10,6 +10,7 @@ export interface CartItem {
   quantity: number
   image_url?: string
   partnerShopId?: string // if this item is a cross-shop add-on
+  variantName?: string
 }
 
 interface CartState {
@@ -18,8 +19,8 @@ interface CartState {
 
   // Actions
   addItem: (item: CartItem) => void
-  removeItem: (itemId: string) => void
-  updateQuantity: (itemId: string, quantity: number) => void
+  removeItem: (itemId: string, variantName?: string) => void
+  updateQuantity: (itemId: string, quantity: number, variantName?: string) => void
   clearCart: () => void
   getTotalItems: () => number
   getTotalPrice: () => number
@@ -44,11 +45,11 @@ export const useCartStore = create<CartState>()(
           return
         }
 
-        const existingItem = items.find((i) => i.id === newItem.id)
+        const existingItem = items.find((i) => i.id === newItem.id && i.variantName === newItem.variantName)
         if (existingItem) {
           set({
             items: items.map((i) =>
-              i.id === newItem.id
+              (i.id === newItem.id && i.variantName === newItem.variantName)
                 ? { ...i, quantity: i.quantity + 1 }
                 : i
             ),
@@ -61,20 +62,20 @@ export const useCartStore = create<CartState>()(
         }
       },
 
-      removeItem: (itemId) => {
+      removeItem: (itemId, variantName) => {
         const { items } = get()
-        const filtered = items.filter((i) => i.id !== itemId)
+        const filtered = items.filter((i) => !(i.id === itemId && i.variantName === variantName))
         set({ items: filtered, shopId: filtered.length === 0 ? null : get().shopId })
       },
 
-      updateQuantity: (itemId, quantity) => {
+      updateQuantity: (itemId, quantity, variantName) => {
         if (quantity <= 0) {
-          get().removeItem(itemId)
+          get().removeItem(itemId, variantName)
           return
         }
         set({
           items: get().items.map((i) =>
-            i.id === itemId ? { ...i, quantity } : i
+            (i.id === itemId && i.variantName === variantName) ? { ...i, quantity } : i
           ),
         })
       },

@@ -7,7 +7,7 @@ export async function getMenuItemsByShop(shopId: string): Promise<MenuItem[]> {
     .from('menu_items')
     .select('*')
     .eq('shop_id', shopId)
-    .eq('is_available', true)
+    .neq('is_archived', true)
     .order('category', { ascending: true })
 
   if (error) throw new Error(error.message)
@@ -22,7 +22,7 @@ export async function getCollaborativeMenuItems(shopId: string): Promise<{ items
     .from('menu_items')
     .select('*')
     .eq('shop_id', shopId)
-    .eq('is_available', true)
+    .neq('is_archived', true)
 
   if (mainError) throw new Error(mainError.message)
 
@@ -45,7 +45,7 @@ export async function getCollaborativeMenuItems(shopId: string): Promise<{ items
           .from('menu_items')
           .select('*')
           .eq('shop_id', collab.partner_shop_id)
-          .eq('is_available', true)
+          .neq('is_archived', true)
         
         if (partnerItems) {
           // Tag them for UI grouping if needed, but they are just MenuItems
@@ -100,7 +100,7 @@ export async function searchMenuItems(query: string): Promise<any[]> {
       shops!inner(name, is_open)
     `)
     .ilike('name', `%${query}%`)
-    .eq('is_available', true)
+    .neq('is_archived', true)
     .eq('shops.is_open', true)
     .limit(20)
 

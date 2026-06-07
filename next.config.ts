@@ -9,6 +9,7 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   images: {
+    minimumCacheTTL: 31536000, // Cache images for 1 year
     remotePatterns: [
       {
         protocol: 'https',
@@ -31,6 +32,19 @@ const nextConfig: NextConfig = {
         hostname: 'i.postimg.cc',
       }
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/_next/image(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ]
   },
   turbopack: {},
   /* config options here */

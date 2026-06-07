@@ -24,7 +24,8 @@ export default function ShopMenuPage() {
     description: '',
     price: '',
     category: 'Mains',
-    image_url: ''
+    image_url: '',
+    variants: [] as { name: string, price: number, is_available?: boolean }[]
   })
   const [debugError, setDebugError] = useState<string | null>(null)
 
@@ -89,12 +90,13 @@ export default function ShopMenuPage() {
         price: parseFloat(formData.price),
         category: formData.category,
         image_url: formData.image_url || null,
-        is_available: true
+        is_available: true,
+        variants: formData.variants.length > 0 ? formData.variants : null
       })
       
       setItems([newItem, ...items])
       setIsModalOpen(false)
-      setFormData({ name: '', description: '', price: '', category: 'Mains', image_url: '' })
+      setFormData({ name: '', description: '', price: '', category: 'Mains', image_url: '', variants: [] })
       setDebugError(null)
       toast.success('Item added to menu!')
     } catch (err: any) {
@@ -165,6 +167,48 @@ export default function ShopMenuPage() {
                   </select>
                 </div>
               </div>
+              
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Variants (Optional)</label>
+                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, variants: [...prev.variants, { name: '', price: 0, is_available: true }] }))} className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                    <Plus size={12} /> Add Size/Quantity
+                  </button>
+                </div>
+                {formData.variants.length > 0 && (
+                  <div className="space-y-2 mb-2">
+                    {formData.variants.map((v, i) => (
+                      <div key={i} className="flex gap-2">
+                        <input type="text" placeholder="e.g. 250ml" value={v.name} onChange={e => {
+                          const newV = [...formData.variants]
+                          newV[i].name = e.target.value
+                          setFormData({ ...formData, variants: newV })
+                        }} className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 bg-white" />
+                        <input type="number" placeholder="Price" value={v.price || ''} onChange={e => {
+                          const newV = [...formData.variants]
+                          newV[i].price = parseFloat(e.target.value) || 0
+                          setFormData({ ...formData, variants: newV })
+                        }} className="w-20 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 bg-white" />
+                        <button type="button" onClick={() => {
+                          const newV = [...formData.variants]
+                          newV[i].is_available = !newV[i].is_available
+                          setFormData({ ...formData, variants: newV })
+                        }} className={`px-2 py-1.5 text-xs font-bold rounded-lg border ${v.is_available === false ? 'bg-red-50 text-red-500 border-red-200' : 'bg-green-50 text-green-600 border-green-200'}`}>
+                          {v.is_available === false ? 'Out' : 'In'}
+                        </button>
+                        <button type="button" onClick={() => {
+                          const newV = formData.variants.filter((_, idx) => idx !== i)
+                          setFormData({ ...formData, variants: newV })
+                        }} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-400 font-medium leading-tight">If variants are added, the Base Price is still required for sorting but users will choose a variant to add to cart.</p>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Description</label>
                 <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Brief description of the item..." rows={3}></textarea>
@@ -217,7 +261,16 @@ export default function ShopMenuPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 font-medium">{item.category}</td>
-                    <td className="px-6 py-4 text-sm font-bold text-gray-900">{formatCurrency(item.price)}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-gray-900">
+                      {item.variants && item.variants.length > 0 ? (
+                        <div className="flex flex-col">
+                          <span className="text-xs text-gray-500 font-medium">Starts from</span>
+                          {formatCurrency(Math.min(...item.variants.map(v => v.price)))}
+                        </div>
+                      ) : (
+                        formatCurrency(item.price)
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => toggleAvailability(item.id, item.is_available)}

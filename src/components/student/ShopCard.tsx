@@ -110,9 +110,11 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop,
         </div>
 
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-dashed border-gray-100">
-          <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-            ₹40 min order
-          </span>
+          {(shop.min_order_amount ?? 0) > 0 && (
+            <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
+              ₹{shop.min_order_amount} min order
+            </span>
+          )}
           {orderMode === 'dine_in' && (
             <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
               Dine-In Available

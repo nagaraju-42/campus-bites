@@ -76,6 +76,13 @@ export default function TrackOrderPage() {
           setAuditLogs(logs)
         } catch (e) {}
       })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'shops',
+      }, async (payload) => {
+        // If the shop for this order changes (like busy_mode toggle), refresh order
+        const updatedOrder = await getOrderById(orderId)
+        setOrder(updatedOrder)
+      })
       .subscribe()
 
     return () => { supabase.removeChannel(subscription) }
@@ -276,8 +283,8 @@ export default function TrackOrderPage() {
         </div>
       </div>
 
-      {/* Bottom Info Section (Fixed) */}
-      <div className="px-5 mt-auto fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-30 space-y-3">
+      {/* Bottom Info Section */}
+      <div className="px-5 mt-8 space-y-3">
         
         {/* OTP Delivery Box */}
         {!order.hostel_name?.includes('[Dine-In]') && order.status !== 'delivered' && order.status !== 'cancelled' && (

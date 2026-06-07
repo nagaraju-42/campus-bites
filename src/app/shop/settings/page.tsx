@@ -48,6 +48,7 @@ export default function ShopSettingsPage() {
           description: shop.description,
           phone: shop.phone,
           dine_in_enabled: shop.dine_in_enabled,
+          min_order_amount: Number(shop.min_order_amount) || 0,
         })
         .eq('id', shop.id)
       
@@ -114,6 +115,19 @@ export default function ShopSettingsPage() {
             className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-gray-100 text-gray-500 cursor-not-allowed shadow-sm transition"
           />
           <p className="text-xs text-gray-400 mt-1">Contact admin to change your payout UPI ID.</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1.5">Minimum Order Amount (₹)</label>
+          <input
+            type="number"
+            name="min_order_amount"
+            value={shop.min_order_amount || 0}
+            onChange={handleChange}
+            min="0"
+            className="w-full px-4 py-3.5 rounded-xl border-2 border-transparent bg-gray-50 text-gray-900 focus:outline-none focus:border-[#2563EB] focus:bg-white shadow-sm transition"
+          />
+          <p className="text-xs text-gray-400 mt-1">Students cannot place an order if their cart subtotal is below this amount. Set to 0 for no minimum.</p>
         </div>
 
         <div className="flex items-center justify-between py-2 border-t border-gray-100">

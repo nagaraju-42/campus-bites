@@ -88,7 +88,8 @@ export default function AdminShopMenuPage() {
         is_available: editForm.is_available,
         is_featured: editForm.is_featured,
         category_id: editForm.category_id || null,
-        image_url: editForm.image_url
+        image_url: editForm.image_url,
+        variants: editForm.variants?.length > 0 ? editForm.variants : null
       })
 
       setItems(items.map(item => item.id === editForm.id ? { ...item, ...editForm } : item))
@@ -124,8 +125,9 @@ export default function AdminShopMenuPage() {
   const handleCreateNew = async () => {
     try {
       const data = await adminCreateMenuItem(shopId as string)
-      setItems([data, ...items])
-      setEditForm(data)
+      const newItem = { ...data, variants: [] }
+      setItems([newItem, ...items])
+      setEditForm(newItem)
       setIsEditing(data.id)
     } catch (err: any) {
       console.error("Create Item Error:", err);
@@ -254,7 +256,50 @@ export default function AdminShopMenuPage() {
                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </div>
-                    <div className="col-span-6 md:col-span-1 flex flex-col items-start justify-center pt-5 gap-2">
+
+                    {/* Variants Editor */}
+                    <div className="col-span-12 md:col-span-8 bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Variants (Optional)</label>
+                        <button type="button" onClick={() => setEditForm({ ...editForm, variants: [...(editForm.variants || []), { name: '', price: 0, is_available: true }] })} className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                          <Plus size={12} /> Add Variant
+                        </button>
+                      </div>
+                      {(editForm.variants || []).length > 0 && (
+                        <div className="space-y-2 mb-2">
+                          {editForm.variants.map((v: any, i: number) => (
+                            <div key={i} className="flex gap-2">
+                              <input type="text" placeholder="e.g. 250ml" value={v.name} onChange={e => {
+                                const newV = [...editForm.variants]
+                                newV[i].name = e.target.value
+                                setEditForm({ ...editForm, variants: newV })
+                              }} className="flex-1 px-3 py-1.5 text-sm bg-slate-900 border border-slate-600 rounded text-white focus:outline-none focus:border-blue-500" />
+                              <input type="number" placeholder="Price" value={v.price || ''} onChange={e => {
+                                const newV = [...editForm.variants]
+                                newV[i].price = parseFloat(e.target.value) || 0
+                                setEditForm({ ...editForm, variants: newV })
+                              }} className="w-20 px-3 py-1.5 text-sm bg-slate-900 border border-slate-600 rounded text-white focus:outline-none focus:border-blue-500" />
+                              <button type="button" onClick={() => {
+                                const newV = [...editForm.variants]
+                                newV[i].is_available = !newV[i].is_available
+                                setEditForm({ ...editForm, variants: newV })
+                              }} className={`px-2 py-1.5 text-xs font-bold rounded border ${v.is_available === false ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-green-500/10 text-green-400 border-green-500/30'}`}>
+                                {v.is_available === false ? 'Out' : 'In Stock'}
+                              </button>
+                              <button type="button" onClick={() => {
+                                const newV = editForm.variants.filter((_: any, idx: number) => idx !== i)
+                                setEditForm({ ...editForm, variants: newV })
+                              }} className="p-1.5 text-red-400 hover:bg-red-500/20 rounded">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-slate-500">Variants override base price during checkout.</p>
+                    </div>
+
+                    <div className="col-span-12 md:col-span-4 flex flex-col justify-end gap-2 pb-0.5">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={editForm.is_available} onChange={e => setEditForm({...editForm, is_available: e.target.checked})} className="rounded text-green-500 focus:ring-green-500" />
                         <span className="text-xs font-bold">In Stock</span>
@@ -268,7 +313,7 @@ export default function AdminShopMenuPage() {
                         <span className="text-xs font-bold text-yellow-500 flex items-center gap-1">⭐ Featured</span>
                       </label>
                     </div>
-                    <div className="col-span-6 md:col-span-1 flex flex-col justify-end gap-2 pb-0.5">
+                    <div className="col-span-12 flex justify-end gap-2 mt-2 pt-4 border-t border-slate-700/50">
                       <button onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1">
                         <Save size={14} /> Save
                       </button>
@@ -310,7 +355,14 @@ export default function AdminShopMenuPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3 font-mono font-bold text-white text-base">
-                  ₹{item.price}
+                  {item.variants && item.variants.length > 0 ? (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 font-sans uppercase">Starts from</span>
+                      ₹{Math.min(...item.variants.map((v: any) => v.price))}
+                    </div>
+                  ) : (
+                    `₹${item.price}`
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <button 

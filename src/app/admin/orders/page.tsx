@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, MapPin, Phone, Mail, Clock, AlertCircle, CheckCircle2, History, X, ShieldAlert, MessageSquare } from 'lucide-react'
-import { getAllPlatformOrders, forceCancelOrder, getOrderAuditLogs } from '@/lib/supabase/queries/admin'
+import { Search, MapPin, Phone, Mail, Clock, AlertCircle, CheckCircle2, History, X, ShieldAlert, MessageSquare, ShoppingBag } from 'lucide-react'
+import { getAllPlatformOrders, forceCancelOrder, getOrderAuditLogs, adminDeleteOrderItem } from '@/lib/supabase/queries/admin'
 import { useAuthStore } from '@/store/authStore'
 import { formatCurrency } from '@/lib/utils'
 import OrderChat from '@/components/shared/OrderChat'
@@ -19,7 +19,7 @@ export default function AdminOrdersGodMode() {
   const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [isLogsLoading, setIsLogsLoading] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
-  const [rightTab, setRightTab] = useState<'audit' | 'chat'>('audit')
+  const [rightTab, setRightTab] = useState<'audit' | 'chat' | 'items'>('items')
 
   useEffect(() => {
     loadOrders()
@@ -39,7 +39,7 @@ export default function AdminOrdersGodMode() {
 
   const handleOpenOrder = async (order: any) => {
     setSelectedOrder(order)
-    setRightTab('audit')
+    setRightTab('items')
     setIsLogsLoading(true)
     try {
       const logs = await getOrderAuditLogs(order.id)
@@ -66,6 +66,28 @@ export default function AdminOrdersGodMode() {
       loadOrders() // Refresh list
     } catch (err) {
       toast.error('Failed to cancel order')
+    }
+  }
+
+  const handleDeleteItem = async (item: any) => {
+    if (!window.confirm(`Are you sure you want to completely remove ${item.quantity}x ${item.item_name} from this order? The total amount will be recalculated.`)) return
+    
+    try {
+      const itemTotalCost = item.unit_price * item.quantity
+      await adminDeleteOrderItem(selectedOrder.id, item.id, itemTotalCost, user!.id, item.item_name)
+      toast.success('Item deleted and order recalculated')
+      
+      // Optimistically update UI
+      const newItems = selectedOrder.order_items.filter((i: any) => i.id !== item.id)
+      const newTotal = Math.max(0, selectedOrder.total_amount - itemTotalCost)
+      setSelectedOrder({ ...selectedOrder, order_items: newItems, total_amount: newTotal })
+      
+      // Refresh logs
+      const logs = await getOrderAuditLogs(selectedOrder.id)
+      setAuditLogs(logs)
+      loadOrders() // Refresh background list
+    } catch (err) {
+      toast.error('Failed to delete item')
     }
   }
 
@@ -176,7 +198,6 @@ export default function AdminOrdersGodMode() {
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left Column: Details */}
               <div className="space-y-6">
-                
                 <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><MapPin size={16}/> Delivery Location</h3>
                   <p className="text-white font-bold">{selectedOrder.hostel_name}</p>
@@ -210,21 +231,62 @@ export default function AdminOrdersGodMode() {
                 <div className="bg-[#0F172A]/50 rounded-xl border border-slate-700/50 flex flex-col flex-1 overflow-hidden">
                   <div className="flex border-b border-slate-700/50">
                     <button 
+                      onClick={() => setRightTab('items')}
+                      className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider flex justify-center items-center gap-2 transition ${rightTab === 'items' ? 'bg-[#1E293B] text-slate-200' : 'text-slate-500 hover:bg-[#1E293B]/50'}`}
+                    >
+                      <ShoppingBag size={14} /> Items
+                    </button>
+                    <button 
                       onClick={() => setRightTab('audit')}
                       className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider flex justify-center items-center gap-2 transition ${rightTab === 'audit' ? 'bg-[#1E293B] text-slate-200' : 'text-slate-500 hover:bg-[#1E293B]/50'}`}
                     >
-                      <History size={14} /> Audit Logs
+                      <History size={14} /> Audit
                     </button>
                     <button 
                       onClick={() => setRightTab('chat')}
                       className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider flex justify-center items-center gap-2 transition ${rightTab === 'chat' ? 'bg-[#1E293B] text-slate-200' : 'text-slate-500 hover:bg-[#1E293B]/50'}`}
                     >
-                      <MessageSquare size={14} /> Support Chat
+                      <MessageSquare size={14} /> Chat
                     </button>
                   </div>
                   
                   <div className="flex-1 p-5 overflow-y-auto">
-                    {rightTab === 'audit' ? (
+                    {rightTab === 'items' ? (
+                      <div>
+                        {selectedOrder.order_items && selectedOrder.order_items.length > 0 ? (
+                          <div className="space-y-3">
+                            {selectedOrder.order_items.map((item: any) => (
+                              <div key={item.id} className="flex justify-between items-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-md">
+                                <div className="flex items-center gap-3">
+                                  <span className="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border border-blue-500/30">{item.quantity}x</span>
+                                  <div>
+                                    <p className="text-base font-bold text-slate-200">{item.item_name}</p>
+                                    <p className="text-xs font-mono text-slate-400 mt-0.5">{formatCurrency(item.unit_price * item.quantity)} total</p>
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={() => handleDeleteItem(item)}
+                                  className="text-red-400 hover:text-white p-2.5 bg-red-500/10 hover:bg-red-500 rounded-lg transition border border-red-500/20 shadow-sm"
+                                  title="Delete Item"
+                                >
+                                  <X size={18} />
+                                </button>
+                              </div>
+                            ))}
+                            <div className="mt-4 p-4 bg-[#1E293B] rounded-xl border border-slate-700 flex justify-between items-center">
+                              <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Current Order Total:</span>
+                              <span className="text-xl font-bold font-mono text-emerald-400">{formatCurrency(selectedOrder.total_amount)}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-10">
+                            <ShoppingBag size={40} className="text-slate-700 mx-auto mb-3" />
+                            <p className="text-slate-400 font-bold">No items found for this order.</p>
+                            <p className="text-slate-500 text-xs mt-1">(It might be an old test order or cached data)</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : rightTab === 'audit' ? (
                       isLogsLoading ? (
                         <p className="text-slate-500 text-sm text-center py-4">Loading logs...</p>
                       ) : auditLogs.length === 0 ? (

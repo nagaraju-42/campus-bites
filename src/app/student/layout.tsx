@@ -84,7 +84,53 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    // Live Cart Sync: Listen for global menu_items changes
+    const cartSyncChannel = supabase.channel('cart-sync')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'menu_items' }, (payload) => {
+        const updatedItem = payload.new
+        const { items, removeItem } = require('@/store/cartStore').useCartStore.getState()
+        
+        // Find if this item is in the cart
+        const cartItemsForThisMenu = items.filter((i: any) => i.id === updatedItem.id)
+        if (cartItemsForThisMenu.length === 0) return
+
+        let wasRemoved = false
+
+        // 1. If the item itself is globally disabled or archived
+        if (updatedItem.is_available === false || updatedItem.is_archived === true) {
+          cartItemsForThisMenu.forEach((i: any) => {
+            removeItem(i.id, i.variantName)
+            wasRemoved = true
+          })
+        } 
+        // 2. Or if a specific variant in the cart is now disabled
+        else if (updatedItem.variants && Array.isArray(updatedItem.variants)) {
+          cartItemsForThisMenu.forEach((i: any) => {
+            if (i.variantName) {
+              const variantObj = updatedItem.variants.find((v: any) => v.name === i.variantName)
+              if (variantObj && variantObj.is_available === false) {
+                removeItem(i.id, i.variantName)
+                wasRemoved = true
+              }
+            }
+          })
+        }
+
+        if (wasRemoved) {
+          import('react-hot-toast').then(({ default: toast }) => {
+            toast.error(`Oops! "${updatedItem.name}" just went out of stock and was removed from your cart.`, {
+              icon: '🛒',
+              duration: 5000,
+            })
+          })
+        }
+      })
+      .subscribe()
+
+    return () => { 
+      supabase.removeChannel(channel)
+      supabase.removeChannel(cartSyncChannel)
+    }
   }, [router, pathname, setUser, setStudentProfile, setLoading])
 
   if (isLoading && !user) {
