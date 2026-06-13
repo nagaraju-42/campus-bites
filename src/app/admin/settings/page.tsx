@@ -12,12 +12,14 @@ type AppSettings = {
   id?: string
   rider_mode: boolean
   dine_in_enabled: boolean
+  maintenance_mode?: boolean
 }
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<AppSettings>({
     rider_mode: true,
-    dine_in_enabled: false
+    dine_in_enabled: false,
+    maintenance_mode: false
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -101,6 +103,50 @@ export default function AdminSettingsPage() {
     }
   }
 
+  const toggleMaintenanceMode = async () => {
+    const newValue = !settings.maintenance_mode
+    if (newValue === true) {
+      // Validate no active orders
+      try {
+        const supabase = createClient()
+        const { data: activeOrders, error } = await supabase
+          .from('orders')
+          .select('id')
+          .not('status', 'in', '("delivered","cancelled")')
+          .limit(1)
+        
+        if (error) throw error
+        if (activeOrders && activeOrders.length > 0) {
+          toast.error("Cannot enable maintenance mode. There are active orders in the system.")
+          return
+        }
+      } catch (err) {
+        toast.error("Failed to check active orders.")
+        return
+      }
+    }
+
+    if (!window.confirm(`Are you sure you want to turn ${newValue ? 'ON' : 'OFF'} Maintenance Mode? ${newValue ? 'This will instantly lock everyone out.' : ''}`)) return
+
+    setIsSaving(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ maintenance_mode: newValue })
+        .not('rider_mode', 'is', null) // target the single row
+
+      if (error) throw error
+
+      setSettings(s => ({ ...s, maintenance_mode: newValue }))
+      toast.success(`Maintenance mode turned ${newValue ? 'ON' : 'OFF'}!`)
+    } catch (err) {
+      toast.error('Failed to update maintenance mode')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (isLoading) return <div className="p-10 font-bold text-white">Loading Settings...</div>
 
   return (
@@ -120,6 +166,35 @@ export default function AdminSettingsPage() {
         >
           <Save size={18} /> {isSaving ? 'Saving...' : 'Save Changes'}
         </button>
+      </div>
+
+      {/* Emergency Settings */}
+      <div className="bg-[#500724] border border-red-900 rounded-3xl p-6 shadow-xl mb-6">
+        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <AlertCircle size={24} className="text-red-500" />
+          Emergency Operations
+        </h2>
+        
+        <div className="flex items-center justify-between p-5 bg-black/40 rounded-2xl border border-red-900/50">
+          <div>
+            <h3 className="font-bold text-lg text-white">Global Maintenance Mode</h3>
+            <p className="text-sm text-red-200 mt-1 max-w-lg">
+              When ON, the entire application will be instantly shut down for all students, shops, and riders. They will only see a maintenance screen. <strong>Can only be turned on if there are ZERO active orders.</strong>
+            </p>
+          </div>
+          <button 
+            onClick={toggleMaintenanceMode}
+            className={`relative w-16 h-8 rounded-full transition-colors duration-300 ease-in-out shrink-0 ${
+              settings.maintenance_mode ? 'bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.7)]' : 'bg-slate-700'
+            }`}
+          >
+            <div 
+              className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+                settings.maintenance_mode ? 'translate-x-8' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-6 shadow-xl mb-6">

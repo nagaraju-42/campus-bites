@@ -16,6 +16,7 @@ interface ContactMessage {
   issue: string
   status: 'unread' | 'resolved'
   created_at: string
+  is_emergency?: boolean
 }
 
 export default function AdminSupportPage() {
@@ -53,19 +54,74 @@ export default function AdminSupportPage() {
       )
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    const channel2Name = `admin-support-emergency-${Math.random()}`
+    const channel2 = supabase
+      .channel(channel2Name)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'support_tickets' },
+        (payload) => {
+          const t = payload.new as any
+          const mapped: ContactMessage = {
+            id: t.id,
+            user_id: null,
+            name: 'Emergency Ticket',
+            email: t.email,
+            phone: 'N/A',
+            role: 'MAINTENANCE',
+            issue: t.message,
+            status: 'unread',
+            created_at: t.created_at,
+            is_emergency: true
+          }
+          setMessages((prev) => [mapped, ...prev])
+          toast('New Emergency Ticket!', { icon: '🚨' })
+          
+          try {
+            const audio = new Audio('/sounds/bell-alarm.mp3')
+            audio.volume = 0.5
+            audio.play().catch(() => {})
+          } catch (e) {}
+        }
+      )
+      .subscribe()
+
+    return () => { 
+      supabase.removeChannel(channel)
+      supabase.removeChannel(channel2) 
+    }
   }, [])
 
   async function fetchMessages() {
     try {
       const supabase = createClient()
-      const { data, error } = await supabase
-        .from('contact_messages')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const [res1, res2] = await Promise.all([
+        supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
+        supabase.from('support_tickets').select('*').order('created_at', { ascending: false })
+      ])
       
-      if (error) throw error
-      setMessages(data || [])
+      if (res1.error) throw res1.error
+      if (res2.error) throw res2.error
+
+      const normalMessages = (res1.data || []) as ContactMessage[]
+      const emergencyMessages = (res2.data || []).map((t: any) => ({
+        id: t.id,
+        user_id: null,
+        name: 'Emergency Ticket',
+        email: t.email,
+        phone: 'N/A',
+        role: 'MAINTENANCE',
+        issue: t.message,
+        status: t.status === 'open' ? 'unread' : 'resolved',
+        created_at: t.created_at,
+        is_emergency: true
+      })) as ContactMessage[]
+
+      const combined = [...normalMessages, ...emergencyMessages].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+
+      setMessages(combined)
     } catch (err) {
       toast.error('Failed to load support messages')
     } finally {
@@ -73,15 +129,22 @@ export default function AdminSupportPage() {
     }
   }
 
-  const markResolved = async (id: string) => {
+  const markResolved = async (id: string, is_emergency?: boolean) => {
     try {
       const supabase = createClient()
-      const { error } = await supabase
-        .from('contact_messages')
-        .update({ status: 'resolved' })
-        .eq('id', id)
-      
-      if (error) throw error
+      if (is_emergency) {
+        const { error } = await supabase
+          .from('support_tickets')
+          .update({ status: 'resolved' })
+          .eq('id', id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('contact_messages')
+          .update({ status: 'resolved' })
+          .eq('id', id)
+        if (error) throw error
+      }
       
       setMessages(prev => prev.map(m => m.id === id ? { ...m, status: 'resolved' } : m))
       toast.success('Message marked as resolved')
@@ -126,9 +189,9 @@ export default function AdminSupportPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-2xl p-5 border border-red-100 shadow-sm relative overflow-hidden"
+                  className={`bg-white rounded-2xl p-5 border shadow-sm relative overflow-hidden ${msg.is_emergency ? 'border-orange-500 shadow-orange-100' : 'border-red-100'}`}
                 >
-                  <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                  <div className={`absolute top-0 left-0 w-1 h-full ${msg.is_emergency ? 'bg-orange-500' : 'bg-red-500'}`}></div>
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-bold text-gray-900">{msg.name}</h3>
@@ -152,7 +215,7 @@ export default function AdminSupportPage() {
                         <Mail size={12} /> {msg.email}
                       </a>
                       <button 
-                        onClick={() => markResolved(msg.id)}
+                        onClick={() => markResolved(msg.id, msg.is_emergency)}
                         className="bg-[#16A34A] text-white font-bold px-4 py-1.5 rounded-lg text-sm hover:bg-green-600 transition shadow-sm"
                       >
                         Mark Resolved

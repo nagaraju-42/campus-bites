@@ -20,8 +20,14 @@ export default function OnboardingPage() {
           .select('role')
           .eq('id', session.user.id)
           .single()
-        if (profile) router.replace(getRoleRedirect(profile.role))
+        if (profile) {
+          router.replace(getRoleRedirect(profile.role))
+          return
+        }
       }
+      
+      // If no session or profile, default redirect to student home
+      router.replace('/student/home')
     }
     checkSession()
   }, [router])

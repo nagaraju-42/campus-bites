@@ -18,11 +18,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       const { data: { session } } = await supabase.auth.getSession()
 
       const isLoginRoute = pathname.includes('/login')
+      const isRestrictedRoute = pathname.includes('/cart') || pathname.includes('/checkout') || pathname.includes('/orders') || pathname.includes('/profile') || pathname.includes('/track')
 
       if (!session) {
         clearAuth()
         setLoading(false)
-        if (!isLoginRoute) {
+        if (isRestrictedRoute) {
           router.replace('/student/login')
         }
         return
@@ -35,8 +36,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         .single()
 
       if (!profile || profile.role !== 'student') {
+        clearAuth()
         setLoading(false)
-        if (!isLoginRoute) {
+        if (isRestrictedRoute) {
           router.replace('/student/login')
         }
         return
@@ -53,7 +55,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       setLoading(false)
 
       if (!profile.phone || !studentProfile?.hostel_name) {
-        router.replace('/complete-profile')
+        if (isRestrictedRoute) {
+          router.replace('/complete-profile')
+        }
         return
       }
       
