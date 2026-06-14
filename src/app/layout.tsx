@@ -1,18 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import MaintenanceGuard from "@/components/shared/MaintenanceGuard";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Removed Geist font imports
 
 export const metadata: Metadata = {
   title: "DineNDeliver",
@@ -27,7 +19,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="font-sans h-full antialiased"
     >
       <body className="min-h-full flex flex-col">
         <MaintenanceGuard>
