@@ -93,7 +93,7 @@ export async function updateShopApproval(shopId: string, is_approved: boolean) {
   if (error) throw new Error(error.message)
 }
 
-export async function updateShopDetails(shopId: string, updates: { name?: string, address?: string, description?: string, cover_image?: string, phone?: string, logo_url?: string, min_order_amount?: number }) {
+export async function updateShopDetails(shopId: string, updates: any) {
   const supabase = createClient()
   const { error } = await supabase.from('shops').update(updates).eq('id', shopId)
   if (error) throw new Error(error.message)

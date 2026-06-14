@@ -67,6 +67,9 @@ export interface Shop {
   closing_time: string | null
   dine_in_enabled?: boolean | null
   min_order_amount?: number
+  delivery_fee?: number
+  sort_order?: number
+  is_verified?: boolean
   created_at: string
   // Joined fields
   categories?: string[]
