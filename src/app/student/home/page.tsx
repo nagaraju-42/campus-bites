@@ -192,7 +192,7 @@ export default function StudentHomePage() {
             </SheetTrigger>
             <SheetContent side="left" className="w-[80%] max-w-[300px] sm:max-w-[300px] p-0 bg-gray-50">
               <div className="bg-[#DC2626] p-6 pb-8 rounded-br-3xl shadow-inner">
-                <h2 className="text-2xl font-display font-bold text-white mt-4">TapNosh</h2>
+                <h2 className="text-2xl font-display font-bold text-white mt-4">DineNDeliver</h2>
                 <p className="text-red-100 text-sm font-medium">Hello, {user?.full_name || 'Student'}!</p>
               </div>
               <div className="flex flex-col gap-2 p-6 mt-2">

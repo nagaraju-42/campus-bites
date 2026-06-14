@@ -1,7 +1,7 @@
 {
-  "name": "TapNosh Shop Portal",
+  "name": "DineNDeliver Shop Portal",
   "short_name": "Shop Portal",
-  "description": "Kitchen Display System and Shop Dashboard for TapNosh",
+  "description": "Kitchen Display System and Shop Dashboard for DineNDeliver",
   "start_url": "/shop/login",
   "scope": "/shop/",
   "display": "standalone",

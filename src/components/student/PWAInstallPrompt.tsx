@@ -30,26 +30,29 @@ export default function PWAInstallPrompt() {
 
     const searchParams = new URLSearchParams(window.location.search)
     const forcePrompt = searchParams.get('install_prompt') === 'true'
+    const hasInstalled = localStorage.getItem('pwa_installed_success') === 'true'
+    const hasDismissed = localStorage.getItem('pwa_prompt_dismissed') === 'true'
+
+    if (hasInstalled) return // Never show if successfully installed via our button
 
     if (forcePrompt && !isStandalone) {
       setShowPrompt(true)
-    } else if (isIOSDevice && !isStandalone) {
-      // For iOS, there is no beforeinstallprompt event, we just show it if not standalone
-      const hasDismissed = localStorage.getItem('pwa_prompt_dismissed')
-      if (!hasDismissed) {
-        setShowPrompt(true)
-      }
+    } else if (isIOSDevice && !isStandalone && !hasDismissed) {
+      setShowPrompt(true)
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       
+      const isInstalled = localStorage.getItem('pwa_installed_success') === 'true'
+      if (isInstalled) return
+
       if (forcePrompt) {
         setShowPrompt(true)
       } else {
-        const hasDismissed = localStorage.getItem('pwa_prompt_dismissed')
-        if (!hasDismissed) {
+        const isDismissed = localStorage.getItem('pwa_prompt_dismissed') === 'true'
+        if (!isDismissed) {
           setShowPrompt(true)
         }
       }
@@ -70,6 +73,7 @@ export default function PWAInstallPrompt() {
     
     if (outcome === 'accepted') {
       setShowPrompt(false)
+      localStorage.setItem('pwa_installed_success', 'true')
     }
     setDeferredPrompt(null)
   }
@@ -103,7 +107,7 @@ export default function PWAInstallPrompt() {
               <span className="text-2xl">🍔</span>
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-lg">Add TapNosh to Home</h3>
+              <h3 className="font-bold text-gray-900 text-lg">Add DineNDeliver to Home</h3>
               <p className="text-sm text-gray-500 font-medium leading-tight">Order food faster and track your deliveries instantly!</p>
             </div>
           </div>

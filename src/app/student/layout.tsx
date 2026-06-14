@@ -160,7 +160,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <div className="min-h-screen flex items-center justify-center bg-purple-50">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-purple-600 font-medium text-sm">Loading TapNosh...</p>
+          <p className="text-purple-600 font-medium text-sm">Loading DineNDeliver...</p>
         </div>
       </div>
     )

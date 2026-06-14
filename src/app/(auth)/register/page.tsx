@@ -116,7 +116,7 @@ export default function RegisterPage() {
         formData.room_number || 'N/A'
       )
 
-      toast.success('Account created! Welcome to TapNosh 🎉')
+      toast.success('Account created! Welcome to DineNDeliver 🎉')
       router.replace('/student/home')
     } catch (err: any) {
       toast.error(err.message || 'Registration failed. Try again.')

@@ -34,7 +34,7 @@ export default function AdminSidebar() {
     <div className="h-full flex flex-col pt-6 pb-4 bg-[#0F172A]">
       <div className="px-6 mb-8">
         <h1 className="text-2xl font-display font-bold text-white tracking-wide">
-          TapNosh<span className="text-[#F97316]">Admin</span>
+          DineNDeliver<span className="text-[#F97316]">Admin</span>
         </h1>
         <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-widest">God Mode</p>
       </div>

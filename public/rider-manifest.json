@@ -1,7 +1,7 @@
 {
-  "name": "TapNosh Rider App",
+  "name": "DineNDeliver Rider App",
   "short_name": "Rider App",
-  "description": "Delivery App for TapNosh Riders",
+  "description": "Delivery App for DineNDeliver Riders",
   "start_url": "/rider/login",
   "scope": "/rider/",
   "display": "standalone",

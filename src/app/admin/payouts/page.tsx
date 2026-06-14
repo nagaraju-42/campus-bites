@@ -204,7 +204,7 @@ export default function AdminPayoutsPage() {
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-sm font-bold text-slate-300">Platform Fees Deducted</p>
-                      <p className="text-[10px] text-slate-500">TapNosh commission</p>
+                      <p className="text-[10px] text-slate-500">DineNDeliver commission</p>
                     </div>
                     <p className="text-sm font-bold text-purple-400">{formatCurrency(selectedShop.platformFeesDeducted)}</p>
                   </div>

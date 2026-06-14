@@ -13,7 +13,7 @@ export default function WhatsAppQRShare({ shopId }: { shopId: string }) {
     
     // You can replace this with your actual production URL when deployed
     const url = `${window.location.origin}/student/menu/${shopId}`
-    const message = `🍔 TapNosh - Order food instantly!
+    const message = `🍔 DineNDeliver - Order food instantly!
 
 👉 Tap to order: ${url}
 

@@ -137,7 +137,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-gray-600 text-sm pt-4 font-medium">
-          New to TapNosh?{' '}
+          New to DineNDeliver?{' '}
           <Link href="/register" className="text-[#CA8A04] font-bold hover:underline">Create Account</Link>
         </p>
 

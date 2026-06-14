@@ -178,7 +178,7 @@ export default function StudentProfilePage() {
         </button>
 
         <p className="text-center text-xs text-gray-400 font-medium">
-          TapNosh v1.0.0
+          DineNDeliver v1.0.0
         </p>
       </div>
 

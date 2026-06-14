@@ -134,7 +134,7 @@ export default function MaintenanceGuard({ children }: { children: React.ReactNo
           </div>
           <h1 className="text-3xl font-bold text-white mb-3">Under Maintenance</h1>
           <p className="text-slate-400 mb-8 leading-relaxed">
-            TapNosh is currently undergoing scheduled maintenance to improve your experience. We will be back online shortly. Please do not refresh.
+            DineNDeliver is currently undergoing scheduled maintenance to improve your experience. We will be back online shortly. Please do not refresh.
           </p>
 
           <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700/50">

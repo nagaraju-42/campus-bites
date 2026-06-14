@@ -23,7 +23,7 @@ const serwist = new Serwist({
 self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json();
-    const title = data.title || "New TapNosh Update";
+    const title = data.title || "New DineNDeliver Update";
     const options: any = {
       body: data.body || "You have a new update.",
       icon: "/icons/icon-192x192.png",

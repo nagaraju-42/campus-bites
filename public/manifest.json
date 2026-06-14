@@ -1,6 +1,6 @@
 {
-  "name": "TapNosh",
-  "short_name": "TapNosh",
+  "name": "DineNDeliver",
+  "short_name": "DineNDeliver",
   "description": "Food delivery for campus students",
   "start_url": "/student/home",
   "scope": "/",
