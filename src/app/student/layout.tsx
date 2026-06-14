@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 import StudentBottomNav from '@/components/student/StudentBottomNav'
+import PWAInstallPrompt from '@/components/student/PWAInstallPrompt'
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -13,6 +14,23 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const { user, setUser, setStudentProfile, setLoading, isLoading, clearAuth } = useAuthStore()
 
   useEffect(() => {
+    // Inject PWA manifest link into document head
+    const existing = document.querySelector('link[rel="manifest"]')
+    if (existing) existing.remove()
+    
+    const link = document.createElement('link')
+    link.rel = 'manifest'
+    link.href = '/manifest.json'
+    document.head.appendChild(link)
+
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.name = 'theme-color'
+      document.head.appendChild(meta)
+    }
+    meta.setAttribute('content', '#EAB308')
+
     async function checkAuth() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -153,6 +171,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   return (
     <div className="relative min-h-screen bg-gray-50">
       <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+      <PWAInstallPrompt />
       {children}
       {!hideNav && <StudentBottomNav />}
     </div>

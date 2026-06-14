@@ -14,6 +14,9 @@ export default function OnboardingPage() {
     async function checkSession() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
+      
+      const searchSuffix = typeof window !== 'undefined' ? window.location.search : ''
+
       if (session) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -21,13 +24,13 @@ export default function OnboardingPage() {
           .eq('id', session.user.id)
           .single()
         if (profile) {
-          router.replace(getRoleRedirect(profile.role))
+          router.replace(`${getRoleRedirect(profile.role)}${searchSuffix}`)
           return
         }
       }
       
       // If no session or profile, default redirect to student home
-      router.replace('/student/home')
+      router.replace(`/student/home${searchSuffix}`)
     }
     checkSession()
   }, [router])
