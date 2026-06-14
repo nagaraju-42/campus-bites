@@ -2,43 +2,61 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, ClipboardList, ShoppingCart, User } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
+import {
+  NavHomeIcon,
+  NavSearchIcon,
+  NavOrdersIcon,
+  NavOffersIcon,
+  NavProfileIcon,
+} from '../icons/CustomIcons'
 
 const NAV_ITEMS = [
-  { href: '/student/home',   label: 'Home',   Icon: Home, activeColor: 'text-[#EAB308]' },
-  { href: '/student/orders', label: 'Orders', Icon: ClipboardList, activeColor: 'text-[#16A34A]' },
-  { href: '/student/cart',   label: 'Cart',   Icon: ShoppingCart, activeColor: 'text-[#6D28D9]' },
-  { href: '/student/profile',label: 'Profile',Icon: User, activeColor: 'text-gray-900' },
+  { href: '/student/home',    label: 'Home',    Key: 'home' },
+  { href: '/student/orders',  label: 'Orders',  Key: 'orders' },
+  { href: '/student/cart',    label: 'Cart',    Key: 'cart',  showBadge: true },
+  { href: '/student/offers',  label: 'Offers',  Key: 'offers' },
+  { href: '/student/profile', label: 'Profile', Key: 'profile' },
 ]
+
+function NavIcon({ navKey, active }: { navKey: string; active: boolean }) {
+  switch (navKey) {
+    case 'home':    return <NavHomeIcon active={active} className="w-6 h-6" />
+    case 'orders':  return <NavOrdersIcon active={active} className="w-6 h-6" />
+    case 'cart':    return <NavOrdersIcon active={active} className="w-6 h-6" />
+    case 'offers':  return <NavOffersIcon active={active} className="w-6 h-6" />
+    case 'profile': return <NavProfileIcon active={active} className="w-6 h-6" />
+    default:        return <NavSearchIcon active={active} className="w-6 h-6" />
+  }
+}
 
 export default function StudentBottomNav() {
   const pathname = usePathname()
   const totalItems = useCartStore((s) => s.getTotalItems())
 
   return (
-    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] bg-white/80 backdrop-blur-2xl border border-white/40 shadow-2xl rounded-3xl z-50 overflow-hidden">
-      <div className="flex items-center justify-around h-16 px-4">
-        {NAV_ITEMS.map(({ href, label, Icon, activeColor }) => {
+    <nav className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white border-t border-gray-100 z-50">
+      <div className="flex items-center justify-around h-[60px] px-1">
+        {NAV_ITEMS.map(({ href, label, Key, showBadge }) => {
           const isActive = pathname.startsWith(href)
-          const isCart = label === 'Cart'
+          const cartCount = totalItems
+
           return (
-            <Link key={href} href={href} className="flex flex-col items-center gap-1 flex-1 py-1">
-              <div className="relative">
-                <div className={`p-2 rounded-2xl transition-all duration-300 ${isActive ? 'bg-gray-100/50 scale-110' : 'hover:bg-gray-50'}`}>
-                  <Icon
-                    size={22}
-                    className={isActive ? activeColor : 'text-gray-400 transition-colors'}
-                    strokeWidth={isActive ? 2.5 : 2}
-                  />
-                </div>
-                {isCart && totalItems > 0 && (
-                  <span className="absolute 1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold shadow-lg border-2 border-white/80">
-                    {totalItems > 9 ? '9+' : totalItems}
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center justify-center gap-[3px] flex-1 py-2 min-w-0 relative"
+            >
+              <div className={`relative p-1.5 rounded-full transition-all duration-200 ${isActive ? 'bg-[#FFF0E6]' : ''}`}>
+                <NavIcon navKey={Key} active={isActive} />
+                {/* Cart badge */}
+                {showBadge && cartCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] bg-[#EA580C] rounded-full text-white text-[8px] flex items-center justify-center font-bold px-0.5 leading-none">
+                    {cartCount > 9 ? '9+' : cartCount}
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] font-bold mt-0.5 transition-all duration-300 ${isActive ? activeColor : 'text-gray-400'}`}>
+              <span className={`text-[10px] font-semibold leading-none transition-colors ${isActive ? 'text-[#EA580C]' : 'text-gray-400'}`}>
                 {label}
               </span>
             </Link>
