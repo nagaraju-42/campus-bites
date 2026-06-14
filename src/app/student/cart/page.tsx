@@ -131,7 +131,7 @@ export default function CartPage() {
               >
                 <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                   {item.image_url ? (
-                    <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="64px" />
+                    <Image src={item.image_url} alt={item.name} fill className="object-cover img-cinematic" sizes="64px" />
                   ) : (
                     <span className="text-2xl">🍲</span>
                   )}
@@ -194,7 +194,7 @@ export default function CartPage() {
                 <div>
                   <div className="w-full aspect-square bg-gray-50 rounded-xl flex items-center justify-center mb-2 relative overflow-hidden">
                     {item.image_url ? (
-                      <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="140px" />
+                      <Image src={item.image_url} alt={item.name} fill className="object-cover img-cinematic" sizes="140px" />
                     ) : (
                       <span className="text-4xl">🍰</span>
                     )}
