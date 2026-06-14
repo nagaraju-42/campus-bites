@@ -100,7 +100,7 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop;
               <h3 className="font-extrabold text-gray-900 text-[16px] leading-tight truncate">
                 {shop.name}
               </h3>
-              {shop.is_verified && <VerifiedBadgeIcon className="shrink-0 w-[18px] h-[18px]" />}
+              {shop.is_verified && <VerifiedBadgeIcon className="shrink-0 w-[20px] h-[20px]" />}
             </div>
             <button
               onClick={handleFavoriteClick}

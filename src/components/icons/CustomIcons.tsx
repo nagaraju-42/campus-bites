@@ -20,11 +20,29 @@ export const LogoIcon = ({ className = '' }: { className?: string }) => (
   </svg>
 )
 
-/** Orange verified badge – orange circle with white checkmark */
+import Image from 'next/image';
+
+/** Orange verified badge – 12 point rosette matching Iconpacks */
 export const VerifiedBadgeIcon = ({ className = '' }: { className?: string }) => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
-    <circle cx="9" cy="9" r="9" fill="#EA580C"/>
-    <path d="M5.5 9L7.8 11.5L12.5 6.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+    {/* Flawless, perfectly circular 8-point wavy rosette */}
+    <g fill="#EA580C">
+      <circle cx="12" cy="12" r="8.8"/>
+      <circle cx="21" cy="12" r="2.8"/>
+      <circle cx="18.36" cy="18.36" r="2.8"/>
+      <circle cx="12" cy="21" r="2.8"/>
+      <circle cx="5.64" cy="18.36" r="2.8"/>
+      <circle cx="3" cy="12" r="2.8"/>
+      <circle cx="5.64" cy="5.64" r="2.8"/>
+      <circle cx="12" cy="3" r="2.8"/>
+      <circle cx="18.36" cy="5.64" r="2.8"/>
+    </g>
+    
+    {/* 3D Drop Shadow perfectly angled */}
+    <path d="M9.5 16.5L18 8L20.5 10.5L9.5 21.5Z" fill="#C2410C" opacity="0.65"/>
+    
+    {/* Perfectly balanced, thick bold checkmark */}
+    <path d="M9.5 16.5L4.5 11.5L7 9L9.5 11.5L15.5 5.5L18 8L9.5 16.5Z" fill="white"/>
   </svg>
 )
 
