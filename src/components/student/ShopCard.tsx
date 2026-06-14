@@ -36,8 +36,8 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop,
   return (
     <div
       onClick={handleCardClick}
-      className={`bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 transition-all ${
-        isAccessible ? 'hover:shadow-md cursor-pointer active:scale-[0.98]' : 'opacity-70 grayscale cursor-not-allowed'
+      className={`group bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 transition-all duration-300 ${
+        isAccessible ? 'hover:shadow-xl hover:-translate-y-1 hover:border-orange-100 cursor-pointer active:scale-[0.98]' : 'opacity-70 grayscale cursor-not-allowed'
       }`}
     >
       {/* 16:9 Cover Image Area */}
@@ -47,7 +47,7 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop,
             src={shop.cover_image} 
             alt={shop.name} 
             fill 
-            className="object-cover" 
+            className="object-cover group-hover:scale-105 transition-transform duration-500" 
             sizes="(max-width: 430px) 100vw, 430px"
           />
         ) : (
@@ -62,20 +62,20 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop,
         {/* Top Badges */}
         <div className="absolute top-3 right-3 flex items-center gap-2">
           {!isAccessible && (
-            <span className="bg-red-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
+            <span className="bg-red-500/90 backdrop-blur-md shadow-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
               Closed
             </span>
           )}
           {shop.is_open && isAccessible && (
-            <span className="bg-green-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
+            <span className="bg-green-500/90 backdrop-blur-md shadow-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
               Open
             </span>
           )}
         </div>
 
         {/* Floating Time/Distance Badge */}
-        <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-gray-900 text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5">
-          <Clock size={12} className="text-gray-600" />
+        <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-md text-gray-900 text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-md flex items-center gap-1.5">
+          <Clock size={12} className="text-orange-500" />
           <span>30 mins</span>
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop,
       {/* Info Section */}
       <div className="p-4 relative mt-1">
         <div className="flex items-start gap-3">
-          <div className="relative w-14 h-14 rounded-xl bg-white shadow-md border-2 border-white overflow-hidden flex-shrink-0 -mt-10 z-10">
+          <div className="relative w-16 h-16 rounded-2xl bg-white shadow-[0_4px_15px_rgba(0,0,0,0.1)] border-[3px] border-white overflow-hidden flex-shrink-0 -mt-8 z-10 transition-transform duration-300 group-hover:-translate-y-1">
             {shop.logo_url ? (
               <Image src={shop.logo_url} alt={`${shop.name} logo`} fill className="object-cover" sizes="56px" />
             ) : (
@@ -109,14 +109,14 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop,
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-dashed border-gray-100">
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
           {(shop.min_order_amount ?? 0) > 0 && (
-            <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
+            <span className="bg-orange-50 text-orange-600 border border-orange-100 text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wider shadow-sm">
               ₹{shop.min_order_amount} min order
             </span>
           )}
           {orderMode === 'dine_in' && (
-            <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
+            <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wider shadow-sm">
               Dine-In Available
             </span>
           )}

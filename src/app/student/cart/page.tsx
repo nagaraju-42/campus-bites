@@ -70,7 +70,7 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col max-w-[430px] mx-auto relative overflow-hidden">
         {/* Dynamic Header */}
-        <div className="bg-[#DC2626] px-5 pt-12 pb-6 rounded-b-3xl relative">
+        <div className="bg-orange-500 px-5 pt-12 pb-6 rounded-b-3xl relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
           <div className="flex items-center gap-3 text-white relative z-10">
             <button onClick={() => router.back()} className="p-1 bg-black/10 rounded-full"><ArrowLeft size={22} /></button>
@@ -80,11 +80,11 @@ export default function CartPage() {
 
         {/* Empty State Dashboard */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 -mt-10">
-          <div className="bg-white p-8 rounded-3xl shadow-xl shadow-red-900/5 border border-red-50 flex flex-col items-center text-center w-full relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-50 rounded-full blur-2xl"></div>
+          <div className="bg-white p-8 rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-50 flex flex-col items-center text-center w-full relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-50 rounded-full blur-2xl"></div>
             <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-orange-50 rounded-full blur-2xl"></div>
             
-            <div className="w-24 h-24 bg-gradient-to-tr from-red-100 to-orange-50 rounded-full flex items-center justify-center mb-6 shadow-inner relative z-10">
+            <div className="w-24 h-24 bg-gradient-to-tr from-orange-100 to-amber-50 rounded-full flex items-center justify-center mb-6 shadow-inner relative z-10">
               <span className="text-5xl drop-shadow-md">🛒</span>
             </div>
             
@@ -95,7 +95,7 @@ export default function CartPage() {
             
             <button
               onClick={() => router.push('/student/home')}
-              className="w-full bg-[#DC2626] text-white py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-red-200 transition-all active:scale-95 relative z-10"
+              className="w-full bg-orange-500 text-white py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-orange-200 transition-all active:scale-95 relative z-10"
             >
               Browse Shops
             </button>
@@ -108,7 +108,7 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-32 max-w-[430px] mx-auto">
       {/* Header */}
-      <div className="bg-[#DC2626] px-5 pt-12 pb-6 rounded-b-3xl">
+      <div className="bg-orange-500 px-5 pt-12 pb-6 rounded-b-3xl">
         <div className="flex items-center gap-3 text-white">
           <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
           <h1 className="text-xl font-display font-bold flex-1">My Cart</h1>
@@ -229,7 +229,7 @@ export default function CartPage() {
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[390px] z-40">
         <button
           onClick={handleCheckout}
-          className="w-full bg-[#DC2626] text-white py-4 rounded-2xl font-bold flex items-center justify-center shadow-xl shadow-red-200 hover:bg-red-700 transition active:scale-95"
+          className="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center shadow-xl shadow-orange-200 hover:bg-orange-600 transition active:scale-95"
         >
           Proceed to Checkout
         </button>

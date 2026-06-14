@@ -182,18 +182,18 @@ export default function StudentHomePage() {
   }, [searchQuery, activeCategory, shops])
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 max-w-[430px] mx-auto">
+    <div className="min-h-screen bg-orange-50/30 pb-20 max-w-[430px] mx-auto">
       {/* Header */}
-      <div className="bg-[#DC2626] px-5 pt-12 pb-8 rounded-b-3xl shadow-md">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-orange-500 px-5 pt-12 pb-8 rounded-b-3xl shadow-sm">
+        <div className="flex items-start justify-between mb-6">
           <Sheet>
             <SheetTrigger>
-              <div className="text-white hover:bg-black/10 p-2 rounded-full transition cursor-pointer"><Menu size={24} /></div>
+              <div className="text-white hover:bg-black/10 p-2 mt-1 rounded-full transition cursor-pointer"><Menu size={24} /></div>
             </SheetTrigger>
             <SheetContent side="left" className="w-[80%] max-w-[300px] sm:max-w-[300px] p-0 bg-gray-50">
-              <div className="bg-[#DC2626] p-6 pb-8 rounded-br-3xl shadow-inner">
+              <div className="bg-orange-500 p-6 pb-8 rounded-br-3xl shadow-inner">
                 <h2 className="text-2xl font-display font-bold text-white mt-4">DineNDeliver</h2>
-                <p className="text-red-100 text-sm font-medium">Hello, {user?.full_name || 'Student'}!</p>
+                <p className="text-orange-100 text-sm font-medium">Hello, {user?.full_name || 'Student'}!</p>
               </div>
               <div className="flex flex-col gap-2 p-6 mt-2">
                 <SheetClose render={<Link href="/student/profile" className="flex items-center gap-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-3 rounded-2xl transition" />}>
@@ -217,11 +217,11 @@ export default function StudentHomePage() {
               <MapPin size={16} />
               <span className="truncate max-w-[200px]">{studentProfile?.hostel_name || 'Select Location'}</span>
             </div>
-            <p className="text-red-100 text-xs font-medium mt-0.5">Deliver to this address ▼</p>
+            <p className="text-orange-100 text-xs font-medium mt-0.5">Deliver to this address ▼</p>
           </div>
-          <button onClick={() => setIsNotificationsOpen(true)} className="relative text-white hover:bg-black/10 p-2 rounded-full transition">
+          <button onClick={() => setIsNotificationsOpen(true)} className="relative text-white hover:bg-black/10 p-2 mt-1 rounded-full transition">
             <Bell size={24} />
-            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-[#DC2626]"></span>
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-orange-500"></span>
           </button>
         </div>
 
@@ -230,13 +230,13 @@ export default function StudentHomePage() {
           <div className="bg-black/20 p-1 rounded-xl flex items-center mb-5 backdrop-blur-sm">
             <button
               onClick={() => setOrderMode('delivery')}
-              className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${orderMode === 'delivery' ? 'bg-white text-[#DC2626] shadow-sm' : 'text-white/80 hover:text-white'}`}
+              className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${orderMode === 'delivery' ? 'bg-white text-orange-600 shadow-sm' : 'text-white/80 hover:text-white'}`}
             >
               🛵 Delivery
             </button>
             <button
               onClick={() => setOrderMode('dine_in')}
-              className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${orderMode === 'dine_in' ? 'bg-white text-[#DC2626] shadow-sm' : 'text-white/80 hover:text-white'}`}
+              className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${orderMode === 'dine_in' ? 'bg-white text-orange-600 shadow-sm' : 'text-white/80 hover:text-white'}`}
             >
               🍽️ Dine-In
             </button>
@@ -246,7 +246,7 @@ export default function StudentHomePage() {
         {/* Search Bar */}
         <div className="relative" onClick={() => setIsSearchOpen(true)}>
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <div className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white text-sm text-gray-400 shadow-sm font-medium cursor-text flex items-center border border-transparent hover:border-red-200 transition">
+          <div className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/95 text-sm text-gray-500 shadow-sm font-medium cursor-text flex items-center border border-transparent hover:border-orange-200 transition">
             Search for your favorite food or shop...
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function StudentHomePage() {
             <div 
               key={cat.name} 
               onClick={() => setActiveCategory(cat.name)}
-              className={`flex items-center gap-2 flex-shrink-0 cursor-pointer px-4 py-2.5 rounded-full shadow-sm border transition-all snap-start ${
+              className={`flex items-center gap-2 flex-shrink-0 cursor-pointer px-3.5 py-1.5 rounded-full shadow-sm border transition-all snap-start ${
                 activeCategory === cat.name 
                   ? 'bg-gray-900 border-gray-900 shadow-md scale-[1.02]' 
                   : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'
@@ -267,7 +267,7 @@ export default function StudentHomePage() {
                 <img 
                   src={cat.icon_url}
                   alt={cat.name}
-                  className="w-5 h-5 object-contain drop-shadow-sm"
+                  className="w-4 h-4 object-contain drop-shadow-sm"
                 />
               <span className={`text-xs font-bold ${activeCategory === cat.name ? 'text-white' : 'text-gray-700'}`}>
                 {cat.name}
@@ -278,24 +278,22 @@ export default function StudentHomePage() {
 
         {/* Magic 1-Click Reorder */}
         {lastOrder && (
-          <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-5 shadow-xl relative overflow-hidden border border-gray-800">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-[#DC2626] rounded-full opacity-20 blur-[50px] mix-blend-screen"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-500 rounded-full opacity-10 blur-[40px] mix-blend-screen"></div>
+          <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-3.5 shadow-xl relative overflow-hidden border border-gray-800">
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">✨</span>
-                  <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400 font-bold text-lg font-display">Order it again!</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">✨</span>
+                  <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-amber-300 font-bold text-base font-display">Order it again!</h3>
                 </div>
-                <p className="text-gray-400 text-sm font-medium mb-4">Your last meal from <span className="font-bold text-white">{lastOrder.shops?.name}</span></p>
-                <div className="flex gap-2 flex-wrap mb-5">
+                <p className="text-gray-400 text-xs font-medium mb-2.5">Last meal from <span className="font-bold text-white">{lastOrder.shops?.name}</span></p>
+                <div className="flex gap-2 flex-wrap mb-3">
                   {lastOrder.order_items?.slice(0, 2).map((item, idx) => (
-                    <span key={idx} className="bg-white/10 backdrop-blur-sm border border-white/10 text-gray-200 text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-sm">
+                    <span key={idx} className="bg-white/10 backdrop-blur-sm border border-white/10 text-gray-200 text-[11px] font-bold px-2 py-1 rounded-lg shadow-sm">
                       {item.quantity}x {item.item_name}
                     </span>
                   ))}
                   {lastOrder.order_items && lastOrder.order_items.length > 2 && (
-                    <span className="bg-white/10 backdrop-blur-sm border border-white/10 text-gray-200 text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-sm">
+                    <span className="bg-white/10 backdrop-blur-sm border border-white/10 text-gray-200 text-[11px] font-bold px-2 py-1 rounded-lg shadow-sm">
                       +{lastOrder.order_items.length - 2} more
                     </span>
                   )}
@@ -303,9 +301,9 @@ export default function StudentHomePage() {
               </div>
               <button 
                 onClick={handleMagicReorder}
-                className="w-full bg-[#DC2626] text-white font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] transition active:scale-[0.98] flex items-center justify-center gap-2 tracking-wide"
+                className="w-full bg-orange-500 text-white font-bold py-2 rounded-xl shadow-[0_0_20px_rgba(249,115,22,0.3)] transition active:scale-[0.98] flex items-center justify-center gap-2 tracking-wide text-sm"
               >
-                <RotateCcw size={18} /> ADD TO CART
+                <RotateCcw size={16} /> ADD TO CART
               </button>
             </div>
           </div>
@@ -315,7 +313,7 @@ export default function StudentHomePage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-display font-bold text-gray-900">Nearby Shops</h2>
-            <button className="text-[#DC2626] text-sm font-bold bg-red-50 px-3 py-1.5 rounded-lg">See all</button>
+            <button className="text-orange-600 text-sm font-bold bg-orange-50 px-3 py-1.5 rounded-lg">See all</button>
           </div>
 
           {isLoading ? (
@@ -349,13 +347,13 @@ export default function StudentHomePage() {
         {promotions.length > 0 ? (
           <div className="space-y-4 mt-4">
             {promotions.map((promo) => (
-              <div key={promo.id} className="bg-gradient-to-br from-[#18181B] to-gray-900 rounded-3xl p-5 flex items-center justify-between shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#DC2626] rounded-full opacity-10 blur-2xl"></div>
-                <div className="z-10">
-                  <p className="text-[#DC2626] font-bold text-xl font-display mb-1">Flat {promo.discount_percent}% OFF</p>
-                  <p className="text-gray-300 text-xs font-medium">{promo.banner_text}</p>
-                  <div className="mt-3 inline-block bg-[#DC2626]/10 px-3 py-1.5 rounded-lg border border-[#DC2626]/20">
-                    <span className="text-xs text-red-400 font-mono font-bold tracking-wider">CODE: {promo.code}</span>
+              <div key={promo.id} className="bg-gradient-to-br from-[#18181B] to-gray-900 rounded-3xl p-5 flex items-center justify-between shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 rounded-full opacity-10 blur-2xl"></div>
+                <div className="relative z-10">
+                  <p className="text-orange-500 font-bold text-xl font-display mb-1">Flat {promo.discount_percent}% OFF</p>
+                  <p className="text-gray-300 text-xs font-medium uppercase tracking-wide">{promo.banner_text}</p>
+                  <div className="mt-3 inline-block bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20">
+                    <span className="text-xs text-orange-400 font-mono font-bold tracking-wider">CODE: {promo.code}</span>
                   </div>
                 </div>
                 <span className="text-6xl z-10 drop-shadow-xl relative right-2">🥘</span>
@@ -363,12 +361,12 @@ export default function StudentHomePage() {
             ))}
           </div>
         ) : (
-          <div className="bg-gradient-to-br from-[#18181B] to-gray-900 rounded-3xl p-5 flex items-center justify-between shadow-xl mt-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#DC2626] rounded-full opacity-10 blur-2xl"></div>
-            <div className="z-10">
-              <p className="text-[#DC2626] font-bold text-xl font-display mb-1">Flat 10% OFF</p>
-              <p className="text-gray-300 text-xs font-medium">On your first order 🎉</p>
-              <button className="mt-3 text-xs bg-[#DC2626] text-white font-bold px-4 py-2 rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.3)]">ORDER NOW</button>
+          <div className="bg-gradient-to-br from-[#18181B] to-gray-900 rounded-3xl p-5 shadow-xl relative overflow-hidden mt-6 flex items-center justify-between">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 rounded-full opacity-10 blur-2xl"></div>
+            <div className="relative z-10">
+              <p className="text-orange-500 font-bold text-xl font-display mb-1">Flat 10% OFF</p>
+              <p className="text-gray-300 text-xs font-medium uppercase tracking-wide">On your first order!</p>
+              <button className="mt-3 text-xs bg-orange-500 text-white font-bold px-4 py-2 rounded-lg shadow-[0_0_15px_rgba(249,115,22,0.3)]">ORDER NOW</button>
             </div>
             <span className="text-6xl z-10 drop-shadow-xl relative right-2">🥘</span>
           </div>
@@ -414,21 +412,23 @@ export default function StudentHomePage() {
                   <div 
                     key={idx}
                     onClick={() => handleSelectLocation(loc)}
-                    className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition ${
+                    className={`w-full text-left p-4 rounded-2xl border-2 flex items-center gap-4 transition active:scale-[0.98] ${
                       studentProfile?.hostel_name === loc 
-                        ? 'border-[#DC2626] bg-red-50' 
-                        : 'border-gray-100 bg-white hover:border-gray-300'
+                        ? 'border-orange-500 bg-orange-50' 
+                        : 'border-gray-100 bg-white hover:border-orange-200'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${studentProfile?.hostel_name === loc ? 'bg-[#DC2626] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${studentProfile?.hostel_name === loc ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
                         <MapPin size={16} />
                       </div>
-                      <span className={`font-bold ${studentProfile?.hostel_name === loc ? 'text-[#DC2626]' : 'text-gray-700'}`}>{loc}</span>
+                      <span className={`font-bold ${studentProfile?.hostel_name === loc ? 'text-orange-600' : 'text-gray-700'}`}>{loc}</span>
+                      {studentProfile?.hostel_name === loc && (
+                        <div className="ml-auto">
+                          <span className="text-orange-500 text-sm font-bold">✔</span>
+                        </div>
+                      )}
                     </div>
-                    {studentProfile?.hostel_name === loc && (
-                      <span className="text-[#DC2626] text-sm font-bold">✓</span>
-                    )}
                   </div>
                 ))}
                 
