@@ -12,6 +12,7 @@ import NotificationsTray from '@/components/shared/NotificationsTray'
 import { getActivePromotions } from '@/lib/supabase/queries/promotions'
 import { Sheet, SheetContent, SheetClose, SheetTrigger } from '@/components/ui/sheet'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ShoppingCart, ClipboardList, User, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -63,6 +64,7 @@ export default function StudentHomePage() {
   const [isLoading, setIsLoading] = useState(cachedShops.length === 0) // skip spinner if we have cache
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [orderMode, setOrderMode] = useState<'delivery' | 'dinein'>('delivery')
   const [deliveryLocations, setDeliveryLocations] = useState<string[]>(cachedLocations)
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
   const fetchedRef = useRef(false)
@@ -163,7 +165,7 @@ export default function StudentHomePage() {
     <div className="min-h-screen bg-[#F5F5F5] pb-20 max-w-[430px] mx-auto font-sans">
 
       {/* ── Header ── */}
-      <div className="bg-white px-4 pt-12 pb-3 flex items-center justify-between">
+      <div className="bg-white px-4 pt-3 pb-3 flex items-center justify-between">
         {/* Left – Hamburger */}
         <Sheet>
           <SheetTrigger render={<button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition cursor-pointer" />}>
@@ -172,7 +174,7 @@ export default function StudentHomePage() {
           <SheetContent side="left" className="w-[80%] max-w-[300px] p-0 bg-gray-50">
             <div className="bg-orange-500 p-6 pb-8 rounded-br-3xl shadow-inner">
               <div className="flex items-center gap-2 mt-4">
-                <LogoIcon className="w-8 h-8" />
+                <Image src="/logo.png" alt="Logo" width={32} height={32} className="w-8 h-8 rounded-full object-cover shadow-sm border border-orange-400" />
                 <h2 className="text-xl font-bold text-white">DineNDeliver</h2>
               </div>
               <p className="text-orange-100 text-sm font-medium mt-1">
@@ -199,7 +201,7 @@ export default function StudentHomePage() {
 
         {/* Center – Logo + Brand */}
         <div className="flex items-center gap-2">
-          <LogoIcon className="w-8 h-8" />
+          <Image src="/logo.png" alt="Logo" width={32} height={32} className="w-8 h-8 rounded-full object-cover shadow-sm border border-orange-100" />
           <span className="text-[20px] font-extrabold tracking-tight text-gray-900">
             DineN<span className="text-[#EA580C]">Deliver</span>
           </span>
@@ -218,30 +220,48 @@ export default function StudentHomePage() {
       {/* ── Content ── */}
       <div className="px-4 mt-3 space-y-3">
 
+        {/* ── Delivery / Dine-in Toggle ── */}
+        <div className="bg-gray-100 p-1 rounded-2xl flex items-center w-full">
+          <button
+            onClick={() => setOrderMode('delivery')}
+            className={`flex-1 py-2 rounded-xl text-[14px] font-bold transition-all ${orderMode === 'delivery' ? 'bg-white text-gray-900 shadow-sm border border-gray-100/50' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Delivery
+          </button>
+          <button
+            onClick={() => setOrderMode('dinein')}
+            className={`flex-1 py-2 rounded-xl text-[14px] font-bold transition-all ${orderMode === 'dinein' ? 'bg-white text-gray-900 shadow-sm border border-gray-100/50' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Dine-In
+          </button>
+        </div>
+
         {/* ── Location Pill ── */}
-        <div
-          onClick={() => setIsLocationModalOpen(true)}
-          className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-transform"
-        >
-          <div className="flex items-center gap-3">
-            {/* Orange circle with pin */}
-            <div className="w-9 h-9 bg-[#FFF0E6] rounded-full flex items-center justify-center shrink-0">
-              <MapPinIcon />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[11px] text-gray-400 font-medium leading-tight">Deliver to</span>
-              <div className="flex items-center gap-1">
-                <span className="text-[15px] font-bold text-gray-900 leading-tight">
-                  {studentProfile?.hostel_name || 'Select Location'}
-                </span>
-                <ChevronDownIcon className="mt-0.5" />
+        {orderMode === 'delivery' && (
+          <div
+            onClick={() => setIsLocationModalOpen(true)}
+            className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-center gap-3">
+              {/* Orange circle with pin */}
+              <div className="w-9 h-9 bg-[#FFF0E6] rounded-full flex items-center justify-center shrink-0">
+                <MapPinIcon />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] text-gray-400 font-medium leading-tight">Deliver to</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[15px] font-bold text-gray-900 leading-tight">
+                    {studentProfile?.hostel_name || 'Select Location'}
+                  </span>
+                  <ChevronDownIcon className="mt-0.5" />
+                </div>
               </div>
             </div>
+            <div className="w-9 h-9 flex items-center justify-center">
+              <GPSIcon />
+            </div>
           </div>
-          <div className="w-9 h-9 flex items-center justify-center">
-            <GPSIcon />
-          </div>
-        </div>
+        )}
 
         {/* ── Search Bar ── */}
         <div
@@ -378,7 +398,7 @@ export default function StudentHomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.06 }}
                 >
-                  <ShopCard shop={shop} />
+                  <ShopCard shop={shop} orderMode={orderMode} />
                 </motion.div>
               ))}
             </motion.div>
