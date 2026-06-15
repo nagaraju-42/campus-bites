@@ -174,7 +174,7 @@ export default function StudentHomePage() {
           <SheetContent side="left" className="w-[80%] max-w-[300px] p-0 bg-gray-50">
             <div className="bg-orange-500 p-6 pb-8 rounded-br-3xl shadow-inner">
               <div className="flex items-center gap-2 mt-4">
-                <Image src="/logo.png" alt="Logo" width={32} height={32} unoptimized className="w-8 h-8 rounded-full object-cover shadow-sm border border-orange-400" />
+                <Image src="/dnd-logo.png" alt="Logo" width={32} height={32} unoptimized className="w-8 h-8 rounded-full object-cover shadow-sm border border-orange-400" />
                 <h2 className="text-xl font-bold text-white">DineNDeliver</h2>
               </div>
               <p className="text-orange-100 text-sm font-medium mt-1">
@@ -201,7 +201,7 @@ export default function StudentHomePage() {
 
         {/* Center – Logo + Brand */}
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Logo" width={32} height={32} unoptimized className="w-8 h-8 rounded-full object-cover shadow-sm border border-orange-100" />
+          <Image src="/dnd-logo.png" alt="Logo" width={32} height={32} unoptimized className="w-8 h-8 rounded-full object-cover shadow-sm border border-orange-100" />
           <span className="text-[20px] font-extrabold tracking-tight text-gray-900">
             DineN<span className="text-[#EA580C]">Deliver</span>
           </span>
