@@ -55,3 +55,33 @@ export async function adminRestoreMenuItem(id: string) {
   
   if (error) throw new Error(error.message)
 }
+export async function adminImportMenuItems(targetShopId: string, sourceItemIds: string[]) {
+  const supabase = getSupabaseAdmin()
+  
+  if (!sourceItemIds.length) return;
+
+  // Fetch the source items
+  const { data: sourceItems, error: fetchError } = await supabase
+    .from('menu_items')
+    .select('*')
+    .in('id', sourceItemIds)
+
+  if (fetchError) throw new Error(fetchError.message)
+  if (!sourceItems || sourceItems.length === 0) return;
+
+  // Prepare the new items
+  const newItems = sourceItems.map(item => {
+    const { id, created_at, ...rest } = item;
+    return {
+      ...rest,
+      shop_id: targetShopId
+    };
+  })
+
+  // Insert them
+  const { error: insertError } = await supabase
+    .from('menu_items')
+    .insert(newItems)
+
+  if (insertError) throw new Error(insertError.message)
+}

@@ -6,6 +6,8 @@ import { Plus, Search, Edit2, Trash2, ArrowLeft, Image as ImageIcon, Save, Check
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { adminCreateMenuItem, adminUpdateMenuItem, adminArchiveMenuItem, adminRestoreMenuItem } from '@/app/actions/adminMenu'
+import { ImportMenuModal } from '@/components/admin/ImportMenuModal'
+import { Copy } from 'lucide-react'
 
 const ImageSizeBadge = ({ url }: { url?: string }) => {
   const [size, setSize] = useState<string | null>(null);
@@ -45,6 +47,14 @@ export default function AdminShopMenuPage() {
   const [isEditing, setIsEditing] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
 
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+
+  const loadItems = async () => {
+    const supabase = createClient()
+    const { data: itemsData } = await supabase.from('menu_items').select('*').eq('shop_id', shopId).order('name')
+    if (itemsData) setItems(itemsData)
+  }
+
   useEffect(() => {
     async function loadData() {
       const supabase = createClient()
@@ -55,8 +65,7 @@ export default function AdminShopMenuPage() {
       const { data: catData } = await supabase.from('app_categories').select('*')
       if (catData) setCategories(catData)
 
-      const { data: itemsData } = await supabase.from('menu_items').select('*').eq('shop_id', shopId).order('name')
-      if (itemsData) setItems(itemsData)
+      await loadItems()
 
       setIsLoading(false)
     }
@@ -173,6 +182,12 @@ export default function AdminShopMenuPage() {
             }`}
           >
             {showArchived ? 'View Active' : 'View Archived'}
+          </button>
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg shadow-blue-900/20 transition"
+          >
+            <Copy size={16} /> Import Items
           </button>
           <button 
             onClick={handleCreateNew}
@@ -405,6 +420,13 @@ export default function AdminShopMenuPage() {
           </div>
         )}
       </div>
+
+      <ImportMenuModal 
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        targetShopId={shopId as string}
+        onImportSuccess={loadItems}
+      />
     </div>
   )
 }
