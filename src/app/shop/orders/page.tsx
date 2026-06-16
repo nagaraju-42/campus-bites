@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore'
 import { updateOrderStatusDB, cancelOrderAsShop, getShopOrderHistory } from '@/lib/supabase/queries/shop-dashboard'
 import { formatCurrency } from '@/lib/utils'
 import { Order } from '@/types'
-import { MessageSquare, X } from 'lucide-react'
+import { MessageSquare, X, Phone, AlertCircle } from 'lucide-react'
 import OrderChat from '@/components/shared/OrderChat'
 import toast from 'react-hot-toast'
 
@@ -137,8 +137,16 @@ export default function ShopOrdersPage() {
                           <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded-md uppercase tracking-wide">DELIVERY</span>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-gray-500">
+                      <p className="text-sm font-medium text-gray-500 mt-1">
                         {new Date(order.placed_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        {order.student?.phone && (
+                          <span className="ml-2 inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+                            <span className="font-bold text-gray-700">{order.student.full_name}:</span> {order.student.phone}
+                            <a href={`tel:${order.student.phone}`} className="ml-1 text-[#2563EB] hover:bg-blue-100 p-1 rounded-full transition" title="Call Student">
+                              <Phone size={12} />
+                            </a>
+                          </span>
+                        )}
                       </p>
                     </div>
                     <span className="font-bold text-lg text-[#2563EB]">{formatCurrency(order.total_amount)}</span>
@@ -152,12 +160,17 @@ export default function ShopOrdersPage() {
                     ))}
                   </div>
 
-                  {order.special_note && (
+                  {order.status === 'cancelled' && order.special_note ? (
+                    <div className="bg-red-50 p-3 rounded-xl border border-red-100 mb-3">
+                      <p className="text-xs font-bold text-red-800 uppercase flex items-center gap-1 mb-1"><AlertCircle size={14}/> Cancellation Reason</p>
+                      <p className="text-sm font-medium text-red-900">{order.special_note}</p>
+                    </div>
+                  ) : order.special_note ? (
                     <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 mb-3">
-                      <p className="text-xs font-bold text-amber-800 uppercase">Note from customer</p>
+                      <p className="text-xs font-bold text-amber-800 uppercase mb-1">Note from customer</p>
                       <p className="text-sm font-medium text-amber-900">{order.special_note}</p>
                     </div>
-                  )}
+                  ) : null}
 
                   <div className="flex gap-2">
                     <button 

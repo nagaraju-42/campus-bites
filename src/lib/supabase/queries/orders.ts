@@ -126,7 +126,7 @@ export async function cancelOrderAsStudent(orderId: string, studentId: string, r
   
   // Verify order belongs to student and is still pending
   const { data: order } = await supabase.from('orders')
-    .select('status, special_note')
+    .select('status, special_note, shop_id, order_number')
     .eq('id', orderId)
     .eq('student_id', studentId)
     .single()
@@ -148,4 +148,19 @@ export async function cancelOrderAsStudent(orderId: string, studentId: string, r
     const { logOrderAudit } = require('./admin')
     await logOrderAudit(orderId, studentId, order.status, 'cancelled')
   } catch(e) {}
+
+  // Send notification to shop owner
+  if (order?.shop_id) {
+    try {
+      const { data: shop } = await supabase.from('shops').select('owner_id').eq('id', order.shop_id).single()
+      if (shop?.owner_id) {
+        await supabase.from('notifications').insert({
+          user_id: shop.owner_id,
+          title: 'Order Cancelled by Student 🚫',
+          message: `Order #${order.order_number} was cancelled by the student. Reason: ${reason}.`,
+          type: 'alert'
+        })
+      }
+    } catch(e) {}
+  }
 }

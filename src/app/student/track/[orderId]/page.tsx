@@ -11,7 +11,7 @@ import { formatCurrency, getOrderStatusStep, formatDate } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import OrderChat from '@/components/shared/OrderChat'
-import { PhoneCall } from 'lucide-react'
+import { PhoneCall, AlertCircle } from 'lucide-react'
 
 // STATUS_STEPS moved inside component
 
@@ -156,9 +156,21 @@ export default function TrackOrderPage() {
             <p className="text-gray-500 text-xs font-medium mt-1">At {formatDate(order.delivered_at || new Date().toISOString())}</p>
           </>
         ) : order.status === 'cancelled' ? (
-          <>
+          <div className="flex flex-col items-center w-full">
             <p className="text-red-600 font-bold text-lg">Order Cancelled</p>
-          </>
+            {order.special_note && (
+              <div className="mt-2 bg-red-50 p-3 rounded-xl border border-red-100 w-full text-center">
+                <p className="text-xs font-bold text-red-800 uppercase flex items-center justify-center gap-1 mb-1"><AlertCircle size={14}/> Cancellation Reason</p>
+                <p className="text-sm font-medium text-red-900">{order.special_note}</p>
+              </div>
+            )}
+            <a 
+              href={`tel:+91${(order.shops?.phone || '0000000000').replace('+91', '')}`}
+              className="mt-3 flex items-center gap-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 px-4 py-2 rounded-full text-sm font-bold shadow-sm active:scale-95 transition"
+            >
+              <PhoneCall size={14} /> Contact Shop ({order.shops?.phone})
+            </a>
+          </div>
         ) : (
           <>
             <div className="flex w-full justify-between items-center mb-1">

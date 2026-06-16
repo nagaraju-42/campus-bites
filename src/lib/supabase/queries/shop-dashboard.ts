@@ -114,7 +114,7 @@ export async function updateOrderStatusDB(orderId: string, status: string, userI
   const supabase = createClient()
   
   // Get current status and rider
-  const { data: order } = await supabase.from('orders').select('status, rider_id').eq('id', orderId).single()
+  const { data: order } = await supabase.from('orders').select('status, rider_id, student_id, order_number').eq('id', orderId).single()
   
   const updateData: any = { status }
   
@@ -129,6 +129,18 @@ export async function updateOrderStatusDB(orderId: string, status: string, userI
     .eq('id', orderId)
     
   if (error) throw new Error(error.message)
+
+  // Send notification to student if accepted (preparing)
+  if (status === 'preparing' && order?.student_id) {
+    try {
+      await supabase.from('notifications').insert({
+        user_id: order.student_id,
+        title: 'Order Accepted! 🍳',
+        message: `Order #${order.order_number} has been accepted and is now being prepared.`,
+        type: 'order_update'
+      })
+    } catch (e) {}
+  }
   
   // Send push notification to rider if marked ready
   if (status === 'ready' && order?.rider_id) {
