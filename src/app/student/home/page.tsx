@@ -70,17 +70,16 @@ export default function StudentHomePage() {
   const fetchedRef = useRef(false)
 
   useEffect(() => {
-    // If data is fresh (within 5 min) and we have cached shops, skip network call
-    if (!isStale() && cachedShops.length > 0 && !fetchedRef.current) {
-      fetchedRef.current = true
-      setIsLoading(false)
-      if (user?.id) fetchFavorites(user.id)
-      return
-    }
-
     if (fetchedRef.current) return
     fetchedRef.current = true
 
+    // SWR Pattern: Show cached UI instantly if available
+    if (cachedShops.length > 0) {
+      setIsLoading(false)
+      if (user?.id) fetchFavorites(user.id)
+    }
+
+    // Always fetch fresh data in background to ensure 'is_open' statuses are perfectly synced
     async function fetchData() {
       try {
         const [shopsData] = await Promise.all([

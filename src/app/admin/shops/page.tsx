@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Store, ShieldCheck, ShieldAlert, Power, Edit2, X, Eye, Trash2, Menu, Star, Plus } from 'lucide-react'
-import { getAllShops, updateShopApproval, updateShopDetails, softDeleteShop } from '@/lib/supabase/queries/admin'
+import { getAllShops, updateShopApproval, updateShopDetails, softDeleteShop, hideShop } from '@/lib/supabase/queries/admin'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
 import { useRouter } from 'next/navigation'
@@ -36,10 +36,20 @@ export default function AdminShopsPage() {
   const handleToggleStatus = async (shopId: string, currentStatus: boolean) => {
     try {
       await updateShopApproval(shopId, !currentStatus)
-      setShops(shops.map(s => s.id === shopId ? { ...s, is_open: !currentStatus } : s))
-      toast.success(currentStatus ? 'Shop suspended/closed.' : 'Shop activated!')
+      setShops(shops.map(s => s.id === shopId ? { ...s, is_open: !currentStatus, status: !currentStatus ? 'approved' : s.status } : s))
+      toast.success(currentStatus ? 'Shop foreclosed.' : 'Shop activated!')
     } catch (err) {
       toast.error('Failed to update shop status.')
+    }
+  }
+
+  const handleHideShop = async (shopId: string) => {
+    try {
+      await hideShop(shopId)
+      setShops(shops.map(s => s.id === shopId ? { ...s, is_open: false, status: 'suspended' } : s))
+      toast.success('Shop hidden from students.')
+    } catch (err) {
+      toast.error('Failed to hide shop.')
     }
   }
 
@@ -120,8 +130,10 @@ export default function AdminShopsPage() {
                     <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                       {shop.is_open ? (
                          <><ShieldCheck size={14} className="text-emerald-500 flex-shrink-0" /> <span className="truncate">Active</span></>
+                      ) : shop.status === 'suspended' ? (
+                         <><ShieldAlert size={14} className="text-red-500 flex-shrink-0" /> <span className="truncate">Hidden from Students</span></>
                       ) : (
-                         <><ShieldAlert size={14} className="text-red-500 flex-shrink-0" /> <span className="truncate">Suspended</span></>
+                         <><Power size={14} className="text-orange-500 flex-shrink-0" /> <span className="truncate">Foreclosed (Visible)</span></>
                       )}
                     </p>
                   </div>
@@ -175,17 +187,32 @@ export default function AdminShopsPage() {
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Orders</p>
                   <p className="font-bold text-white font-mono">{shop.order_count?.toLocaleString() || 0}</p>
                 </div>
-                <button
-                  onClick={() => handleToggleStatus(shop.id, shop.is_open)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition shadow-md ${
-                    shop.is_open 
-                      ? 'bg-slate-800 text-red-400 border border-slate-700 hover:bg-red-500/10 hover:border-red-500/30' 
-                      : 'bg-[#F97316] text-white border border-[#F97316] hover:bg-orange-600 shadow-orange-500/20'
-                  }`}
-                >
-                  <Power size={16} />
-                  {shop.is_open ? 'Force Close' : 'Approve & Open'}
-                </button>
+                {shop.is_open ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleToggleStatus(shop.id, true)}
+                      className="px-3 py-2 rounded-xl text-xs font-bold transition shadow-md bg-slate-800 text-orange-400 border border-slate-700 hover:bg-orange-500/10 hover:border-orange-500/30"
+                      title="Grays out shop in student app but keeps it visible"
+                    >
+                      Foreclose
+                    </button>
+                    <button
+                      onClick={() => handleHideShop(shop.id)}
+                      className="px-3 py-2 rounded-xl text-xs font-bold transition shadow-md bg-slate-800 text-red-400 border border-slate-700 hover:bg-red-500/10 hover:border-red-500/30"
+                      title="Completely removes shop from student app"
+                    >
+                      Hide Shop
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleToggleStatus(shop.id, false)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition shadow-md bg-[#F97316] text-white border border-[#F97316] hover:bg-orange-600 shadow-orange-500/20"
+                  >
+                    <Power size={16} />
+                    Approve & Open
+                  </button>
+                )}
               </div>
             </div>
           ))

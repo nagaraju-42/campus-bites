@@ -7,6 +7,7 @@ export async function getApprovedShops(): Promise<Shop[]> {
     .from('shops')
     .select('*')
     .eq('is_deleted', false)
+    .neq('status', 'suspended')
     .order('is_open', { ascending: false })
     .order('created_at', { ascending: false })
 

@@ -85,11 +85,19 @@ export async function softDeleteShop(shopId: string) {
   if (error) throw new Error(error.message)
 }
 
-export async function updateShopApproval(shopId: string, is_approved: boolean) {
+export async function updateShopApproval(shopId: string, is_open: boolean) {
   const supabase = createClient()
-  // NOTE: Assuming we add an `is_approved` boolean to shops table. If not, we can toggle `is_open`.
-  // For MVP, we will just force toggle is_open for them if we don't have is_approved.
-  const { error } = await supabase.from('shops').update({ is_open: is_approved }).eq('id', shopId)
+  const updates: any = { is_open }
+  if (is_open) {
+    updates.status = 'approved'
+  }
+  const { error } = await supabase.from('shops').update(updates).eq('id', shopId)
+  if (error) throw new Error(error.message)
+}
+
+export async function hideShop(shopId: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('shops').update({ is_open: false, status: 'suspended' }).eq('id', shopId)
   if (error) throw new Error(error.message)
 }
 
