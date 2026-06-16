@@ -330,12 +330,28 @@ export default function ShopOrdersPage() {
               <div>
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Order Items</h4>
                 <div className="space-y-3">
-                  {selectedOrder.order_items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center border-b border-gray-100 pb-2 last:border-0 last:pb-0">
-                      <p className="text-sm text-gray-800"><span className="font-bold">{item.quantity}x</span> {item.item_name}</p>
-                      <p className="text-sm font-bold text-gray-900">{formatCurrency(item.unit_price * item.quantity)}</p>
-                    </div>
-                  ))}
+                  {selectedOrder.order_items?.map((item, idx) => {
+                    const isMyItem = item.partner_shop_id === shopId || (!item.partner_shop_id && selectedOrder.shop_id === shopId)
+                    const badge = isMyItem 
+                      ? <span className="ml-2 text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded uppercase">Your Item</span>
+                      : <span className="ml-2 text-[10px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase">Partner Item</span>
+                    const isUnavailable = item.item_name.startsWith('[UNAVAILABLE]')
+                    const cleanName = item.item_name.replace('[UNAVAILABLE] ', '')
+
+                    return (
+                      <div key={idx} className={`flex justify-between items-center border-b border-gray-100 pb-2 last:border-0 last:pb-0 ${!isMyItem ? 'opacity-70' : ''} ${isUnavailable ? 'bg-red-50 p-2 rounded-xl border-red-100' : ''}`}>
+                        <p className="text-sm text-gray-800 flex items-center">
+                          <span className={`font-bold mr-1 ${isUnavailable ? 'line-through text-red-500' : ''}`}>{item.quantity}x</span> 
+                          <span className={isUnavailable ? 'line-through text-red-500' : ''}>{cleanName}</span>
+                          {!isUnavailable && badge}
+                          {isUnavailable && <span className="ml-2 text-[10px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">CANCELED</span>}
+                        </p>
+                        <p className={`text-sm font-bold ${isUnavailable ? 'text-red-600' : 'text-gray-900'}`}>
+                          {isUnavailable ? '₹0.00' : formatCurrency(item.unit_price * item.quantity)}
+                        </p>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 

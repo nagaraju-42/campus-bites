@@ -270,7 +270,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-32 max-w-[430px] mx-auto">
       {/* Header */}
-      <div className="bg-[#0F766E] px-5 pt-12 pb-6 rounded-b-3xl">
+      <div className="bg-[#0F766E] px-5 pt-3 pb-6 rounded-b-3xl">
         <div className="flex items-center gap-3 text-white">
           <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
           <h1 className="text-xl font-display font-bold flex-1">Checkout</h1>

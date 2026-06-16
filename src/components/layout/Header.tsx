@@ -11,7 +11,7 @@ export const Header: React.FC<{ setIsNotificationsOpen: (open: boolean) => void 
   const router = useRouter();
 
   return (
-    <div className="px-5 pt-12 pb-4 flex items-center justify-between bg-[#FAFAFA]">
+    <div className="px-5 pt-3 pb-4 flex items-center justify-between bg-[#FAFAFA]">
       <Sheet>
         <SheetTrigger render={<button className="bg-white border border-gray-100 shadow-sm p-2.5 rounded-full text-gray-700 hover:bg-gray-50 transition cursor-pointer" />}>
           <Menu size={20} />

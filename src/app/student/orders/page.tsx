@@ -39,7 +39,7 @@ export default function MyOrdersPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 max-w-[430px] mx-auto border-x border-gray-100">
       {/* Header (White) */}
-      <div className="bg-white px-5 pt-12 pb-0">
+      <div className="bg-white px-5 pt-3 pb-0">
         <div className="flex items-center gap-3 text-gray-900 mb-6">
           <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
           <h1 className="text-xl font-display font-bold flex-1">My Orders</h1>

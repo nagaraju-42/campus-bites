@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
@@ -16,11 +16,18 @@ import toast from 'react-hot-toast'
 export default function RiderPoolPage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const { availableOrders, activeDeliveries, removeAvailableOrder, addActiveDelivery, isOnline, setIsOnline } = useRiderStore()
+  const { availableOrders, activeDeliveries, removeAvailableOrder, addActiveDelivery, isOnline, setIsOnline, batchStartTime, setBatchStartTime, dedicatedShopId } = useRiderStore()
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const { isSupported: isWakeSupported, isAwake, toggle: toggleWake } = useWakeLock()
   const [pushEnabled, setPushEnabled] = useState(false)
+  const [now, setNow] = useState(Date.now())
+
+  // Live ticking clock to keep the batch timer updated dynamically
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Check push permission on mount
   useState(() => {
@@ -45,17 +52,23 @@ export default function RiderPoolPage() {
     }
   }
 
+  // Smart Batching & Do Not Disturb Logic
+  const batchTimeLeftMs = batchStartTime ? Math.max(0, 5 * 60 * 1000 - (now - batchStartTime)) : 0
+  const isBatchWindowExpired = batchStartTime ? batchTimeLeftMs === 0 : false
+  const isBusy = activeDeliveries.length >= 3 || (activeDeliveries.length > 0 && isBatchWindowExpired)
+  
+  const formattedTimeLeft = `${Math.floor(batchTimeLeftMs / 60000)}:${String(Math.floor((batchTimeLeftMs % 60000) / 1000)).padStart(2, '0')}`
   const currentShopLockId = activeDeliveries.length > 0 ? activeDeliveries[0].shop_id : null
 
-  // Calculate 5-minute batch window
-  const firstActiveOrder = activeDeliveries.length > 0 ? activeDeliveries[0] : null
-  const firstOrderTime = firstActiveOrder ? new Date(firstActiveOrder.placed_at).getTime() : null
-  const isBatchWindowExpired = firstOrderTime ? (Date.now() - firstOrderTime > 5 * 60 * 1000) : false
-
-  // Optimistic Filtering: Hide all other shops if locked
-  const displayedOrders = currentShopLockId 
-    ? availableOrders.filter(o => o.shop_id === currentShopLockId)
+  // Filter available orders by dedicated shop mode if enabled
+  const baseAvailableOrders = dedicatedShopId 
+    ? availableOrders.filter(o => o.shop_id === dedicatedShopId) 
     : availableOrders
+
+  // Filter pool: Hide if busy, otherwise if batched lock to shop, else show all
+  const displayedOrders = isBusy 
+    ? [] 
+    : (currentShopLockId ? baseAvailableOrders.filter(o => o.shop_id === currentShopLockId) : baseAvailableOrders)
 
   const handleClaim = async (orderId: string) => {
     if (!user) return
@@ -74,8 +87,8 @@ export default function RiderPoolPage() {
       return
     }
 
-    if (currentShopLockId && isBatchWindowExpired) {
-      toast.error('Your 5-minute batching window has expired! Please deliver your current orders so they don\'t get cold.')
+    if (isBusy) {
+      toast.error('You are currently on an active delivery! Finish it before accepting new orders.')
       return
     }
 
@@ -89,7 +102,12 @@ export default function RiderPoolPage() {
         addActiveDelivery({ ...claimedOrder, status: 'out_for_delivery', rider_id: user.id })
       }
       
-      toast.success('Delivery Claimed! Build your batch or start delivering. 🛵')
+      if (activeDeliveries.length === 0) {
+        setBatchStartTime(Date.now())
+        toast.success('Delivery Claimed! You have 5 minutes to batch more orders from this shop. ⏱️')
+      } else {
+        toast.success(`Delivery Added! Batch size: ${activeDeliveries.length + 1}/3 🛵`)
+      }
     } catch (err: any) {
       toast.error('Someone else might have claimed this order already!')
       removeAvailableOrder(orderId) // Remove it from UI just in case
@@ -155,20 +173,50 @@ export default function RiderPoolPage() {
       </div>
 
       {/* Smart Batching Warnings */}
-      {isOnline && activeDeliveries.length >= 3 && (
-        <div className="mb-6 p-4 bg-orange-100 border border-orange-200 rounded-2xl text-orange-800 text-sm font-medium flex items-start gap-3">
-          <span className="text-xl">⚠️</span>
-          <p>You have reached the maximum batch size of 3 active deliveries. Please deliver an order before accepting more.</p>
+      {isOnline && activeDeliveries.length > 0 && !isBusy && (
+        <div className="mb-6 p-4 border rounded-2xl text-sm font-medium flex items-start gap-3 bg-blue-100 border-blue-200 text-blue-800 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-blue-200">
+            <motion.div 
+              className="h-full bg-blue-500" 
+              initial={{ width: '100%' }}
+              animate={{ width: `${(batchTimeLeftMs / (5 * 60 * 1000)) * 100}%` }}
+              transition={{ ease: 'linear', duration: 1 }}
+            />
+          </div>
+          <span className="text-xl mt-1">⏱️</span>
+          <div className="flex-1">
+            <div className="flex justify-between items-center mb-1">
+              <span className="font-black text-blue-900 tracking-tight">BATCH CYCLE ACTIVE</span>
+              <span className="font-mono font-bold text-lg bg-blue-200 text-blue-900 px-2 py-0.5 rounded shadow-sm">
+                {formattedTimeLeft}
+              </span>
+            </div>
+            <p className="leading-snug">
+              You are locked to <b>{activeDeliveries[0].shops?.name || 'this shop'}</b>. 
+              You can accept up to <b>{3 - activeDeliveries.length} more order(s)</b> before the timer runs out. 
+              <br/><span className="text-blue-600 text-xs font-bold mt-1 inline-block">If no orders appear, view active delivery to proceed!</span>
+            </p>
+          </div>
         </div>
       )}
-      {isOnline && activeDeliveries.length > 0 && activeDeliveries.length < 3 && (
-        <div className={`mb-6 p-4 border rounded-2xl text-sm font-medium flex items-start gap-3 ${isBatchWindowExpired ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-100 border-blue-200 text-blue-800'}`}>
-          <span className="text-xl">{isBatchWindowExpired ? '⏳' : '🔒'}</span>
-          <p>
-            {isBatchWindowExpired 
-              ? "Your 5-minute batching window has expired! Proceed to delivery to keep the food hot."
-              : `Smart Batching: You are locked to ${activeDeliveries[0].shops?.name || 'this shop'}. You have 5 minutes to batch more orders.`}
+
+      {/* Do Not Disturb Focus Mode */}
+      {isOnline && isBusy && (
+        <div className="bg-blue-600 rounded-3xl p-8 text-center shadow-xl border border-blue-500 mt-6 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay"></div>
+          <p className="text-6xl mb-4 relative z-10 animate-bounce">🛵</p>
+          <h3 className="font-black text-white text-2xl mb-2 relative z-10 tracking-tight">Do Not Disturb Mode</h3>
+          <p className="text-blue-100 text-sm font-medium relative z-10 leading-relaxed mb-6">
+            You are currently on an active delivery. Focus on the road and delivering safely! 
+            <br className="hidden sm:block"/>
+            The pool is hidden and notifications are silenced until you complete this trip.
           </p>
+          <button
+            onClick={() => router.push(`/rider/delivery/${activeDeliveries[0].id}`)}
+            className="w-full bg-white text-blue-700 font-bold py-3 rounded-xl shadow-md active:scale-95 transition relative z-10"
+          >
+            View Active Delivery
+          </button>
         </div>
       )}
 
@@ -179,7 +227,7 @@ export default function RiderPoolPage() {
           <h3 className="font-bold text-gray-900 text-lg mb-2">You're Offline</h3>
           <p className="text-gray-500 text-sm">Go online to start receiving delivery requests.</p>
         </div>
-      ) : displayedOrders.length === 0 ? (
+      ) : !isBusy && displayedOrders.length === 0 ? (
         <div className="text-center py-20">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
             <span className="text-3xl text-green-600">📡</span>
@@ -187,8 +235,8 @@ export default function RiderPoolPage() {
           <h3 className="font-bold text-gray-900 text-lg">Scanning for orders...</h3>
           <p className="text-gray-500 text-sm mt-1">Wait here, new orders will pop up instantly.</p>
         </div>
-      ) : (
-        <div className="space-y-4 relative">
+      ) : !isBusy ? (
+        <div className="space-y-4 relative mt-4">
           <AnimatePresence>
             {displayedOrders.map(order => (
               <motion.div
@@ -207,7 +255,7 @@ export default function RiderPoolPage() {
             ))}
           </AnimatePresence>
         </div>
-      )}
+      ) : null}
       
       <NotificationsTray isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
     </div>

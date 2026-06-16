@@ -21,6 +21,10 @@ interface RiderState {
   isAlarmRinging: boolean
   alarmReason: { title: string, message: string } | null
   setIsAlarmRinging: (status: boolean, reason?: { title: string, message: string } | null) => void
+  batchStartTime: number | null
+  setBatchStartTime: (time: number | null) => void
+  dedicatedShopId: string | null
+  setDedicatedShopId: (shopId: string | null) => void
 }
 
 export const useRiderStore = create<RiderState>()(
@@ -33,7 +37,11 @@ export const useRiderStore = create<RiderState>()(
       pickedUpOrders: [],
       isAlarmRinging: false,
       alarmReason: null,
+      batchStartTime: null,
+      dedicatedShopId: null,
       
+      setDedicatedShopId: (shopId) => set({ dedicatedShopId: shopId }),
+      setBatchStartTime: (time) => set({ batchStartTime: time }),
       setIsAlarmRinging: (status, reason = null) => set({ isAlarmRinging: status, alarmReason: reason }),
       setAvailableOrders: (orders) => set({ availableOrders: orders }),
       
@@ -51,11 +59,18 @@ export const useRiderStore = create<RiderState>()(
         return { activeDeliveries: [...state.activeDeliveries, order] }
       }),
       
-      removeActiveDelivery: (orderId) => set((state) => ({
-        activeDeliveries: state.activeDeliveries.filter(o => o.id !== orderId)
-      })),
+      removeActiveDelivery: (orderId) => set((state) => {
+        const remaining = state.activeDeliveries.filter(o => o.id !== orderId)
+        return { 
+          activeDeliveries: remaining,
+          batchStartTime: remaining.length === 0 ? null : state.batchStartTime 
+        }
+      }),
       
-      setActiveDeliveries: (orders) => set({ activeDeliveries: orders }),
+      setActiveDeliveries: (orders) => set({ 
+        activeDeliveries: orders,
+        batchStartTime: orders.length === 0 ? null : get().batchStartTime 
+      }),
 
       setIsOnline: (status) => set({ 
         isOnline: status,

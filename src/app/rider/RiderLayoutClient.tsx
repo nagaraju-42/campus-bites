@@ -13,6 +13,61 @@ import { Order } from '@/types'
 import { motion, AnimatePresence } from 'framer-motion'
 import { stopRiderAlarm } from '@/store/riderStore'
 
+function GamifiedProgressBar() {
+  const { batchStartTime, activeDeliveries } = useRiderStore()
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (activeDeliveries.length === 0 && !batchStartTime) return null
+
+  const BATCH_DUR = 5 * 60 * 1000 // 5 mins
+  const DELIVERY_DUR = 15 * 60 * 1000 // 15 mins
+
+  let redWidth = 0
+  let greenWidth = 0
+
+  if (batchStartTime) {
+    const timeSinceBatch = Math.max(0, now - batchStartTime)
+    redWidth = Math.min((timeSinceBatch / BATCH_DUR) * 50, 50)
+    
+    if (timeSinceBatch > BATCH_DUR || activeDeliveries.length >= 3) {
+      // Force red to 50% if max batched
+      redWidth = 50
+      
+      // Calculate green width
+      const timeSinceDeliveryStart = Math.max(0, timeSinceBatch - BATCH_DUR)
+      greenWidth = Math.min((timeSinceDeliveryStart / DELIVERY_DUR) * 50, 48) // Cap at 48% (total 98%) so it doesn't quite finish until OTP
+    }
+  }
+
+  return (
+    <div className="fixed top-0 left-0 right-0 w-full h-1.5 bg-gray-200 z-[9999] max-w-[430px] mx-auto shadow-sm">
+      <div className="h-full relative flex w-full">
+        <motion.div 
+          className="h-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" 
+          animate={{ width: `${redWidth}%` }}
+          transition={{ ease: 'linear', duration: 1 }}
+        />
+        <motion.div 
+          className="h-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" 
+          animate={{ width: `${greenWidth}%` }}
+          transition={{ ease: 'linear', duration: 1 }}
+        />
+        {/* Glow effect at the tip of the progress */}
+        <motion.div 
+          className="absolute top-0 h-full w-2 bg-white rounded-full blur-[1px]"
+          animate={{ left: `calc(${redWidth + greenWidth}% - 4px)` }}
+          transition={{ ease: 'linear', duration: 1 }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function RiderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -143,8 +198,20 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
           const available = await getAvailableDeliveries()
           useRiderStore.getState().setAvailableOrders(available)
           
-          const { playRiderAlarm } = require('@/store/riderStore')
-          playRiderAlarm({ title: 'New Delivery Available!', message: `A new order is ready for pickup in the pool!` })
+          // DO NOT DISTURB MODE: Only play alarm if Rider is Free or in active batch window
+          const store = useRiderStore.getState()
+          const active = store.activeDeliveries
+          const batchStartTime = store.batchStartTime
+          const isBatchWindowExpired = batchStartTime ? (Date.now() - batchStartTime > 5 * 60 * 1000) : false
+          const isBusy = active.length >= 3 || (active.length > 0 && isBatchWindowExpired)
+
+          if (!isBusy && store.isOnline) {
+            const currentShopLockId = active.length > 0 ? active[0].shop_id : null
+            if (!currentShopLockId || payload.new.shop_id === currentShopLockId) {
+              const { playRiderAlarm } = require('@/store/riderStore')
+              playRiderAlarm({ title: 'New Delivery Available!', message: `A new order is ready for pickup in the pool!` })
+            }
+          }
         }
       )
       .on(
@@ -177,6 +244,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className={`min-h-screen flex flex-col pb-20 max-w-[430px] mx-auto shadow-xl relative ${isAlarmRinging ? 'ringing-rider-container bg-green-50' : 'bg-gray-50 border-x border-gray-100'}`}>
+      <GamifiedProgressBar />
       <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
 
       <AnimatePresence>

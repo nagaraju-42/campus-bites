@@ -93,7 +93,7 @@ export default function StudentProfilePage() {
   return (
     <div className="min-h-screen bg-[#FEFCE8] pb-24">
       {/* Header Profile Section */}
-      <div className="bg-[#EAB308] pt-12 pb-8 px-6 rounded-b-3xl shadow-md">
+      <div className="bg-[#EAB308] pt-3 pb-8 px-6 rounded-b-3xl shadow-md">
         <div className="flex items-center gap-4">
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-[#EAB308] shadow-inner text-3xl">
             {user.full_name?.charAt(0).toUpperCase() || <UserIcon size={32} />}

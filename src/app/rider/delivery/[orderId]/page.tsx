@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Phone, MapPin, CheckCircle2, MessageSquare, X, Send } from 'lucide-react'
 import { useRiderStore } from '@/store/riderStore'
 import { useAuthStore } from '@/store/authStore'
-import { completeDelivery } from '@/lib/supabase/queries/rider'
+import { completeDelivery, markPartnerItemUnavailable } from '@/lib/supabase/queries/rider'
 import SwipeButton from '@/components/rider/SwipeButton'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -27,9 +27,42 @@ export default function ActiveDeliveryPage() {
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
   const [otpInput, setOtpInput] = useState('')
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({})
+  const [isMarkingUnavailable, setIsMarkingUnavailable] = useState(false)
 
   const toggleItem = (idx: number) => {
     setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }))
+  }
+
+  const handleMarkUnavailable = async (e: React.MouseEvent, item: any, originalIdx: number) => {
+    e.stopPropagation() // Prevent toggling the checkmark
+    if (!order) return
+    
+    if (confirm(`Are you sure "${item.item_name}" is unavailable at the partner shop? This will instantly reduce the customer's total bill by ₹${item.unit_price * item.quantity}.`)) {
+      setIsMarkingUnavailable(true)
+      try {
+        await markPartnerItemUnavailable(
+          order.id, 
+          item.id, 
+          item.item_name, 
+          item.unit_price, 
+          item.quantity, 
+          user?.id || '', 
+          user?.full_name || 'Rider'
+        )
+        toast.success(`${item.item_name} marked unavailable. Fare adjusted!`)
+        // Update local state to reflect UI change instantly
+        setOrder(prev => {
+          if (!prev) return prev
+          const newTotal = Math.max(0, prev.total_amount - (item.unit_price * item.quantity))
+          const newItems = prev.order_items?.map(i => i.id === item.id ? { ...i, item_name: `[UNAVAILABLE] ${i.item_name}` } : i)
+          return { ...prev, total_amount: newTotal, order_items: newItems }
+        })
+      } catch (err) {
+        toast.error('Failed to mark item unavailable')
+      } finally {
+        setIsMarkingUnavailable(false)
+      }
+    }
   }
 
   useEffect(() => {
@@ -194,21 +227,38 @@ export default function ActiveDeliveryPage() {
                     <div className="space-y-2">
                       {order.order_items?.filter(i => i.partner_shop_id && i.partner_shop_id !== order.shop_id).map((item, idx) => {
                         const originalIdx = order.order_items!.findIndex(i => i === item);
+                        const isUnavailable = item.item_name.startsWith('[UNAVAILABLE]')
                         const isChecked = checkedItems[originalIdx];
                         return (
                           <div 
                             key={`s-${originalIdx}`} 
-                            onClick={() => toggleItem(originalIdx)}
-                            className={`flex justify-between items-center p-3 rounded-xl border transition-all cursor-pointer ${
+                            onClick={() => !isUnavailable && toggleItem(originalIdx)}
+                            className={`flex justify-between items-center p-3 rounded-xl border transition-all ${!isUnavailable ? 'cursor-pointer' : ''} ${
+                              isUnavailable ? 'bg-red-50 border-red-200 text-red-500 opacity-60' :
                               isChecked ? 'bg-purple-100 border-purple-200 text-purple-400 opacity-60' : 'bg-white border-purple-100 text-purple-900 shadow-sm'
                             }`}
                           >
-                            <div className="flex gap-3 items-center">
-                              <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-purple-500 border-purple-500 text-white' : 'border-purple-300'}`}>
-                                {isChecked && <span className="text-xs font-bold">✓</span>}
-                              </div>
-                              <span className={`font-bold ${isChecked ? 'line-through' : ''}`}>{item.quantity}x {item.item_name}</span>
+                            <div className="flex gap-3 items-center flex-1">
+                              {!isUnavailable && (
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${isChecked ? 'bg-purple-500 border-purple-500 text-white' : 'border-purple-300'}`}>
+                                  {isChecked && <span className="text-xs font-bold">✓</span>}
+                                </div>
+                              )}
+                              <span className={`font-bold ${isChecked || isUnavailable ? 'line-through' : ''}`}>{item.quantity}x {item.item_name.replace('[UNAVAILABLE] ', '')}</span>
                             </div>
+                            
+                            {!isUnavailable && !isChecked && (
+                              <button 
+                                onClick={(e) => handleMarkUnavailable(e, item, originalIdx)}
+                                disabled={isMarkingUnavailable}
+                                className="ml-2 bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold px-2 py-1 rounded shadow-sm active:scale-95 transition"
+                              >
+                                Unavailable
+                              </button>
+                            )}
+                            {isUnavailable && (
+                              <span className="text-[10px] font-black text-red-600 bg-red-100 px-2 py-1 rounded">CANCELED</span>
+                            )}
                           </div>
                         )
                       })}

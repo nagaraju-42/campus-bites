@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
 import { getShopDetailsByOwner } from '@/lib/supabase/queries/shop-dashboard'
+import { AlertCircle, ShieldAlert } from 'lucide-react'
 import ShopSidebar from '@/components/shop/ShopSidebar'
 import ShopBottomNav from '@/components/shop/ShopBottomNav'
 import AdminImpersonationBanner from '@/components/admin/AdminImpersonationBanner'
@@ -47,6 +48,9 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   // Track shop open status for mid-session closure warning
   const [shopIsOpen, setShopIsOpen] = useState<boolean | null>(null)
   const [shopIdForWatch, setShopIdForWatch] = useState<string | null>(null)
+
+  // Global Cancellation Alert State
+  const [cancellationAlert, setCancellationAlert] = useState<{ orderNumber: string, reason: string } | null>(null)
 
   // Inject PWA manifest link into document head + register service worker
   useEffect(() => {
@@ -195,6 +199,18 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'orders', filter: `shop_id=eq.${sid}` },
           async (payload) => {
+            if (payload.new.status === 'cancelled' && payload.old.status !== 'cancelled') {
+              if (payload.new.special_note && payload.new.special_note.includes('Student Cancel:')) {
+                const parts = payload.new.special_note.split('Student Cancel:')
+                setCancellationAlert({
+                  orderNumber: payload.new.order_number || 'Unknown',
+                  reason: parts[1]?.trim() || 'No reason provided'
+                })
+                const { playShopAlarm } = require('@/store/shopOrdersStore')
+                playShopAlarm() // Play alarm for cancellation too!
+              }
+            }
+
             const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
             const activeOrders = await getShopActiveOrders(sid)
             useShopOrdersStore.getState().setOrders(activeOrders)
@@ -337,6 +353,47 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
               </button>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Global Cancellation Alert Modal */}
+      <AnimatePresence>
+        {cancellationAlert && (
+          <div className="fixed inset-0 bg-red-900/40 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-red-100 flex flex-col"
+            >
+              <div className="bg-red-600 p-6 flex flex-col items-center justify-center text-white relative">
+                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm mb-4 border border-white/30 shadow-inner">
+                  <ShieldAlert size={32} className="text-white drop-shadow-md" />
+                </div>
+                <h3 className="text-2xl font-black tracking-tight text-center leading-tight">Order Cancelled!</h3>
+                <p className="text-red-100 font-medium text-center mt-2 opacity-90">Order #{cancellationAlert.orderNumber}</p>
+              </div>
+              <div className="p-8 flex flex-col gap-6">
+                <div>
+                  <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Cancellation Reason</p>
+                  <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-red-500 rounded-l-2xl"></div>
+                    <p className="text-base text-gray-800 font-medium pl-2">{cancellationAlert.reason}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setCancellationAlert(null)
+                    stopShopAlarm()
+                  }}
+                  className="w-full bg-red-600 text-white font-bold py-4 rounded-xl hover:bg-red-700 active:scale-95 transition-all shadow-lg shadow-red-600/30 text-lg flex items-center justify-center gap-2"
+                >
+                  Confirm & Dismiss
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
       

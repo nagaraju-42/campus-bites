@@ -238,6 +238,15 @@ export default function TrackOrderPage() {
           <p className="text-gray-900 font-bold text-sm">Order #{order.order_number}</p>
           <p className="text-gray-500 text-xs font-medium">Placed: {new Date(order.placed_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
         </div>
+        {order.special_note && order.special_note.includes('RIDER AUDIT') && (
+          <div className="mt-3 bg-red-50 border border-red-100 rounded-xl p-3">
+            <p className="text-red-700 font-bold text-xs flex items-center gap-1.5 mb-1"><AlertCircle size={14}/> Important Update</p>
+            <p className="text-red-600 text-xs font-medium leading-relaxed">
+              {order.special_note.split('\n').filter(line => line.includes('RIDER AUDIT')).join('\n')}
+            </p>
+            <p className="text-red-800 font-bold text-xs mt-2 pt-2 border-t border-red-100">Your total bill has been automatically reduced.</p>
+          </div>
+        )}
       </div>
 
       {order.status === 'cancelled' && (

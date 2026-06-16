@@ -91,3 +91,53 @@ export async function getActiveDeliveries(riderId: string): Promise<Order[]> {
     return []
   }
 }
+
+export async function markPartnerItemUnavailable(
+  orderId: string, 
+  orderItemId: string, 
+  itemName: string, 
+  itemPrice: number, 
+  itemQuantity: number,
+  riderId: string,
+  riderName: string
+) {
+  const supabase = createClient()
+  
+  // 1. Mark item as unavailable in order_items
+  const { error: itemError } = await supabase
+    .from('order_items')
+    .update({ 
+      item_name: `[UNAVAILABLE] ${itemName}`, 
+      unit_price: 0 
+    })
+    .eq('id', orderItemId)
+    
+  if (itemError) throw new Error(itemError.message)
+
+  // 2. Fetch current order to update total and note
+  const { data: order } = await supabase
+    .from('orders')
+    .select('total_amount, special_note')
+    .eq('id', orderId)
+    .single()
+    
+  if (order) {
+    const deductAmount = itemPrice * itemQuantity
+    const newTotal = Math.max(0, order.total_amount - deductAmount)
+    const auditNote = `\n⚠️ RIDER AUDIT: ${riderName} marked "${itemName}" as unavailable at partner shop. Fare reduced by ₹${deductAmount}.`
+    const newNote = order.special_note ? order.special_note + auditNote : auditNote.trim()
+
+    const { error: orderError } = await supabase
+      .from('orders')
+      .update({ total_amount: newTotal, special_note: newNote })
+      .eq('id', orderId)
+
+    if (orderError) throw new Error(orderError.message)
+  }
+
+  // 3. Log Audit
+  try {
+    const { logOrderAudit } = await import('./admin')
+    await logOrderAudit(orderId, riderId, 'out_for_delivery', 'out_for_delivery') // status doesn't change, just auditing
+  } catch(e) {}
+}

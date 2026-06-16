@@ -17,7 +17,7 @@ export default function OffersPage() {
   return (
     <div className="min-h-screen bg-[#F5F5F5] max-w-[430px] mx-auto font-sans pb-24">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-4 border-b border-gray-100">
+      <div className="bg-white px-4 pt-3 pb-4 border-b border-gray-100">
         <h1 className="text-[22px] font-extrabold text-gray-900">Offers & Deals</h1>
         <p className="text-gray-400 text-sm mt-0.5">Exclusive deals just for you</p>
       </div>

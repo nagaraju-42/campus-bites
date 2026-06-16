@@ -70,7 +70,7 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col max-w-[430px] mx-auto relative overflow-hidden">
         {/* Dynamic Header */}
-        <div className="bg-orange-500 px-5 pt-12 pb-6 rounded-b-3xl relative">
+        <div className="bg-orange-500 px-5 pt-3 pb-6 rounded-b-3xl relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
           <div className="flex items-center gap-3 text-white relative z-10">
             <button onClick={() => router.back()} className="p-1 bg-black/10 rounded-full"><ArrowLeft size={22} /></button>
@@ -108,7 +108,7 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-32 max-w-[430px] mx-auto">
       {/* Header */}
-      <div className="bg-orange-500 px-5 pt-12 pb-6 rounded-b-3xl">
+      <div className="bg-orange-500 px-5 pt-3 pb-6 rounded-b-3xl">
         <div className="flex items-center gap-3 text-white">
           <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
           <h1 className="text-xl font-display font-bold flex-1">My Cart</h1>
