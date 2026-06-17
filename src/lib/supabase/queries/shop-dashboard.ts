@@ -305,11 +305,20 @@ export async function getRiderSettlements(shopId: string, dateStr: string) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('rider_settlements')
-    .select('*')
+    .select('*, rider:rider_id(full_name)')
     .eq('shop_id', shopId)
     .eq('date', dateStr)
   if (error) throw new Error(error.message)
   return data || []
+}
+
+export async function approveRiderSettlement(settlementId: string) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('rider_settlements')
+    .update({ status: 'approved' })
+    .eq('id', settlementId)
+  if (error) throw new Error(error.message)
 }
 
 export async function settleUpWithPartner(primaryShopId: string, partnerShopId: string, amount: number, monthStr: string) {

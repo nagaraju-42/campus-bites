@@ -178,10 +178,10 @@ export default function ShopOrdersPage() {
                     ))}
                   </div>
 
-                  {order.status === 'cancelled' && order.special_note ? (
+                  {order.status === 'cancelled' && (order.cancellation_reason || order.special_note) ? (
                     <div className="bg-red-50 p-3 rounded-xl border border-red-100 mb-3">
-                      <p className="text-xs font-bold text-red-800 uppercase flex items-center gap-1 mb-1"><AlertCircle size={14}/> Cancellation Reason</p>
-                      <p className="text-sm font-medium text-red-900">{order.special_note}</p>
+                      <p className="text-xs font-bold text-red-800 uppercase flex items-center gap-1 mb-1"><AlertCircle size={14}/> {order.cancellation_reason?.startsWith('Failed Delivery:') ? 'Delivery Failed (Items Returned)' : 'Cancellation Reason'}</p>
+                      <p className="text-sm font-medium text-red-900">{order.cancellation_reason || order.special_note}</p>
                     </div>
                   ) : order.special_note ? (
                     <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 mb-3">

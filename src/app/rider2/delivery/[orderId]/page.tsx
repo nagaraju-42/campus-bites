@@ -104,25 +104,53 @@ export default function ActiveDeliveryPage() {
     }
   }
 
-  const handleMarkUnavailable = async (item: any) => {
-    if (!confirm(`Are you sure you want to mark "${item.item_name}" as unavailable? The student's total will be dynamically reduced.`)) return;
+  const handleFailDelivery = async () => {
+    const reason = prompt('Reason for failure (e.g., Student unavailable):')
+    if (!reason) return;
+
+    try {
+      const supabase = createClient()
+      const failReason = `Failed Delivery: ${reason}`
+      await supabase.from('orders').update({ status: 'cancelled', cancellation_reason: failReason }).eq('id', order!.id)
+      
+      removeActiveDelivery(order!.id)
+      removePickedUpOrder(order!.id)
+      toast.success('Order marked as failed and returned to shop.')
+      router.replace('/rider2/dashboard')
+    } catch (err) {
+      toast.error('Failed to update order status')
+    }
+  }
+
+  const handleReduceQuantity = async (item: any) => {
+    if (!confirm(`Reduce quantity of "${item.item_name}" by 1? The student's total will be dynamically reduced.`)) return;
 
     try {
       const supabase = createClient();
-      const newName = `[UNAVAILABLE] ${item.item_name}`;
+      const newQuantity = item.quantity - 1;
+      const isNowUnavailable = newQuantity === 0;
       
-      // Update item name in DB
-      await supabase.from('order_items').update({ item_name: newName }).eq('id', item.id);
+      const newName = isNowUnavailable ? `[UNAVAILABLE] ${item.item_name.replace('[UNAVAILABLE] ', '')}` : item.item_name;
+      
+      // Update item name and quantity in DB
+      await supabase.from('order_items').update({ 
+        item_name: newName,
+        quantity: newQuantity > 0 ? newQuantity : 0
+      }).eq('id', item.id);
       
       // Update order total in DB
-      const reduction = item.quantity * item.unit_price;
+      const reduction = item.unit_price || 0;
       const newTotal = Math.max(0, order!.total_amount - reduction);
       await supabase.from('orders').update({ total_amount: newTotal }).eq('id', order!.id);
       
       // Mutate local state so UI updates immediately
       setOrder(prev => {
         if (!prev) return prev;
-        const newItems = prev.order_items?.map(i => i.id === item.id ? { ...i, item_name: newName } : i);
+        const newItems = prev.order_items?.map(i => i.id === item.id ? { 
+          ...i, 
+          item_name: newName,
+          quantity: newQuantity > 0 ? newQuantity : 0
+        } : i);
         return { ...prev, total_amount: newTotal, order_items: newItems };
       });
       
@@ -130,10 +158,14 @@ export default function ActiveDeliveryPage() {
       setActiveDeliveries(activeDeliveries.map(d => d.id === order!.id ? { 
         ...d, 
         total_amount: newTotal,
-        order_items: d.order_items?.map((i: any) => i.id === item.id ? { ...i, item_name: newName } : i)
+        order_items: d.order_items?.map((i: any) => i.id === item.id ? { 
+          ...i, 
+          item_name: newName,
+          quantity: newQuantity > 0 ? newQuantity : 0
+        } : i)
       } : d));
       
-      toast.success('Item marked unavailable. Fare updated!');
+      toast.success(isNowUnavailable ? 'Item marked unavailable. Fare updated!' : 'Quantity reduced. Fare updated!');
     } catch (err) {
       toast.error('Failed to update item');
     }
@@ -276,11 +308,11 @@ export default function ActiveDeliveryPage() {
                   </div>
                   {!isUnavailable && (
                     <button
-                      onClick={() => handleMarkUnavailable(item)}
-                      className="w-12 h-12 flex-shrink-0 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl border border-red-100 flex items-center justify-center transition active:scale-95"
-                      title="Mark Unavailable"
+                      onClick={() => handleReduceQuantity(item)}
+                      className="w-12 h-12 flex-shrink-0 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-xl border border-amber-100 flex items-center justify-center transition active:scale-95"
+                      title="Reduce Quantity"
                     >
-                      <span className="text-2xl font-bold mb-1">×</span>
+                      <span className="text-2xl font-bold mb-1">-</span>
                     </button>
                   )}
                 </div>
@@ -304,11 +336,11 @@ export default function ActiveDeliveryPage() {
                         </div>
                         {!isUnavailable && (
                           <button
-                            onClick={() => handleMarkUnavailable(item)}
-                            className="w-12 h-12 flex-shrink-0 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl border border-red-100 flex items-center justify-center transition active:scale-95"
-                            title="Mark Unavailable"
+                            onClick={() => handleReduceQuantity(item)}
+                            className="w-12 h-12 flex-shrink-0 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-xl border border-amber-100 flex items-center justify-center transition active:scale-95"
+                            title="Reduce Quantity"
                           >
-                            <span className="text-2xl font-bold mb-1">×</span>
+                            <span className="text-2xl font-bold mb-1">-</span>
                           </button>
                         )}
                       </div>
@@ -464,12 +496,20 @@ export default function ActiveDeliveryPage() {
               Confirm Pickup
             </button>
           ) : (
-            <button 
-              onClick={handleDeliveredClick} 
-              className="w-full bg-[#16A34A] hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-500/30 transition-all active:scale-95 text-lg flex items-center justify-center gap-2"
-            >
-              <CheckCircle2 size={24} /> Enter OTP to Deliver
-            </button>
+            <>
+              <button 
+                onClick={handleDeliveredClick} 
+                className="w-full bg-[#16A34A] hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-500/30 transition-all active:scale-95 text-lg flex items-center justify-center gap-2 mb-3"
+              >
+                <CheckCircle2 size={24} /> Enter OTP to Deliver
+              </button>
+              <button 
+                onClick={handleFailDelivery} 
+                className="w-full bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 font-bold py-3 rounded-xl shadow-sm transition-all active:scale-95 text-sm flex items-center justify-center gap-2"
+              >
+                <X size={16} /> Mark as Failed & Return to Shop
+              </button>
+            </>
           )}
         </div>
         

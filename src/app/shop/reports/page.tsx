@@ -89,11 +89,17 @@ export default function ShopReportsPage() {
       const { getRiderSettlements } = await import('@/lib/supabase/queries/shop-dashboard')
       const collected = await getRiderSettlements(shopId!, date)
       let totalCollected = 0
+      const pendingHandoffs: any[] = []
+      
       collected.forEach((c: any) => {
-        if (riderBreakdown[c.rider_id]) {
-          riderBreakdown[c.rider_id].cashCollected = Math.max(0, riderBreakdown[c.rider_id].cashCollected - Number(c.amount))
+        if (c.status === 'pending') {
+          pendingHandoffs.push(c)
+        } else if (c.status === 'approved') {
+          if (riderBreakdown[c.rider_id]) {
+            riderBreakdown[c.rider_id].cashCollected = Math.max(0, riderBreakdown[c.rider_id].cashCollected - Number(c.amount))
+          }
+          totalCollected += Number(c.amount)
         }
-        totalCollected += Number(c.amount)
       })
 
       setReport({
@@ -101,13 +107,25 @@ export default function ShopReportsPage() {
         totalCash: Math.max(0, totalCash - totalCollected),
         totalUPI,
         orderCount: data?.length || 0,
-        riders: Object.values(riderBreakdown)
+        riders: Object.values(riderBreakdown),
+        pendingHandoffs
       })
 
     } catch (err) {
       console.error(err)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleApproveHandoff = async (settlementId: string) => {
+    try {
+      const { approveRiderSettlement } = await import('@/lib/supabase/queries/shop-dashboard')
+      await approveRiderSettlement(settlementId)
+      toast.success('Handoff approved!')
+      fetchReport()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to approve handoff')
     }
   }
 
@@ -182,6 +200,34 @@ export default function ShopReportsPage() {
               <p className="text-blue-600/80 text-sm font-medium mt-1">Settled directly to bank</p>
             </div>
           </div>
+
+          {/* Pending Handoffs */}
+          {report.pendingHandoffs && report.pendingHandoffs.length > 0 && (
+            <div className="bg-amber-50 rounded-3xl shadow-sm border border-amber-200 overflow-hidden">
+              <div className="p-6 border-b border-amber-100 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-amber-900 flex items-center gap-2">
+                  <Banknote size={24} className="text-amber-600" />
+                  Action Required: Pending Rider Handoffs
+                </h2>
+              </div>
+              <div className="divide-y divide-amber-100">
+                {report.pendingHandoffs.map((handoff: any) => (
+                  <div key={handoff.id} className="p-6 flex justify-between items-center bg-white/50">
+                    <div>
+                      <p className="font-bold text-gray-900 text-lg">{handoff.rider?.full_name || 'Rider'} is handing over cash</p>
+                      <p className="text-sm text-gray-500">Amount: {formatCurrency(handoff.amount)}</p>
+                    </div>
+                    <button 
+                      onClick={() => handleApproveHandoff(handoff.id)}
+                      className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-sm transition active:scale-95"
+                    >
+                      Approve Receipt
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Rider Breakdown */}
           <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">

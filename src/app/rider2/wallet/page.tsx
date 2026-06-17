@@ -5,22 +5,25 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
-import { Wallet } from 'lucide-react'
+import { Wallet, Clock } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function Rider2WalletPage() {
   const { user } = useAuthStore()
   const [deliveredOrders, setDeliveredOrders] = useState<any[]>([])
+  const [settlements, setSettlements] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Fetch delivered today
-  useEffect(() => {
+  // Fetch delivered today and settlements
+  const fetchWalletData = async () => {
     if (!user) return
-    async function fetchDelivered() {
-      const supabase = createClient()
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      
-      const { data } = await supabase
+    const supabase = createClient()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const [ordersRes, settlementsRes] = await Promise.all([
+      supabase
         .from('orders')
         .select(`
           *,
@@ -30,13 +33,84 @@ export default function Rider2WalletPage() {
         .eq('rider_id', user!.id)
         .eq('status', 'delivered')
         .gte('placed_at', today.toISOString())
-        .order('placed_at', { ascending: false })
-      
-      if (data) setDeliveredOrders(data)
-      setIsLoading(false)
-    }
-    fetchDelivered()
+        .order('placed_at', { ascending: false }),
+      supabase
+        .from('rider_settlements')
+        .select('*')
+        .eq('rider_id', user!.id)
+        .eq('date', today.toISOString().slice(0, 10))
+    ])
+    
+    if (ordersRes.data) setDeliveredOrders(ordersRes.data)
+    if (settlementsRes.data) setSettlements(settlementsRes.data)
+    setIsLoading(false)
+  }
+
+  useEffect(() => {
+    fetchWalletData()
   }, [user])
+
+  const pendingHandoffs = settlements.filter(s => s.status === 'pending')
+  const approvedHandoffs = settlements.filter(s => s.status === 'approved')
+
+  let totalCash = 0;
+  let primaryCash = 0;
+  let secondaryCash = 0;
+  let deliveryFees = 0;
+  const secondaryBreakdown: Record<string, number> = {};
+  let nonCashCount = 0;
+
+  deliveredOrders.forEach((order: any) => {
+    if (order.payment_method !== 'cash_on_delivery') {
+      nonCashCount++;
+      return;
+    }
+    
+    const fee = order.delivery_fee || 10;
+    deliveryFees += fee;
+    totalCash += order.total_amount;
+
+    const items = order.order_items || [];
+    items.forEach((item: any) => {
+      if (item.item_name && item.item_name.startsWith('[UNAVAILABLE]')) return;
+      const amount = item.quantity * (item.unit_price || 0);
+      if (item.partner_shop_id && item.partner_shop_id !== order.shop_id) {
+        secondaryCash += amount;
+        const partnerName = item.partner?.name || 'Partner Shop';
+        secondaryBreakdown[partnerName] = (secondaryBreakdown[partnerName] || 0) + amount;
+      } else {
+        primaryCash += amount;
+      }
+    });
+  });
+
+  const totalHandedOver = settlements.reduce((sum, s) => sum + Number(s.amount), 0)
+  const netCashToHandOver = Math.max(0, totalCash - totalHandedOver)
+
+  const handleRequestHandoff = async () => {
+    if (netCashToHandOver <= 0) return
+    setIsSubmitting(true)
+    try {
+      const supabase = createClient()
+      const todayDateStr = new Date().toISOString().slice(0, 10)
+      
+      const { error } = await supabase.from('rider_settlements').insert({
+        shop_id: deliveredOrders[0].shop_id,
+        rider_id: user!.id,
+        amount: netCashToHandOver,
+        date: todayDateStr,
+        status: 'pending'
+      })
+
+      if (error) throw error
+      toast.success('Handoff requested! Waiting for shop owner to approve.')
+      await fetchWalletData()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to request handoff')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -132,6 +206,45 @@ export default function Rider2WalletPage() {
                 </div>
               )
             })()}
+            {/* Status of Handoffs */}
+            {pendingHandoffs.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-green-200/50">
+                <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">Pending Handoffs</p>
+                {pendingHandoffs.map(h => (
+                  <div key={h.id} className="flex justify-between items-center text-sm font-medium text-amber-800 bg-amber-50 p-2 rounded-lg mb-2">
+                    <span className="flex items-center gap-1"><Clock size={14}/> Waiting for Approval</span>
+                    <span className="font-bold">{formatCurrency(h.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {approvedHandoffs.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-green-200/50">
+                <p className="text-xs font-bold text-green-600 uppercase tracking-wider mb-2">Approved Handoffs (Settled)</p>
+                {approvedHandoffs.map(h => (
+                  <div key={h.id} className="flex justify-between items-center text-sm font-medium text-green-800 bg-green-100/50 p-2 rounded-lg mb-2">
+                    <span>Settled</span>
+                    <span className="font-bold">{formatCurrency(h.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Request Button */}
+            <div className="mt-6">
+              <button 
+                onClick={handleRequestHandoff}
+                disabled={netCashToHandOver <= 0 || isSubmitting}
+                className={`w-full py-3 rounded-xl font-bold text-white shadow-sm transition active:scale-95 ${
+                  netCashToHandOver <= 0 
+                    ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
+                    : 'bg-[#16A34A] hover:bg-green-600 shadow-green-500/30 shadow-lg'
+                }`}
+              >
+                {isSubmitting ? 'Submitting...' : `Hand Over ${formatCurrency(netCashToHandOver)}`}
+              </button>
+            </div>
           </div>
 
           <h2 className="font-bold text-gray-900 mb-4">Cash Order History Today</h2>
