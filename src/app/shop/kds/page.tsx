@@ -101,17 +101,12 @@ export default function KDSPage() {
   }
 
   const handleCancelOrder = async (orderId: string, reason: string) => {
-    if (!reason) return
-    
-    // Optimistic Update
-    const { updateOrderStatus } = useShopOrdersStore.getState()
-    updateOrderStatus(orderId, 'cancelled')
-    
     try {
-      await cancelOrderAsShop(orderId, user?.id || '', reason)
-      toast.success('Order cancelled and student notified.')
-    } catch (err) {
-      toast.error('Failed to cancel order')
+      await cancelOrderAsShop(orderId, user!.id, reason)
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'cancelled', cancellation_reason: reason } : o))
+      toast.success('Order cancelled')
+    } catch (error: any) {
+      toast.error(error.message)
     }
   }
 

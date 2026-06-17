@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogOut, User as UserIcon, ShieldCheck, MapPin, Bike, Bell, HelpCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -10,7 +11,17 @@ import toast from 'react-hot-toast'
 export default function RiderProfilePage() {
   const router = useRouter()
   const { user, setUser } = useAuthStore()
-  const { activeDeliveries } = useRiderStore()
+  const { activeDeliveries, dedicatedShopId, setDedicatedShopId } = useRiderStore()
+  const [shops, setShops] = useState<{ id: string, name: string }[]>([])
+
+  useEffect(() => {
+    async function fetchShops() {
+      const supabase = createClient()
+      const { data } = await supabase.from('shops').select('id, name').order('name')
+      if (data) setShops(data)
+    }
+    fetchShops()
+  }, [])
 
   const handleLogout = async () => {
     if (activeDeliveries.length > 0) {
@@ -83,6 +94,43 @@ export default function RiderProfilePage() {
               <p className="text-xs text-gray-500">Contact admin for payment issues</p>
             </div>
           </button>
+        </div>
+
+        {/* Dedicated Shop Mode */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="font-bold text-gray-900">Dedicated Shop Mode</p>
+              <p className="text-xs text-gray-500 max-w-[200px]">Only see orders from a specific shop in your delivery pool.</p>
+            </div>
+            <button 
+              onClick={() => setDedicatedShopId(dedicatedShopId ? null : shops[0]?.id || null)}
+              className={`relative w-14 h-8 rounded-full transition-colors duration-300 ease-in-out shadow-inner ${
+                dedicatedShopId ? 'bg-[#16A34A]' : 'bg-gray-300'
+              }`}
+            >
+              <div 
+                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+                  dedicatedShopId ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+          
+          {dedicatedShopId && (
+            <div className="mt-4">
+              <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Select Your Shop</label>
+              <select
+                value={dedicatedShopId}
+                onChange={(e) => setDedicatedShopId(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-[#16A34A] transition"
+              >
+                {shops.map(shop => (
+                  <option key={shop.id} value={shop.id}>{shop.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Logout Button */}

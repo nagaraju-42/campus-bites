@@ -108,6 +108,38 @@ export async function getShopOrderHistory(shopId: string, limit: number = 50): P
   return data || []
 }
 
+export async function markItemUnavailableAsShop(orderId: string, itemId: string, itemPrice: number, quantity: number, currentTotal: number) {
+  const supabase = createClient()
+  
+  // 1. Update order item name to prepend [UNAVAILABLE]
+  const { data: itemData, error: itemError } = await supabase
+    .from('order_items')
+    .select('item_name')
+    .eq('id', itemId)
+    .single()
+    
+  if (itemError) throw new Error(itemError.message)
+  
+  if (itemData.item_name.startsWith('[UNAVAILABLE]')) return // already marked
+  
+  const { error: updateItemError } = await supabase
+    .from('order_items')
+    .update({ item_name: `[UNAVAILABLE] ${itemData.item_name}` })
+    .eq('id', itemId)
+    
+  if (updateItemError) throw new Error(updateItemError.message)
+  
+  // 2. Reduce the total order amount
+  const newTotal = Math.max(0, currentTotal - (itemPrice * quantity))
+  
+  const { error: updateOrderError } = await supabase
+    .from('orders')
+    .update({ total_amount: newTotal })
+    .eq('id', orderId)
+    
+  if (updateOrderError) throw new Error(updateOrderError.message)
+}
+
 import { logOrderAudit } from './admin'
 
 export async function updateOrderStatusDB(orderId: string, status: string, userId?: string) {
@@ -256,3 +288,52 @@ export async function cancelOrderAsShop(orderId: string, shopOwnerId: string, re
   }
 }
 
+export async function markCashCollected(shopId: string, riderId: string, amount: number, dateStr: string) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('rider_settlements')
+    .insert({
+      shop_id: shopId,
+      rider_id: riderId,
+      amount,
+      date: dateStr
+    })
+  if (error) throw new Error(error.message)
+}
+
+export async function getRiderSettlements(shopId: string, dateStr: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('rider_settlements')
+    .select('*')
+    .eq('shop_id', shopId)
+    .eq('date', dateStr)
+  if (error) throw new Error(error.message)
+  return data || []
+}
+
+export async function settleUpWithPartner(primaryShopId: string, partnerShopId: string, amount: number, monthStr: string) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('shop_settlements')
+    .insert({
+      primary_shop_id: primaryShopId,
+      partner_shop_id: partnerShopId,
+      amount,
+      settled_month: monthStr
+    })
+  if (error) throw new Error(error.message)
+}
+
+export async function getShopSettlements(shopId: string, monthStr: string) {
+  const supabase = createClient()
+  // Shop could be primary or partner
+  const { data, error } = await supabase
+    .from('shop_settlements')
+    .select('*')
+    .eq('settled_month', monthStr)
+    .or(`primary_shop_id.eq.${shopId},partner_shop_id.eq.${shopId}`)
+  
+  if (error) throw new Error(error.message)
+  return data || []
+}

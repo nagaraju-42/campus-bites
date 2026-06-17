@@ -12,11 +12,13 @@ import { registerPushNotifications } from '@/lib/push-notifications'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { claimDelivery } from '@/lib/supabase/queries/rider'
+import OrderTimeCard from '@/components/shared/OrderTimeCard'
+import { formatCurrency } from '@/lib/utils'
 
 export default function Rider2DashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const { activeDeliveries, availableOrders, removeAvailableOrder, addActiveDelivery, isOnline, setIsOnline } = useRiderStore()
+  const { activeDeliveries, availableOrders, removeAvailableOrder, addActiveDelivery, isOnline, setIsOnline, dedicatedShopId } = useRiderStore()
   const [deliveredOrders, setDeliveredOrders] = useState<any[]>([])
   const { isSupported: isWakeSupported, isAwake, toggle: toggleWake } = useWakeLock()
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -38,7 +40,11 @@ export default function Rider2DashboardPage() {
       
       const { data } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          shops(name),
+          order_items(*, partner:partner_shop_id(name))
+        `)
         .eq('rider_id', user!.id)
         .eq('status', 'delivered')
         .gte('placed_at', today.toISOString())
@@ -89,74 +95,31 @@ export default function Rider2DashboardPage() {
         removeAvailableOrder(order.id)
         addActiveDelivery({ ...order, status: 'out_for_delivery', rider_id: user.id })
       }
+      
+      const { batchStartTime, setBatchStartTime } = useRiderStore.getState()
+      if (!batchStartTime) {
+        setBatchStartTime(Date.now())
+      }
+      
       toast.success(`Claimed batch of ${batchOrders.length} orders! Proceed to pickup.`)
     } catch (err: any) {
       toast.error('Failed to claim batch. Someone else might have claimed it.')
     }
   }
 
+  // Filter pool by Dedicated Shop Mode if active
+  const filteredAvailableOrders = dedicatedShopId 
+    ? availableOrders.filter(o => o.shop_id === dedicatedShopId)
+    : availableOrders
+
   // Calculate grouped batches
-  const groupedBatches = availableOrders.reduce((acc, order) => {
+  const groupedBatches = filteredAvailableOrders.reduce((acc, order) => {
     if (!acc[order.shop_id]) acc[order.shop_id] = { shopName: order.shops?.name || 'Unknown Shop', orders: [] }
     acc[order.shop_id].orders.push(order)
     return acc
   }, {} as Record<string, { shopName: string, orders: any[] }>)
 
-  // Check if active deliveries have an active countdown timer (5 mins from claiming)
-  // We'll use the oldest 'out_for_delivery' order to track the batch claim time loosely,
-  // or just look at the current time vs claim time if we had it.
-  // Since we don't have claim time easily available, we can mock the 5-min timer for now 
-  // or calculate it based on when the first order in the active batch was placed/ready.
-  // We will assume 5 mins from NOW once they see this page for active deliveries.
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
-  useEffect(() => {
-    if (activeDeliveries.length > 0) {
-      // Fallback to localStorage to ensure timer survives refreshes even without updated_at column
-      const batchId = activeDeliveries.map(o => o.id).sort().join('-')
-      let claimTime = localStorage.getItem(`batch_${batchId}`)
-      if (!claimTime) {
-        // First time seeing this batch
-        claimTime = new Date().getTime().toString()
-        localStorage.setItem(`batch_${batchId}`, claimTime)
-      }
-      
-      const updateElapsed = () => {
-        const now = new Date().getTime()
-        const elapsed = Math.floor((now - parseInt(claimTime!)) / 1000)
-        setElapsedSeconds(elapsed)
-      }
-      
-      updateElapsed()
-      const timer = setInterval(updateElapsed, 1000)
-      return () => clearInterval(timer)
-    } else {
-      setElapsedSeconds(0)
-    }
-  }, [activeDeliveries.length])
-
-  useEffect(() => {
-    // Play alarm when 5 min collection window ends
-    if (elapsedSeconds === 300 && activeDeliveries.length > 0) {
-      const batchId = activeDeliveries.map(o => o.id).sort().join('-')
-      if (!localStorage.getItem(`prompted_${batchId}`)) {
-        localStorage.setItem(`prompted_${batchId}`, 'true')
-        const { playRiderAlarm } = require('@/store/riderStore')
-        playRiderAlarm({ title: 'Collection Time Up!', message: 'The 5-minute collection window has ended. You now have 20 minutes to deliver!' })
-      }
-    }
-  }, [elapsedSeconds, activeDeliveries])
-
-  const isCollectionPhase = elapsedSeconds < 300
-  const timerTitle = isCollectionPhase ? 'Collection Window' : 'Delivery Window'
-  const timerSubtext = isCollectionPhase ? 'Deliver within 25 mins' : 'Hurry! Drop off the order'
-  
-  let displayTimeLeft = 0
-  if (isCollectionPhase) {
-    displayTimeLeft = Math.max(300 - elapsedSeconds, 0)
-  } else {
-    displayTimeLeft = Math.max(1500 - elapsedSeconds, 0) // 25 mins total
-  }
 
   return (
     <div className="px-5 pt-8 pb-4">
@@ -227,7 +190,10 @@ export default function Rider2DashboardPage() {
                         Smart Batch Ready
                       </span>
                       <h3 className="font-bold text-gray-900 text-lg">{batch.shopName}</h3>
-                      <p className="text-xs text-gray-600 font-medium mt-1">{batch.orders.length} orders in this batch</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-gray-600 font-medium">{batch.orders.length} order{batch.orders.length > 1 ? 's' : ''} in this batch</p>
+                        <OrderTimeCard placedAt={new Date(Math.min(...batch.orders.map((o: any) => new Date(o.placed_at).getTime()))).toISOString()} />
+                      </div>
                       
                       {/* Show destinations */}
                       <div className="mt-2 text-xs text-gray-500">
@@ -279,18 +245,6 @@ export default function Rider2DashboardPage() {
             </div>
           ) : (
             <div className="space-y-4 mb-8">
-              {/* Collection Timer */}
-              {activeDeliveries.some(o => o.status === 'out_for_delivery') && (
-                <div className={`p-4 rounded-xl border ${displayTimeLeft < 60 ? 'bg-red-50 border-red-200 text-red-800' : isCollectionPhase ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-orange-50 border-orange-200 text-orange-800'} flex justify-between items-center shadow-sm`}>
-                  <div>
-                    <p className="font-bold text-sm uppercase tracking-wider">{timerTitle}</p>
-                    <p className="text-xs mt-0.5 opacity-80">{timerSubtext}</p>
-                  </div>
-                  <div className="text-2xl font-mono font-bold tracking-widest">
-                    {Math.floor(displayTimeLeft / 60)}:{(displayTimeLeft % 60).toString().padStart(2, '0')}
-                  </div>
-                </div>
-              )}
               {/* Group active deliveries by shop */}
               {(() => {
                 const byShop = activeDeliveries.reduce((acc, order) => {
@@ -352,45 +306,33 @@ export default function Rider2DashboardPage() {
                             {/* Orders for this hostel */}
                             <div className="space-y-4">
                               {(hostelOrders as any[]).map((order: any, orderIdx: number) => (
-                                <div key={order.id} className="pl-2 border-l-2 border-gray-100">
+                                <Link key={order.id} href={`/rider2/delivery/${order.id}`} className="block pl-2 border-l-2 border-gray-100 hover:bg-gray-50 active:bg-gray-100 rounded-xl p-2 -ml-2 transition">
                                   {/* Order header row */}
-                                  <Link href={`/rider2/delivery/${order.id}`} className="block">
-                                    <div className="flex justify-between items-center mb-2 p-2 -mx-2 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition cursor-pointer">
-                                      <div>
-                                        <span className="font-bold text-gray-800 text-sm">#{order.order_number}</span>
-                                      </div>
-                                      <span className="text-[11px] bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-bold">
-                                        Deliver →
-                                      </span>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <div>
+                                      <span className="font-bold text-gray-800 text-sm">#{order.order_number}</span>
                                     </div>
-                                  </Link>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                      Tap to open
+                                    </span>
+                                  </div>
 
                                   {/* Items */}
                                   <div className="space-y-1.5">
                                     {order.order_items?.map((item: any, idx: number) => {
                                       const isExternal = !!item.partner_shop_id
-                                      const checkKey = `${order.id}-${item.id}`
-                                      const isChecked = checkedItems[checkKey]
                                       return (
                                         <div
                                           key={idx}
-                                          onClick={() => toggleCheck(checkKey)}
-                                          className={`flex justify-between items-center px-3 py-2 rounded-xl border transition cursor-pointer select-none ${
-                                            isChecked
-                                              ? 'bg-gray-50 border-gray-200 opacity-50'
-                                              : isExternal
-                                                ? 'bg-purple-50 border-purple-100'
-                                                : 'bg-green-50 border-green-100'
+                                          className={`flex justify-between items-center px-3 py-2 rounded-xl border ${
+                                            isExternal
+                                              ? 'bg-purple-50 border-purple-100'
+                                              : 'bg-green-50 border-green-100'
                                           }`}
                                         >
                                           <div className="flex items-center gap-2">
-                                            <div className={`w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center ${
-                                              isChecked ? 'bg-gray-300' : isExternal ? 'bg-purple-500' : 'bg-green-500'
-                                            }`}>
-                                              {isChecked && <Check size={11} strokeWidth={3} className="text-white" />}
-                                            </div>
-                                            <span className={`text-sm font-bold ${isChecked ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                                              {item.quantity}× {item.item_name || item.menu_items?.name || 'Item'}
+                                            <span className={`text-sm font-bold ${item.item_name?.startsWith('[UNAVAILABLE]') ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                                              {item.quantity}× {item.item_name?.replace('[UNAVAILABLE] ', '') || item.menu_items?.name || 'Item'}
                                             </span>
                                           </div>
                                           {isExternal && (
@@ -402,7 +344,7 @@ export default function Rider2DashboardPage() {
                                       )
                                     })}
                                   </div>
-                                </div>
+                                </Link>
                               ))}
                             </div>
                           </div>
@@ -414,6 +356,7 @@ export default function Rider2DashboardPage() {
               })()}
             </div>
           )}
+
 
           <h2 className="font-bold text-gray-900 mb-4 mt-8">Delivered Today ({deliveredOrders.length})</h2>
           

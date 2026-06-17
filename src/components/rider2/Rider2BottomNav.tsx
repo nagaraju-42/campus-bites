@@ -7,7 +7,8 @@ import { useRiderStore } from '@/store/riderStore'
 
 const NAV_ITEMS = [
   { href: '/rider2/dashboard', label: 'Dashboard', Icon: Map },
-  { href: '/rider2/delivery/current', label: 'Active', Icon: Navigation },
+  { href: '/rider2/active', label: 'Active', Icon: Navigation },
+  { href: '/rider2/wallet', label: 'Wallet', Icon: Wallet },
   { href: '/rider2/profile', label: 'Profile', Icon: User },
 ]
 
@@ -23,7 +24,7 @@ export default function Rider2BottomNav() {
           const isCurrentDeliveryRoute = label === 'Active'
           const actualHref = isCurrentDeliveryRoute ? '/rider2/active' : href
 
-          const isActive = pathname.startsWith(isCurrentDeliveryRoute ? '/rider2/active' : href) || pathname.startsWith('/rider2/delivery')
+          const isActive = pathname.startsWith(actualHref) || (isCurrentDeliveryRoute && pathname.startsWith('/rider2/delivery'))
           const isDisabled = isCurrentDeliveryRoute && activeDeliveries.length === 0
           const showBadge = label === 'Dashboard' && availableOrders.length > 0
 

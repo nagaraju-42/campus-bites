@@ -12,8 +12,98 @@ import Rider2BottomNav from '@/components/rider2/Rider2BottomNav'
 import { Order } from '@/types'
 import CompleteProfileOverlay from '@/components/shared/CompleteProfileOverlay'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Store, ShoppingBag, GraduationCap } from 'lucide-react'
 import { stopRiderAlarm } from '@/store/riderStore'
-import GlobalRiderTimer from '@/components/rider2/GlobalRiderTimer'
+
+function GamifiedProgressBar() {
+  const { batchStartTime, activeDeliveries } = useRiderStore()
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Hide if there's no active cycle
+  if (activeDeliveries.length === 0 && !batchStartTime) return null
+
+  const BATCH_DUR = 5 * 60 * 1000 // 5 mins
+  const DELIVERY_DUR = 15 * 60 * 1000 // 15 mins (Total 20 mins)
+  const TOTAL_DUR = BATCH_DUR + DELIVERY_DUR
+
+  const effectiveStartTime = batchStartTime || (activeDeliveries.length > 0 ? new Date(activeDeliveries[0].placed_at).getTime() : null)
+  
+  if (!effectiveStartTime) return null
+
+  const elapsed = Math.max(0, now - effectiveStartTime)
+  const isMaxBatched = activeDeliveries.length >= 3
+  
+  let phase = 'collection'
+  let progressWidth = 0
+  let barColor = 'bg-amber-500'
+  let message = ''
+
+  if (elapsed > TOTAL_DUR) {
+    phase = 'late'
+    progressWidth = 100
+    barColor = 'bg-red-500 animate-pulse'
+    message = 'LATE! Deliver immediately!'
+  } else if (elapsed >= BATCH_DUR || isMaxBatched) {
+    phase = 'delivery'
+    // Starts at 25%, goes to 100%
+    const deliveryElapsed = isMaxBatched && elapsed < BATCH_DUR ? 0 : elapsed - BATCH_DUR
+    const deliveryProgress = Math.min((deliveryElapsed / DELIVERY_DUR) * 75, 75)
+    progressWidth = 25 + deliveryProgress
+    barColor = 'bg-[#16A34A]'
+    const timeLeft = Math.max(0, TOTAL_DUR - elapsed)
+    const minsLeft = Math.floor(timeLeft / 60000)
+    const secsLeft = String(Math.floor((timeLeft % 60000) / 1000)).padStart(2, '0')
+    message = `Deliver to hostel (${minsLeft}:${secsLeft} left)`
+  } else {
+    phase = 'collection'
+    progressWidth = Math.min((elapsed / BATCH_DUR) * 25, 25)
+    barColor = 'bg-amber-500'
+    const timeLeft = BATCH_DUR - elapsed
+    const minsLeft = Math.floor(timeLeft / 60000)
+    const secsLeft = String(Math.floor((timeLeft % 60000) / 1000)).padStart(2, '0')
+    message = `Collect orders (Wait ${minsLeft}:${secsLeft})`
+  }
+
+  return (
+    <div className="sticky top-0 left-0 right-0 w-full bg-white z-[9999] max-w-[430px] mx-auto pt-4 pb-4 px-5 shadow-sm border-b">
+      <div className="flex justify-between items-center mb-3">
+        <span className={`font-black tracking-tight text-sm uppercase ${
+          phase === 'late' ? 'text-red-500' :
+          phase === 'delivery' ? 'text-[#16A34A]' : 'text-amber-500'
+        }`}>
+          {message}
+        </span>
+      </div>
+      
+      <div className="w-full h-3 bg-gray-100 rounded-full relative flex items-center shadow-inner">
+        {/* The filling bar */}
+        <motion.div 
+          className={`h-full rounded-full ${barColor}`} 
+          animate={{ width: `${progressWidth}%` }}
+          transition={{ ease: 'linear', duration: 1 }}
+        />
+        
+        {/* Milestone Icons */}
+        <div className="absolute top-1/2 -translate-y-1/2 left-[0%] -ml-1 w-5 h-5 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center z-10 shadow-sm">
+          <Store size={10} className={progressWidth >= 0 ? "text-amber-500" : "text-gray-400"} />
+        </div>
+        
+        <div className="absolute top-1/2 -translate-y-1/2 left-[25%] -ml-2.5 w-6 h-6 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center z-10 shadow-sm transition-colors duration-500" style={{ borderColor: progressWidth >= 25 ? '#16A34A' : '#e5e7eb' }}>
+          <ShoppingBag size={12} className={progressWidth >= 25 ? "text-[#16A34A]" : "text-gray-400"} />
+        </div>
+        
+        <div className="absolute top-1/2 -translate-y-1/2 right-[0%] -mr-1 w-5 h-5 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center z-10 shadow-sm transition-colors duration-500" style={{ borderColor: progressWidth >= 100 ? '#ef4444' : '#e5e7eb' }}>
+          <GraduationCap size={10} className={progressWidth >= 100 ? "text-red-500" : "text-gray-400"} />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function RiderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -250,6 +340,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className={`min-h-screen flex flex-col pb-20 max-w-[430px] mx-auto shadow-xl relative ${isAlarmRinging ? 'ringing-rider-container bg-green-50' : 'bg-gray-50 border-x border-gray-100'}`}>
+      <GamifiedProgressBar />
       <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
 
       <AnimatePresence>
@@ -283,7 +374,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
         )}
       </AnimatePresence>
 
-      <GlobalRiderTimer />
+
       
       {needsOnboarding && user && (
         <CompleteProfileOverlay 

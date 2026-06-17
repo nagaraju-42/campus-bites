@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Phone, MapPin, CheckCircle2, MessageSquare, X, Send } from 'lucide-react'
+import { Phone, MapPin, CheckCircle2, MessageSquare, X, Send, QrCode } from 'lucide-react'
 import { useRiderStore } from '@/store/riderStore'
 import { useAuthStore } from '@/store/authStore'
 import { completeDelivery } from '@/lib/supabase/queries/rider'
+import { formatCurrency } from '@/lib/utils'
 
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -27,6 +28,7 @@ export default function ActiveDeliveryPage() {
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
   const [otpInput, setOtpInput] = useState('')
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({})
+  const [showQR, setShowQR] = useState(false)
 
   const toggleItem = (idx: number) => {
     setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }))
@@ -47,7 +49,7 @@ export default function ActiveDeliveryPage() {
         const supabase = createClient()
         const { data, error } = await supabase
           .from('orders')
-          .select(`*, shops(name, description), profiles!student_id(full_name, phone), order_items(*, partner:partner_shop_id(name))`)
+          .select(`*, shops(name, description, phone, qr_code_url, upi_id), profiles!student_id(full_name, phone), order_items(*, partner:partner_shop_id(name))`)
           .eq('id', orderId)
           .single()
         
@@ -99,6 +101,41 @@ export default function ActiveDeliveryPage() {
       router.replace('/rider2/dashboard')
     } catch (err) {
       toast.error('Failed to complete delivery')
+    }
+  }
+
+  const handleMarkUnavailable = async (item: any) => {
+    if (!confirm(`Are you sure you want to mark "${item.item_name}" as unavailable? The student's total will be dynamically reduced.`)) return;
+
+    try {
+      const supabase = createClient();
+      const newName = `[UNAVAILABLE] ${item.item_name}`;
+      
+      // Update item name in DB
+      await supabase.from('order_items').update({ item_name: newName }).eq('id', item.id);
+      
+      // Update order total in DB
+      const reduction = item.quantity * item.unit_price;
+      const newTotal = Math.max(0, order!.total_amount - reduction);
+      await supabase.from('orders').update({ total_amount: newTotal }).eq('id', order!.id);
+      
+      // Mutate local state so UI updates immediately
+      setOrder(prev => {
+        if (!prev) return prev;
+        const newItems = prev.order_items?.map(i => i.id === item.id ? { ...i, item_name: newName } : i);
+        return { ...prev, total_amount: newTotal, order_items: newItems };
+      });
+      
+      // Also update the global activeDeliveries store so dashboard reflects it
+      setActiveDeliveries(activeDeliveries.map(d => d.id === order!.id ? { 
+        ...d, 
+        total_amount: newTotal,
+        order_items: d.order_items?.map((i: any) => i.id === item.id ? { ...i, item_name: newName } : i)
+      } : d));
+      
+      toast.success('Item marked unavailable. Fare updated!');
+    } catch (err) {
+      toast.error('Failed to update item');
     }
   }
 
@@ -170,67 +207,19 @@ export default function ActiveDeliveryPage() {
               {order.shops?.description || 'Pickup from counter'}
             </p>
 
-            <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-3 text-sm uppercase tracking-wider">Order Items</h3>
-              <div className="space-y-3">
-                {/* Primary Items */}
-                {order.order_items?.filter(i => !i.partner_shop_id || i.partner_shop_id === order.shop_id).map((item, idx) => {
-                  const originalIdx = order.order_items!.findIndex(i => i === item);
-                  const isChecked = checkedItems[originalIdx];
-                  return (
-                    <div 
-                      key={`p-${originalIdx}`} 
-                      onClick={() => toggleItem(originalIdx)}
-                      className={`flex justify-between items-center p-3 rounded-xl border transition-all cursor-pointer ${
-                        isChecked ? 'bg-green-50 border-green-200 text-gray-400 opacity-60' : 'bg-white border-gray-100 text-gray-800 shadow-sm'
-                      }`}
-                    >
-                      <div className="flex gap-3 items-center">
-                        <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}`}>
-                          {isChecked && <span className="text-xs font-bold">✓</span>}
-                        </div>
-                        <span className={`font-bold ${isChecked ? 'line-through' : ''}`}>{item.quantity}x {item.item_name}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-
-                {/* Secondary Items */}
-                {order.order_items?.some(i => i.partner_shop_id && i.partner_shop_id !== order.shop_id) && (
-                  <div className="mt-4 bg-purple-50 rounded-2xl p-4 border border-purple-100">
-                    <p className="text-purple-600 text-xs font-bold uppercase tracking-wider mb-3">Partner Add-ons</p>
-                    <div className="space-y-2">
-                      {order.order_items?.filter(i => i.partner_shop_id && i.partner_shop_id !== order.shop_id).map((item, idx) => {
-                        const originalIdx = order.order_items!.findIndex(i => i === item);
-                        const isChecked = checkedItems[originalIdx];
-                        return (
-                          <div 
-                            key={`s-${originalIdx}`} 
-                            onClick={() => toggleItem(originalIdx)}
-                            className={`flex justify-between items-center p-3 rounded-xl border transition-all cursor-pointer ${
-                              isChecked ? 'bg-purple-100 border-purple-200 text-purple-400 opacity-60' : 'bg-white border-purple-100 text-purple-900 shadow-sm'
-                            }`}
-                          >
-                            <div className="flex gap-3 items-center">
-                              <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-purple-500 border-purple-500 text-white' : 'border-purple-300'}`}>
-                                {isChecked && <span className="text-xs font-bold">✓</span>}
-                              </div>
-                              <span className={`font-bold ${isChecked ? 'line-through' : ''}`}>{item.quantity}x {item.item_name}</span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
+            <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 mb-6 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">Deliver To</p>
+                <p className="font-bold text-blue-900 text-sm">{(order as any).profiles?.full_name || 'Student'}</p>
               </div>
-              {order.special_note && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-xs font-bold text-amber-600 uppercase mb-1">Note:</p>
-                  <p className="text-sm font-medium text-gray-800">{order.special_note}</p>
-                </div>
-              )}
+              <a 
+                href={`tel:+91${((order as any).profiles?.phone || '').replace('+91', '')}`}
+                className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-sm active:scale-95 transition"
+              >
+                <Phone size={16} />
+              </a>
             </div>
+
           </div>
         ) : (
           <div className="flex-1">
@@ -269,6 +258,201 @@ export default function ActiveDeliveryPage() {
             </div>
           </div>
         )}
+
+        {/* Global Order Items visible in BOTH Steps */}
+        <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 mt-6">
+          <h3 className="font-bold text-gray-900 mb-3 text-sm uppercase tracking-wider">Order Items</h3>
+          <div className="space-y-3">
+            {/* Primary Items */}
+            {order.order_items?.filter(i => !i.partner_shop_id || i.partner_shop_id === order.shop_id).map((item, idx) => {
+              const originalIdx = order.order_items!.findIndex(i => i === item);
+              const isUnavailable = item.item_name.startsWith('[UNAVAILABLE]');
+              return (
+                <div key={`p-${originalIdx}`} className="flex items-center gap-2">
+                  <div className={`flex-1 p-3 rounded-xl border ${isUnavailable ? 'bg-gray-100 border-gray-200' : 'bg-white border-gray-100 shadow-sm'}`}>
+                    <span className={`font-bold ${isUnavailable ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                      {item.quantity}x {item.item_name.replace('[UNAVAILABLE] ', '')}
+                    </span>
+                  </div>
+                  {!isUnavailable && (
+                    <button
+                      onClick={() => handleMarkUnavailable(item)}
+                      className="w-12 h-12 flex-shrink-0 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl border border-red-100 flex items-center justify-center transition active:scale-95"
+                      title="Mark Unavailable"
+                    >
+                      <span className="text-2xl font-bold mb-1">×</span>
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Secondary Items */}
+            {order.order_items?.some(i => i.partner_shop_id && i.partner_shop_id !== order.shop_id) && (
+              <div className="mt-4 bg-purple-50 rounded-2xl p-4 border border-purple-100">
+                <p className="text-purple-600 text-xs font-bold uppercase tracking-wider mb-3">Partner Add-ons</p>
+                <div className="space-y-2">
+                  {order.order_items?.filter(i => i.partner_shop_id && i.partner_shop_id !== order.shop_id).map((item, idx) => {
+                    const originalIdx = order.order_items!.findIndex(i => i === item);
+                    const isUnavailable = item.item_name.startsWith('[UNAVAILABLE]');
+                    return (
+                      <div key={`s-${originalIdx}`} className="flex items-center gap-2">
+                        <div className={`flex-1 p-3 rounded-xl border ${isUnavailable ? 'bg-purple-100/50 border-purple-200' : 'bg-white border-purple-100 shadow-sm'}`}>
+                          <span className={`font-bold ${isUnavailable ? 'text-purple-400 line-through' : 'text-purple-900'}`}>
+                            {item.quantity}x {item.item_name.replace('[UNAVAILABLE] ', '')}
+                          </span>
+                        </div>
+                        {!isUnavailable && (
+                          <button
+                            onClick={() => handleMarkUnavailable(item)}
+                            className="w-12 h-12 flex-shrink-0 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl border border-red-100 flex items-center justify-center transition active:scale-95"
+                            title="Mark Unavailable"
+                          >
+                            <span className="text-2xl font-bold mb-1">×</span>
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+          {order.special_note && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-xs font-bold text-amber-600 uppercase mb-1">Note:</p>
+              <p className="text-sm font-medium text-gray-800">{order.special_note}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Fare Summary & Payment Collection */}
+        <div className="mt-6 space-y-4">
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Fare</p>
+                <div className="flex flex-col items-start">
+                  {(() => {
+                    const unavailableItems = order.order_items?.filter((i: any) => i.item_name.startsWith('[UNAVAILABLE]')) || []
+                    if (unavailableItems.length > 0) {
+                      const originalTotal = order.total_amount + unavailableItems.reduce((sum: number, i: any) => sum + (i.quantity * (i.unit_price || 0)), 0)
+                      return (
+                        <>
+                          <span className="text-xs font-bold text-gray-400 line-through mb-0.5">{formatCurrency(originalTotal)}</span>
+                          <span className="font-bold text-2xl text-gray-900">{formatCurrency(order.total_amount)}</span>
+                        </>
+                      )
+                    }
+                    return <span className="font-bold text-2xl text-gray-900">{formatCurrency(order.total_amount)}</span>
+                  })()}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Payment</p>
+                <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                  order.payment_method === 'UPI' ? 'bg-green-100 text-[#16A34A]' : 'bg-orange-100 text-orange-600'
+                }`}>
+                  {order.payment_method === 'cash_on_delivery' ? 'Cash / UPI' : 'Prepaid'}
+                </span>
+              </div>
+            </div>
+
+            {/* Collection Breakdown */}
+            {(() => {
+              let primaryCash = 0;
+              let secondaryCash = 0;
+              const secondaryBreakdown: Record<string, number> = {};
+              const deliveryFees = order.delivery_fee || 10;
+              
+              const items = order.order_items || [];
+              items.forEach((item: any) => {
+                if (item.item_name && item.item_name.startsWith('[UNAVAILABLE]')) return;
+                const amount = item.quantity * (item.unit_price || 0);
+                if (item.partner_shop_id && item.partner_shop_id !== order.shop_id) {
+                  secondaryCash += amount;
+                  const partnerName = item.partner?.name || 'Partner Shop';
+                  secondaryBreakdown[partnerName] = (secondaryBreakdown[partnerName] || 0) + amount;
+                } else {
+                  primaryCash += amount;
+                }
+              });
+
+              return (
+                <div className="space-y-2 text-sm text-gray-600 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Collection Split</p>
+                  <div className="flex justify-between">
+                    <span>Primary Shop items:</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(primaryCash)}</span>
+                  </div>
+                  {Object.entries(secondaryBreakdown).map(([name, amt]) => (
+                    <div key={name} className="flex justify-between">
+                      <span>{name} items:</span>
+                      <span className="font-bold text-gray-900">{formatCurrency(amt)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between pb-2 border-b border-gray-200">
+                    <span>Delivery Fee:</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(deliveryFees)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="font-bold text-gray-800">Total to Collect:</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(order.total_amount)}</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {order.payment_method === 'cash_on_delivery' && step === 'dropoff' && (
+            <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100 shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <h3 className="font-bold text-blue-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                    <QrCode size={16} /> Collect Payment
+                  </h3>
+                  <p className="text-xs text-blue-600/80 font-medium mt-1">Student must pay <strong>{formatCurrency(order.total_amount)}</strong></p>
+                </div>
+                <button
+                  onClick={() => setShowQR(!showQR)}
+                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl active:scale-95 transition shadow-sm"
+                >
+                  {showQR ? 'Hide QR' : 'Show QR'}
+                </button>
+              </div>
+              
+              {showQR && (
+                <div className="mt-4 pt-4 border-t border-blue-200/50 flex flex-col items-center">
+                  <div className="bg-white p-3 rounded-2xl shadow-sm mb-3">
+                    {order.shops?.qr_code_url ? (
+                      <div className="w-48 h-48 relative rounded-xl overflow-hidden border border-gray-100">
+                        {/* Use standard img tag for simplicity and reliability with external URLs */}
+                        <img 
+                          src={order.shops.qr_code_url} 
+                          alt="Shop UPI QR Code" 
+                          className="object-contain w-full h-full"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-40 h-40 bg-gray-100 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
+                        <QrCode size={48} className="text-gray-400 mb-2" />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">Scan to Pay</span>
+                      </div>
+                    )}
+                  </div>
+                  {order.shops?.upi_id && (
+                    <p className="text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg mb-2">
+                      {order.shops.upi_id}
+                    </p>
+                  )}
+                  <p className="text-[11px] font-bold text-blue-600/80 uppercase tracking-wider text-center max-w-[200px]">
+                    Ask student to scan with GPay / PhonePe
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Action Button at Bottom */}
         <div className="mt-auto pt-6 pb-2">

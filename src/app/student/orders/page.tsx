@@ -104,7 +104,21 @@ export default function MyOrdersPage() {
                   <div>
                     <p className="text-gray-400 text-xs font-medium">{formatDate(order.placed_at)}</p>
                   </div>
-                  <p className="font-bold text-gray-900">{formatCurrency(order.total_amount)}</p>
+                  <div className="flex flex-col items-end">
+                    {(() => {
+                      const unavailableItems = order.order_items?.filter((i: any) => i.item_name.startsWith('[UNAVAILABLE]')) || []
+                      if (unavailableItems.length > 0) {
+                        const originalTotal = order.total_amount + unavailableItems.reduce((sum: number, i: any) => sum + (i.quantity * (i.unit_price || 0)), 0)
+                        return (
+                          <>
+                            <p className="font-bold text-xs text-gray-400 line-through mb-0.5">{formatCurrency(originalTotal)}</p>
+                            <p className="font-bold text-gray-900">{formatCurrency(order.total_amount)}</p>
+                          </>
+                        )
+                      }
+                      return <p className="font-bold text-gray-900">{formatCurrency(order.total_amount)}</p>
+                    })()}
+                  </div>
                 </div>
               </motion.div>
             ))}

@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { stopRiderAlarm } from '@/store/riderStore'
 
 function GamifiedProgressBar() {
-  const { batchStartTime, activeDeliveries } = useRiderStore()
+  const { batchStartTime, activeDeliveries, dedicatedShopId } = useRiderStore()
   const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
@@ -22,47 +22,56 @@ function GamifiedProgressBar() {
     return () => clearInterval(interval)
   }, [])
 
-  if (activeDeliveries.length === 0 && !batchStartTime) return null
+  // Hide if there's no active cycle OR if the rider is in Dedicated Shop Mode
+  if ((activeDeliveries.length === 0 && !batchStartTime) || dedicatedShopId) return null
 
   const BATCH_DUR = 5 * 60 * 1000 // 5 mins
-  const DELIVERY_DUR = 15 * 60 * 1000 // 15 mins
+  const DELIVERY_DUR = 20 * 60 * 1000 // 20 mins
+  const TOTAL_DUR = BATCH_DUR + DELIVERY_DUR
 
   let redWidth = 0
   let greenWidth = 0
+  let timeLeftMs = TOTAL_DUR
 
   if (batchStartTime) {
     const timeSinceBatch = Math.max(0, now - batchStartTime)
-    redWidth = Math.min((timeSinceBatch / BATCH_DUR) * 50, 50)
+    timeLeftMs = Math.max(0, TOTAL_DUR - timeSinceBatch)
+    
+    // Red is 20% of the bar
+    redWidth = Math.min((timeSinceBatch / BATCH_DUR) * 20, 20)
     
     if (timeSinceBatch > BATCH_DUR || activeDeliveries.length >= 3) {
-      // Force red to 50% if max batched
-      redWidth = 50
+      // Force red to 20% if max batched
+      redWidth = 20
       
-      // Calculate green width
+      // Green is 80% of the bar
       const timeSinceDeliveryStart = Math.max(0, timeSinceBatch - BATCH_DUR)
-      greenWidth = Math.min((timeSinceDeliveryStart / DELIVERY_DUR) * 50, 48) // Cap at 48% (total 98%) so it doesn't quite finish until OTP
+      greenWidth = Math.min((timeSinceDeliveryStart / DELIVERY_DUR) * 80, 78) // Cap at 78% (total 98%) so it doesn't quite finish until OTP
     }
   }
 
+  const formattedTimeLeft = `${Math.floor(timeLeftMs / 60000)}:${String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, '0')}`
+
   return (
-    <div className="fixed top-0 left-0 right-0 w-full h-1.5 bg-gray-200 z-[9999] max-w-[430px] mx-auto shadow-sm">
-      <div className="h-full relative flex w-full">
+    <div className="fixed top-0 left-0 right-0 w-full bg-white z-[9999] max-w-[430px] mx-auto pt-2 pb-1 px-4 shadow-sm">
+      <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 mb-1">
+        <span>0:00</span>
+        <span className="text-gray-900 font-black tracking-tight text-xs">Batch Cycle: {formattedTimeLeft}</span>
+        <span>25:00</span>
+      </div>
+      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative flex">
         <motion.div 
-          className="h-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" 
+          className="h-full bg-red-500" 
           animate={{ width: `${redWidth}%` }}
           transition={{ ease: 'linear', duration: 1 }}
         />
         <motion.div 
-          className="h-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" 
+          className="h-full bg-green-500" 
           animate={{ width: `${greenWidth}%` }}
           transition={{ ease: 'linear', duration: 1 }}
         />
-        {/* Glow effect at the tip of the progress */}
-        <motion.div 
-          className="absolute top-0 h-full w-2 bg-white rounded-full blur-[1px]"
-          animate={{ left: `calc(${redWidth + greenWidth}% - 4px)` }}
-          transition={{ ease: 'linear', duration: 1 }}
-        />
+        {/* Separator line at 5 mins (20%) */}
+        <div className="absolute top-0 left-[20%] w-[1px] h-full bg-white/50 z-10" />
       </div>
     </div>
   )

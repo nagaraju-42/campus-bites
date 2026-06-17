@@ -60,6 +60,7 @@ export interface Shop {
   phone: string | null
   cover_image?: string
   upi_id: string | null
+  qr_code_url?: string | null
   logo_url: string | null
   is_open: boolean
   status: ShopStatus
@@ -130,7 +131,7 @@ export interface Order {
   placed_at: string
   delivered_at: string | null
   // Joined
-  shops?: Pick<Shop, 'id' | 'name' | 'logo_url' | 'phone' | 'description' | 'address'>
+  shops?: Pick<Shop, 'id' | 'name' | 'logo_url' | 'phone' | 'description' | 'address' | 'upi_id' | 'qr_code_url'>
   order_items?: OrderItem[]
   rider?: Pick<Profile, 'full_name' | 'phone'>
   student?: Pick<Profile, 'full_name' | 'phone'>

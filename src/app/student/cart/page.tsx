@@ -14,14 +14,32 @@ export default function CartPage() {
   const router = useRouter()
   const [specialNote, setSpecialNote] = useState('')
   const [suggestedItems, setSuggestedItems] = useState<any[]>([])
+  const [minOrderAmount, setMinOrderAmount] = useState<number | null>(null)
   const { items, updateQuantity, clearCart, addItem, shopId,
     getTotalItems, getTotalPrice, getDeliveryFee, getPlatformFee, getGrandTotal } = useCartStore()
 
   useEffect(() => {
     if (shopId) {
+      fetchShopDetails(shopId)
       fetchSuggestedItems(shopId)
     }
   }, [shopId])
+
+  async function fetchShopDetails(currentShopId: string) {
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('shops')
+        .select('min_order_amount')
+        .eq('id', currentShopId)
+        .single()
+      if (data) {
+        setMinOrderAmount(data.min_order_amount)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   async function fetchSuggestedItems(currentShopId: string) {
     try {
@@ -43,9 +61,9 @@ export default function CartPage() {
           .limit(10)
         
         if (menuItems) {
-          setSuggestedItems(menuItems.map(item => ({
-            ...item,
-            partnerShopName: (partnerShop.partner as any)?.name || (partnerShop.partner as any)?.[0]?.name || 'Partner Shop'
+          setSuggestedItems(menuItems.map(m => ({
+            ...m,
+            partnerShopName: (partnerShop.partner as any).name
           })))
         }
       } else {
@@ -60,8 +78,10 @@ export default function CartPage() {
     // Check if ALL items are partner items
     const allPartnerItems = items.every(item => item.partnerShopId)
     if (allPartnerItems) {
-      toast.error('You must add at least one item from the main shop before checking out.')
-      return
+      if (minOrderAmount && getTotalPrice() < minOrderAmount) {
+        toast.error(`Add 1 item from the primary shop, or add items worth at least ${formatCurrency(minOrderAmount)} from the partner shop.`, { duration: 5000 })
+        return
+      }
     }
     router.push(`/student/checkout?note=${encodeURIComponent(specialNote)}`)
   }

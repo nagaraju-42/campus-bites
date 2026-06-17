@@ -1,6 +1,7 @@
 import { MapPin, Navigation } from 'lucide-react'
 import { Order } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import OrderTimeCard from '@/components/shared/OrderTimeCard'
 
 interface PoolCardProps {
   order: Order
@@ -16,10 +17,13 @@ export default function PoolCard({ order, onClaim, isClaiming }: PoolCardProps) 
     <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 mb-4">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <span className="bg-green-100 text-[#16A34A] text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-            Ready for Pickup
-          </span>
-          <p className="font-bold text-gray-900 mt-2">Order {order.order_number}</p>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-green-100 text-[#16A34A] text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
+              Ready for Pickup
+            </span>
+            <OrderTimeCard placedAt={order.placed_at} status={order.status} />
+          </div>
+          <p className="font-bold text-gray-900 mt-1">Order {order.order_number}</p>
         </div>
         <div className="text-right">
           <p className="text-xs text-gray-400 font-medium">Est. Earning</p>

@@ -160,8 +160,20 @@ export default function AdminOrdersGodMode() {
                   <td className="px-6 py-4">
                     <p className="text-sm text-slate-300">{order.student?.full_name || 'Unknown'}</p>
                   </td>
-                  <td className="px-6 py-4 font-mono font-bold text-white">
-                    {formatCurrency(order.total_amount)}
+                  <td className="px-6 py-4 font-mono font-bold text-white flex flex-col items-start gap-0.5">
+                    {(() => {
+                      const unavailableItems = order.order_items?.filter((i: any) => i.item_name.startsWith('[UNAVAILABLE]')) || []
+                      if (unavailableItems.length > 0) {
+                        const originalTotal = order.total_amount + unavailableItems.reduce((sum: number, i: any) => sum + (i.quantity * (i.unit_price || 0)), 0)
+                        return (
+                          <>
+                            <span className="text-[10px] text-slate-500 line-through">{formatCurrency(originalTotal)}</span>
+                            <span>{formatCurrency(order.total_amount)}</span>
+                          </>
+                        )
+                      }
+                      return <span>{formatCurrency(order.total_amount)}</span>
+                    })()}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(order.status)}`}>

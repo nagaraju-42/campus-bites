@@ -17,24 +17,27 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
   // The user wants ALL items visible on the KDS so the kitchen knows the full order context,
   // but we will highlight the external items differently.
   // Sort items so that primary items are at the top, and partner items are at the bottom.
-  const displayItems = [...(order.order_items || [])].sort((a, b) => {
-    const isAExternal = a.partner_shop_id ? a.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
-    const isBExternal = b.partner_shop_id ? b.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
-    
-    if (isAExternal === isBExternal) return 0;
-    return isAExternal ? 1 : -1;
-  })
+  const displayItems = [...(order.order_items || [])]
+    .filter(item => {
+      // Primary shop sees everything
+      if (currentShopId === order.shop_id) return true;
+      // Partner shop ONLY sees their own items
+      if (item.partner_shop_id === currentShopId) return true;
+      return false;
+    })
+    .sort((a, b) => {
+      const isAExternal = a.partner_shop_id ? a.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
+      const isBExternal = b.partner_shop_id ? b.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
+      
+      if (isAExternal === isBExternal) return 0;
+      return isAExternal ? 1 : -1;
+    })
 
   // Dark mode optimized for Kitchen Display
   const isNew = order.status === 'pending'
-  const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({})
   const [isLate, setIsLate] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
-
-  const toggleItem = (idx: number) => {
-    setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }))
-  }
 
   const handleCancelSubmit = () => {
     if (!cancelReason.trim()) return
@@ -105,24 +108,16 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
               const isExternal = item.partner_shop_id ? item.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
               return !isExternal;
             }).map((item, idx) => {
-              // Find the original index for checkbox state
-              const originalIdx = displayItems.findIndex(i => i === item);
-              const isChecked = checkedItems[originalIdx];
+              const isUnavailable = item.item_name.startsWith('[UNAVAILABLE]');
               return (
                 <div 
-                  key={`primary-${originalIdx}`} 
-                  onClick={() => toggleItem(originalIdx)}
-                  className={`flex flex-col gap-1 cursor-pointer transition-all p-3 rounded-xl border bg-slate-700/20 border-transparent hover:bg-slate-700/40 ${isChecked ? 'opacity-50' : 'opacity-100'}`}
+                  key={`primary-${idx}`} 
+                  className={`flex flex-col gap-1 p-3 rounded-xl border border-transparent ${isUnavailable ? 'bg-slate-800/50 text-slate-500 line-through' : 'bg-slate-700/20 text-slate-100'}`}
                 >
-                  <div className={`flex justify-between items-start ${isChecked ? 'text-slate-500 line-through' : 'text-slate-100'}`}>
+                  <div className="flex justify-between items-center">
                     <div className="flex gap-3 items-center">
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-emerald-500 border-emerald-500 text-emerald-950' : 'border-slate-500'}`}>
-                        {isChecked && <span className="text-xs font-bold">✓</span>}
-                      </div>
                       <span className="font-bold text-lg">{item.quantity}x</span>
-                      <div>
-                        <p className="font-bold text-lg">{item.item_name}</p>
-                      </div>
+                      <p className="font-bold text-lg">{item.item_name.replace('[UNAVAILABLE] ', '')}</p>
                     </div>
                   </div>
                 </div>
@@ -144,29 +139,17 @@ export default function TicketCard({ order, currentShopId, onAccept, onReject, o
                     const isExternal = item.partner_shop_id ? item.partner_shop_id !== currentShopId : order.shop_id !== currentShopId;
                     return isExternal;
                   }).map((item, idx) => {
-                    const originalIdx = displayItems.findIndex(i => i === item);
-                    const isChecked = checkedItems[originalIdx];
+                    const isUnavailable = item.item_name.startsWith('[UNAVAILABLE]');
                     return (
                       <div 
-                        key={`secondary-${originalIdx}`} 
-                        onClick={() => toggleItem(originalIdx)}
-                        className={`flex flex-col gap-1 cursor-pointer transition-all p-2.5 rounded-xl border ${
-                          isChecked ? 'bg-purple-900/20 border-purple-900/50 opacity-50' : 'bg-purple-800/20 border-purple-500/20 hover:bg-purple-700/30'
-                        }`}
+                        key={`secondary-${idx}`} 
+                        className={`flex flex-col gap-1 p-2.5 rounded-xl border ${isUnavailable ? 'bg-purple-900/30 border-purple-500/10 text-purple-400/50 line-through' : 'bg-purple-800/20 border-purple-500/20 text-purple-100'}`}
                       >
-                        <div className={`flex justify-between items-center ${isChecked ? 'text-purple-400/50 line-through' : 'text-purple-100'}`}>
+                        <div className="flex justify-between items-center">
                           <div className="flex gap-3 items-center">
-                            <div className={`w-5 h-5 rounded border flex items-center justify-center ${isChecked ? 'bg-purple-500 border-purple-500 text-purple-950' : 'border-purple-400/50'}`}>
-                              {isChecked && <span className="text-xs font-bold">✓</span>}
-                            </div>
                             <span className="font-bold text-lg">{item.quantity}x</span>
-                            <div>
-                              <p className="font-bold text-base">{item.item_name}</p>
-                            </div>
+                            <p className="font-bold text-lg">{item.item_name.replace('[UNAVAILABLE] ', '')}</p>
                           </div>
-                          <span className="text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 px-2 py-1 rounded-lg">
-                            {item.partner?.name || 'External'}
-                          </span>
                         </div>
                       </div>
                     )

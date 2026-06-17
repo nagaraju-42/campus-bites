@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/admin/collaborations', label: 'Collaborations', Icon: Link2 },
   { href: '/admin/users', label: 'User Management', Icon: Users },
   { href: '/admin/promotions', label: 'Promotions', Icon: Tag },
+  { href: '/admin/settlements', label: 'Settlements', Icon: Banknote },
   { href: '/admin/payouts', label: 'Financials', Icon: Banknote },
   { href: '/admin/push-test', label: 'Push Notifications', Icon: Bell },
   { href: '/admin/settings', label: 'Settings', Icon: Store },

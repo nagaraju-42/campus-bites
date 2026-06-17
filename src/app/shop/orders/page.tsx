@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 import { Order } from '@/types'
 import { MessageSquare, X, Phone, AlertCircle } from 'lucide-react'
 import OrderChat from '@/components/shared/OrderChat'
+import OrderTimeCard from '@/components/shared/OrderTimeCard'
 import toast from 'react-hot-toast'
 
 const TABS = ['New', 'Preparing', 'Ready', 'History']
@@ -149,7 +150,24 @@ export default function ShopOrdersPage() {
                         )}
                       </p>
                     </div>
-                    <span className="font-bold text-lg text-[#2563EB]">{formatCurrency(order.total_amount)}</span>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-col items-end">
+                        {(() => {
+                          const unavailableItems = order.order_items?.filter(i => i.item_name.startsWith('[UNAVAILABLE]')) || []
+                          if (unavailableItems.length > 0) {
+                            const originalTotal = order.total_amount + unavailableItems.reduce((sum, i) => sum + (i.quantity * (i.unit_price || 0)), 0)
+                            return (
+                              <>
+                                <span className="font-bold text-sm text-gray-400 line-through">{formatCurrency(originalTotal)}</span>
+                                <span className="font-bold text-lg text-[#2563EB]">{formatCurrency(order.total_amount)}</span>
+                              </>
+                            )
+                          }
+                          return <span className="font-bold text-lg text-[#2563EB]">{formatCurrency(order.total_amount)}</span>
+                        })()}
+                      </div>
+                      <OrderTimeCard placedAt={order.placed_at} status={order.status} />
+                    </div>
                   </div>
                   
                   <div className="space-y-1 mb-3">
