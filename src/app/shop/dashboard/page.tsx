@@ -12,6 +12,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { Order } from '@/types'
 import toast from 'react-hot-toast'
 import { broadcastNotification } from '@/lib/supabase/queries/notifications'
+import { createClient } from '@/lib/supabase/client'
 import WhatsAppQRShare from '@/components/shop/WhatsAppQRShare'
 import FinancialsWidget from '@/components/shop/FinancialsWidget'
 
@@ -35,6 +36,8 @@ export default function ShopDashboardPage() {
   const [stats, setStats] = useState({ revenue: 0, orders: 0, avgValue: 0, cancelled: 0 })
   const [timeRange, setTimeRange] = useState<TimeRange>('today')
   const [isStatsLoading, setIsStatsLoading] = useState(false)
+  const [ridersList, setRidersList] = useState<any[]>([])
+  const [pendingHandoffs, setPendingHandoffs] = useState<any[]>([])
 
   useEffect(() => {
     if (!user || !shopId) return
@@ -46,11 +49,21 @@ export default function ShopDashboardPage() {
           return
         }
 
-        const [activeOrders, completed] = await Promise.all([
+        const [activeOrders, completed, { data: riders }] = await Promise.all([
           getShopActiveOrders(shopId!),
-          getShopOrderHistory(shopId!, 5)
+          getShopOrderHistory(shopId!, 5),
+          createClient().from('profiles').select('id, full_name, phone').eq('role', 'rider')
         ])
         const shopStats = await getShopStats(shopId!, timeRange)
+
+        // Fetch pending handoffs
+        const todayDateStr = new Date().toISOString().slice(0, 10)
+        const { data: handoffs } = await createClient()
+          .from('rider_settlements')
+          .select('*, rider:rider_id(full_name)')
+          .eq('shop_id', shopId!)
+          .eq('date', todayDateStr)
+          .eq('status', 'pending')
         
         setShopName(shop.name)
         setLiveStatus(shop.is_open)
@@ -58,6 +71,8 @@ export default function ShopDashboardPage() {
         setOrders(activeOrders)
         setRecentOrders(completed)
         setStats(shopStats)
+        if (riders) setRidersList(riders)
+        if (handoffs) setPendingHandoffs(handoffs)
 
       } catch (err) {
         console.error("Failed to load shop dashboard data:", err)
@@ -182,6 +197,22 @@ export default function ShopDashboardPage() {
         </div>
       </div>
 
+      {/* Pending Handoffs Alert */}
+      {pendingHandoffs.length > 0 && (
+        <div className="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm">
+          <div className="flex items-center gap-3">
+            <AlertCircle size={24} className="text-amber-500 flex-shrink-0" />
+            <div>
+              <h3 className="font-bold text-amber-900">Action Required: Pending Cash Handoffs</h3>
+              <p className="text-sm text-amber-800 mt-1">
+                You have {pendingHandoffs.length} rider{pendingHandoffs.length > 1 ? 's' : ''} waiting for you to collect and approve cash handoffs. 
+                <a href="/shop/reports" className="ml-2 font-bold underline hover:text-amber-600">Go to Reports to Approve &rarr;</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div>
         <div className="flex justify-between items-center mb-4">
@@ -288,6 +319,37 @@ export default function ShopDashboardPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* Rider Contacts Directory */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mt-6">
+        <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Users size={20} className="text-[#2563EB]" />
+          Rider Directory
+        </h2>
+        {ridersList.length === 0 ? (
+          <p className="text-gray-400 text-sm py-4">No riders found.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {ridersList.map(rider => (
+              <div key={rider.id} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-xl">
+                <div>
+                  <p className="font-bold text-sm text-gray-900">{rider.full_name}</p>
+                  <p className="text-xs font-medium text-gray-500 mt-0.5">{rider.phone || 'No phone'}</p>
+                </div>
+                {rider.phone && (
+                  <a 
+                    href={`tel:${rider.phone}`}
+                    className="w-10 h-10 bg-blue-100 text-[#2563EB] hover:bg-blue-600 hover:text-white rounded-full flex items-center justify-center transition active:scale-95"
+                    title={`Call ${rider.full_name}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       
       <NotificationsTray isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />

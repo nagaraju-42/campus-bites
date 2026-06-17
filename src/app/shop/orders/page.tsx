@@ -166,7 +166,7 @@ export default function ShopOrdersPage() {
                           return <span className="font-bold text-lg text-[#2563EB]">{formatCurrency(order.total_amount)}</span>
                         })()}
                       </div>
-                      <OrderTimeCard placedAt={order.placed_at} status={order.status} />
+                      <OrderTimeCard placedAt={order.placed_at} status={order.status} endTime={order.delivered_at} />
                     </div>
                   </div>
                   

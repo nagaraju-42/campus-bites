@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react'
 
-export default function OrderTimeCard({ placedAt, status }: { placedAt: string, status?: string }) {
+export default function OrderTimeCard({ placedAt, status, endTime }: { placedAt: string, status?: string, endTime?: string | null }) {
   const [elapsedMs, setElapsedMs] = useState<number>(0)
 
   useEffect(() => {
     const placedTime = new Date(placedAt).getTime()
     
+    // If it's finished, calculate static time and stop
+    if ((status === 'delivered' || status === 'cancelled') && endTime) {
+      setElapsedMs(Math.max(0, new Date(endTime).getTime() - placedTime))
+      return
+    }
+
+    if (status === 'delivered' || status === 'cancelled') {
+      // Fallback if no endTime provided but status is terminal
+      return
+    }
+
     setElapsedMs(Math.max(0, Date.now() - placedTime))
 
     const interval = setInterval(() => {
@@ -13,13 +24,26 @@ export default function OrderTimeCard({ placedAt, status }: { placedAt: string, 
     }, 10000)
     
     return () => clearInterval(interval)
-  }, [placedAt])
+  }, [placedAt, status, endTime])
 
-  if (status === 'delivered' || status === 'cancelled') {
-    return null
+  // Only calculate minutes if it's running or if it's finished but we want to show it.
+  const elapsedMins = Math.floor(elapsedMs / 60000)
+
+  if (status === 'delivered') {
+    return (
+      <div className="flex items-center gap-1.5 px-2 py-1 rounded border text-[10px] font-bold bg-gray-100 text-gray-600 border-gray-200">
+        <span>Took {elapsedMins} min{elapsedMins !== 1 ? 's' : ''}</span>
+      </div>
+    )
   }
 
-  const elapsedMins = Math.floor(elapsedMs / 60000)
+  if (status === 'cancelled') {
+    return (
+      <div className="flex items-center gap-1.5 px-2 py-1 rounded border text-[10px] font-bold bg-red-50 text-red-600 border-red-100">
+        <span>Cancelled after {elapsedMins} min{elapsedMins !== 1 ? 's' : ''}</span>
+      </div>
+    )
+  }
 
   let colorClass = "bg-green-100 text-green-700 border-green-200"
   let dotClass = "bg-green-500"
