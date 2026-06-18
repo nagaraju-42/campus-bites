@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
 
 export default function RiderLoginPage() {
   const router = useRouter()
@@ -98,8 +99,17 @@ export default function RiderLoginPage() {
               disabled={isLoading}
               className="w-full bg-[#16A34A] text-white font-bold py-4 rounded-xl hover:bg-green-700 transition-all shadow-md shadow-green-200 active:scale-95 disabled:opacity-70"
             >
-              {isLoading ? 'Connecting...' : 'Go Online'}
+              {isLoading ? 'Authenticating...' : 'Sign In'}
             </button>
+          </div>
+          
+          <div className="text-center pt-2">
+            <p className="text-sm font-medium text-gray-500">
+              New rider?{' '}
+              <Link href="/rider2/register" className="text-[#16A34A] hover:underline font-bold">
+                Join the Fleet
+              </Link>
+            </p>
           </div>
 
           <div className="text-center mt-4">

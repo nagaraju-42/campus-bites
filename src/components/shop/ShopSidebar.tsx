@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, ClipboardList, Monitor, Utensils, Settings, LogOut, Banknote, FileText } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Monitor, Utensils, Settings, LogOut, Banknote, FileText, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/shop/menu', label: 'Menu', Icon: Utensils },
   { href: '/shop/settlements', label: 'Settlements', Icon: Banknote },
   { href: '/shop/reports', label: 'End of Day Report', Icon: FileText },
+  { href: '/shop/contacts', label: 'Riders', Icon: Users },
   { href: '/shop/settings', label: 'Settings', Icon: Settings },
 ]
 
