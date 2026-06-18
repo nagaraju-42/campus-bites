@@ -14,6 +14,8 @@ import CompleteProfileOverlay from '@/components/shared/CompleteProfileOverlay'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Store, ShoppingBag, GraduationCap } from 'lucide-react'
 import { stopRiderAlarm } from '@/store/riderStore'
+import { Capacitor } from '@capacitor/core'
+import { PushNotifications } from '@capacitor/push-notifications'
 
 function GamifiedProgressBar() {
   const { batchStartTime, activeDeliveries } = useRiderStore()
@@ -219,6 +221,43 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
     }
     checkAuth()
   }, [router, pathname, setUser, setLoading])
+
+  // FCM Push Registration
+  useEffect(() => {
+    async function registerFCM() {
+      if (!user?.id || !Capacitor.isNativePlatform()) return
+
+      try {
+        let permStatus = await PushNotifications.checkPermissions();
+
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive !== 'granted') {
+          console.log('User denied push permission');
+          return;
+        }
+
+        await PushNotifications.register();
+
+        PushNotifications.addListener('registration', async (token) => {
+          console.log('FCM Token:', token.value);
+          const supabase = createClient()
+          await supabase.from('profiles').update({ fcm_token: token.value }).eq('id', user.id)
+        });
+
+        PushNotifications.addListener('registrationError', (error) => {
+          console.error('Error on registration: ' + JSON.stringify(error));
+        });
+
+      } catch (err) {
+        console.error("FCM Setup Failed", err)
+      }
+    }
+
+    registerFCM()
+  }, [user?.id])
 
   // 2. Load Data & Setup Realtime Listener
   useEffect(() => {
