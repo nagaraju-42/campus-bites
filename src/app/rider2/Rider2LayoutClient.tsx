@@ -166,13 +166,13 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
 
-      const isLoginRoute = pathname.includes('/login')
+      const isPublicRoute = pathname.includes('/login') || pathname.includes('/register')
 
       if (!session) {
         clearAuth()
         setLoading(false)
         setIsOnline(false) 
-        if (!isLoginRoute) {
+        if (!isPublicRoute) {
           router.replace('/rider2/login')
         }
         return
@@ -186,7 +186,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
       if (error || !profile || (profile.role !== 'rider' && profile.role !== 'admin')) {
         setLoading(false)
-        if (!isLoginRoute) {
+        if (!isPublicRoute) {
           router.replace('/rider2/login')
         }
         return
@@ -195,7 +195,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
       if (profile.status === 'suspended') {
         setLoading(false)
         toast.error('Your account has been suspended by the admin.')
-        if (!isLoginRoute) {
+        if (!isPublicRoute) {
           router.replace('/rider2/login')
         }
         return

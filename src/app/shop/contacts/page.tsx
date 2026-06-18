@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Users, Phone } from 'lucide-react'
+import { getAllRidersAdmin } from '@/lib/supabase/queries/shop-dashboard'
 
 export default function ShopContactsPage() {
   const [ridersList, setRidersList] = useState<any[]>([])
@@ -11,13 +11,8 @@ export default function ShopContactsPage() {
   useEffect(() => {
     async function fetchRiders() {
       try {
-        const supabase = createClient()
-        const { data: riders } = await supabase
-          .from('profiles')
-          .select('id, full_name, phone')
-          .eq('role', 'rider')
-        
-        if (riders) setRidersList(riders)
+        const riders = await getAllRidersAdmin()
+        setRidersList(riders)
       } catch (err) {
         console.error("Failed to fetch riders:", err)
       } finally {
