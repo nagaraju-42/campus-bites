@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Users, Phone } from 'lucide-react'
-import { getAllRidersAdmin } from '@/lib/supabase/queries/shop-dashboard'
+import { getAllRidersAdmin } from './actions'
 
 export default function ShopContactsPage() {
   const [ridersList, setRidersList] = useState<any[]>([])

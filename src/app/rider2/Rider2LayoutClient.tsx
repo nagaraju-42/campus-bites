@@ -212,7 +212,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
 
       checkAutoOffline() 
       
-      if (isLoginRoute) {
+      if (isPublicRoute) {
         setLoading(false)
         router.replace('/rider2/dashboard')
       }
