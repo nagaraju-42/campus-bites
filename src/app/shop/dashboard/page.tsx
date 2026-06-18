@@ -49,21 +49,30 @@ export default function ShopDashboardPage() {
           return
         }
 
-        const [activeOrders, completed, { data: riders }] = await Promise.all([
+        const [activeOrders, completed] = await Promise.all([
           getShopActiveOrders(shopId!),
-          getShopOrderHistory(shopId!, 5),
-          createClient().from('profiles').select('id, full_name, phone').eq('role', 'rider')
+          getShopOrderHistory(shopId!, 5)
         ])
+        
+        const { data: riders, error: ridersErr } = await createClient()
+          .from('profiles')
+          .select('id, full_name, phone')
+          .eq('role', 'rider')
+          
+        if (ridersErr) console.error("Riders fetch error:", ridersErr)
+
         const shopStats = await getShopStats(shopId!, timeRange)
 
         // Fetch pending handoffs
         const todayDateStr = new Date().toISOString().slice(0, 10)
-        const { data: handoffs } = await createClient()
+        const { data: handoffs, error: handoffsErr } = await createClient()
           .from('rider_settlements')
           .select('*, rider:rider_id(full_name)')
           .eq('shop_id', shopId!)
           .eq('date', todayDateStr)
           .eq('status', 'pending')
+          
+        if (handoffsErr) console.error("Handoffs fetch error:", handoffsErr)
         
         setShopName(shop.name)
         setLiveStatus(shop.is_open)
@@ -76,6 +85,7 @@ export default function ShopDashboardPage() {
 
       } catch (err) {
         console.error("Failed to load shop dashboard data:", err)
+        toast.error("Failed to load dashboard data. Check console.")
       }
     }
     loadData()
