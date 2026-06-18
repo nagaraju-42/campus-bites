@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { Order } from '@/types'
+import { Capacitor } from '@capacitor/core'
+import { Haptics } from '@capacitor/haptics'
 
 interface ShopOrdersState {
   orders: Order[]
@@ -82,6 +84,17 @@ export const playShopAlarm = () => {
       stopShopAlarm();
     }, 25000);
     return;
+  }
+
+  // Trigger Native Vibration if running as APK wrapper
+  if (Capacitor.isNativePlatform()) {
+    try {
+      Haptics.vibrate();
+      // Optional: Do a recurring vibration pattern using setInterval if desired, 
+      // but a single strong vibrate is good for now.
+    } catch (e) {
+      console.log("Haptics failed:", e);
+    }
   }
 
   try {

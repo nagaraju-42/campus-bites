@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Order } from '@/types'
+import { Capacitor } from '@capacitor/core'
+import { Haptics } from '@capacitor/haptics'
 
 interface RiderState {
   availableOrders: Order[]
@@ -127,6 +129,15 @@ export const initRiderAudio = () => {
 export const playRiderAlarm = (reason?: { title: string, message: string }) => {
   if (typeof window === 'undefined') return;
   useRiderStore.getState().setIsAlarmRinging(true, reason);
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      Haptics.vibrate();
+    } catch (e) {
+      console.log("Haptics failed:", e);
+    }
+  }
+
   try {
     if (!activeRiderAudio) {
       activeRiderAudio = new Audio('/sounds/bell-alarm.mp3');

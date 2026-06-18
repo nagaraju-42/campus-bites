@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/haptics": "^8.0.2",
     "@react-google-maps/api": "^2.20.8",
     "@serwist/next": "^9.5.11",
     "@supabase/ssr": "^0.10.3",
