@@ -168,8 +168,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
         // Create the custom channel before registering
         try {
           await PushNotifications.createChannel({
-            id: 'campus_orders',
-            name: 'Campus Orders',
+            id: 'campus_orders_v2',
+            name: 'Campus Orders v2',
             description: 'New order notifications',
             importance: 5, // 5 = MAX importance
             visibility: 1, // 1 = PUBLIC
