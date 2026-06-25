@@ -44,7 +44,8 @@ export async function POST(req: Request) {
       android: {
         priority: 'high' as const,
         notification: {
-          sound: 'default', // Using default sound. Custom sounds require specific Android channel setup.
+          channelId: 'campus_orders',
+          sound: 'bell_alarm'
         }
       }
     };

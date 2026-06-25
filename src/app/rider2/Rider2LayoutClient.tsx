@@ -248,6 +248,21 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
           });
         });
 
+        // Create the custom channel before registering
+        try {
+          await PushNotifications.createChannel({
+            id: 'campus_orders',
+            name: 'Campus Orders',
+            description: 'New order notifications',
+            importance: 5, // 5 = MAX importance
+            visibility: 1, // 1 = PUBLIC
+            sound: 'bell_alarm', // Matches bell_alarm.mp3 in res/raw/
+            vibration: true,
+          });
+        } catch (e) {
+          console.error('Failed to create channel:', e);
+        }
+
         await PushNotifications.register();
 
         PushNotifications.addListener('registrationError', (error) => {

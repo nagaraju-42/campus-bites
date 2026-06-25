@@ -244,7 +244,7 @@ export default function CheckoutPage() {
 
     try {
       setIsPlacingOrder(true)
-      const { orderId } = await placeOrder({
+      const { orderId, orderNumber } = await placeOrder({
         studentId: user.id,
         shopId: shopId,
         cartItems: itemsWithPartnerInfo,
@@ -257,6 +257,19 @@ export default function CheckoutPage() {
         specialNote,
         orderType: isDineIn ? 'dine_in' : 'delivery',
       })
+
+      // Send push notification using sendBeacon (survives page navigation)
+      try {
+        const pushData = JSON.stringify({
+          shopId: shopId,
+          orderNumber,
+          totalAmount: formatCurrency(finalTotal)
+        })
+        navigator.sendBeacon('/api/orders/notify', new Blob([pushData], { type: 'application/json' }))
+      } catch (e) {
+        console.error('Push beacon error:', e)
+      }
+
       clearCart()
       toast.success('Order placed! 🎉')
       router.replace(`/student/track/${orderId}`)

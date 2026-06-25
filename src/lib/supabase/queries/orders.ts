@@ -99,21 +99,6 @@ export async function placeOrder(params: {
 
   if (itemsError) throw new Error(itemsError.message)
 
-  // Try to send push notification to shop owner (server-side)
-  try {
-    await fetch('/api/orders/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        shopId: params.shopId,
-        orderNumber,
-        totalAmount: formatCurrency(params.totalAmount)
-      })
-    });
-  } catch (e) {
-    console.error("Push error:", e);
-  }
-
   return { orderId: order.id, orderNumber }
 }
 
