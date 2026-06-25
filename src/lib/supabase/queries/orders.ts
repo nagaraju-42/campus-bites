@@ -99,20 +99,17 @@ export async function placeOrder(params: {
 
   if (itemsError) throw new Error(itemsError.message)
 
-  // Try to send push notification to shop owner
+  // Try to send push notification to shop owner (server-side)
   try {
-    const { data: shop } = await supabase.from('shops').select('owner_id').eq('id', params.shopId).single();
-    if (shop?.owner_id) {
-      await fetch('/api/fcm/trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: shop.owner_id,
-          title: '🚨 New Order Received! 🚨',
-          message: `Order ${orderNumber} for ${formatCurrency(params.totalAmount)}`
-        })
-      });
-    }
+    await fetch('/api/orders/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        shopId: params.shopId,
+        orderNumber,
+        totalAmount: formatCurrency(params.totalAmount)
+      })
+    });
   } catch (e) {
     console.error("Push error:", e);
   }
