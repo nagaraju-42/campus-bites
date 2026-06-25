@@ -86,8 +86,11 @@ export default function Rider2DashboardPage() {
         }
         if (permStatus.receive === 'granted') {
           PushNotifications.addListener('registration', async (token) => {
-            const supabase = createClient()
-            await supabase.from('profiles').update({ fcm_token: token.value }).eq('id', user.id)
+            await fetch('/api/fcm/subscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id, token: token.value })
+            });
             setPushEnabled(true);
             toast.success('Native Push Notifications enabled!');
           });
