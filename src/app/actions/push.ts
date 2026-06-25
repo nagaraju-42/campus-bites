@@ -9,9 +9,24 @@ export async function sendOrderPushAction(userId: string, title: string, body: s
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
+    
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      title: 'DEBUG: Push Action Started',
+      message: `Action hit for ${userId}`,
+      type: 'alert'
+    });
+
     const { data: profile } = await supabase.from('profiles').select('fcm_token').eq('id', userId).single();
     
     if (profile?.fcm_token) {
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        title: 'DEBUG: Token Found',
+        message: `Token: ${profile.fcm_token.substring(0, 10)}...`,
+        type: 'alert'
+      });
+
       const fcm = getFCM();
       if (fcm) {
         await fcm.send({
@@ -22,10 +37,29 @@ export async function sendOrderPushAction(userId: string, title: string, body: s
             notification: { sound: 'default' }
           }
         });
-        console.log(`Successfully sent order push to ${userId}`);
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          title: 'DEBUG: FCM Sent Successfully',
+          message: `FCM returned success!`,
+          type: 'alert'
+        });
+      } else {
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          title: 'DEBUG: FCM Not Initialized',
+          message: `getFCM returned null`,
+          type: 'alert'
+        });
       }
+    } else {
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        title: 'DEBUG: No Token',
+        message: `Profile has no fcm_token`,
+        type: 'alert'
+      });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to send order push:', error);
   }
 }
