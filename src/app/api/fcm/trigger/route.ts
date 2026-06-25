@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fcm } from '@/lib/firebase-admin';
+import { getFCM } from '@/lib/firebase-admin';
 import { createClient } from '@supabase/supabase-js';
 
 // Setup admin Supabase client to bypass RLS and fetch any user's FCM token
@@ -15,6 +15,11 @@ export async function POST(req: Request) {
 
     if (!userId || !title || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const fcm = getFCM();
+    if (!fcm) {
+      return NextResponse.json({ message: 'FCM not configured' }, { status: 200 });
     }
 
     // 1. Fetch user's FCM token

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
-import { fcm } from '@/lib/firebase-admin';
+import { getFCM } from '@/lib/firebase-admin';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,23 +21,26 @@ export async function POST(req: Request) {
 
     // --- 1. FCM PUSH NOTIFICATION (ANDROID NATIVE) ---
     try {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('fcm_token')
-        .eq('id', userId)
-        .single();
+      const fcm = getFCM();
+      if (fcm) {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('fcm_token')
+          .eq('id', userId)
+          .single();
 
-      if (profile?.fcm_token) {
-        await fcm.send({
-          token: profile.fcm_token,
-          notification: { title, body },
-          android: {
-            priority: 'high',
-            notification: { sound: 'default', channelId: 'kds_alarms' }
-          }
-        });
-        fcmPushSuccess = true;
-        console.log(`FCM Push sent to ${userId}`);
+        if (profile?.fcm_token) {
+          await fcm.send({
+            token: profile.fcm_token,
+            notification: { title, body },
+            android: {
+              priority: 'high',
+              notification: { sound: 'default', channelId: 'kds_alarms' }
+            }
+          });
+          fcmPushSuccess = true;
+          console.log(`FCM Push sent to ${userId}`);
+        }
       }
     } catch (fcmErr) {
       console.error('FCM Push Error:', fcmErr);
