@@ -177,16 +177,12 @@ export async function updateOrderStatusDB(orderId: string, status: string, userI
   // Send push notification to rider if marked ready
   if (status === 'ready' && order?.rider_id) {
     try {
-      await fetch('/api/push/trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: order.rider_id,
-          title: '🍔 Order Ready for Pickup!',
-          body: `Order is ready at the shop. Please pick it up.`,
-          url: '/rider/orders'
-        })
-      });
+      const { sendOrderPushAction } = await import('@/app/actions/push');
+      await sendOrderPushAction(
+        order.rider_id, 
+        '🍔 Order Ready for Pickup!', 
+        `Order is ready at the shop. Please pick it up.`
+      );
     } catch (e) {
       console.error("Push error:", e);
     }

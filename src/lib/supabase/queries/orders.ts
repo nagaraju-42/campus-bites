@@ -103,16 +103,12 @@ export async function placeOrder(params: {
   try {
     const { data: shop } = await supabase.from('shops').select('owner_id').eq('id', params.shopId).single();
     if (shop?.owner_id) {
-      await fetch('/api/push/trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: shop.owner_id,
-          title: '🚨 New Order Received! 🚨',
-          body: `Order ${orderNumber} for ${formatCurrency(params.totalAmount)}`,
-          url: '/shop/kds'
-        })
-      });
+      const { sendOrderPushAction } = await import('@/app/actions/push');
+      await sendOrderPushAction(
+        shop.owner_id, 
+        '🚨 New Order Received! 🚨', 
+        `Order ${orderNumber} for ${formatCurrency(params.totalAmount)}`
+      );
     }
   } catch (e) {
     console.error("Push error:", e);
