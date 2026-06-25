@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Order, OrderItem, PaymentMethod } from '@/types'
 import { CartItem } from '@/store/cartStore'
 import { formatCurrency } from '@/lib/utils'
+import { sendOrderPushAction } from '@/app/actions/push'
 
 export async function getStudentOrders(studentId: string): Promise<Order[]> {
   const supabase = createClient()
@@ -103,7 +104,6 @@ export async function placeOrder(params: {
   try {
     const { data: shop } = await supabase.from('shops').select('owner_id').eq('id', params.shopId).single();
     if (shop?.owner_id) {
-      const { sendOrderPushAction } = await import('@/app/actions/push');
       await sendOrderPushAction(
         shop.owner_id, 
         '🚨 New Order Received! 🚨', 

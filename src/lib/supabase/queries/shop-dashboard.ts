@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { Order } from '@/types'
+import { sendOrderPushAction } from '@/app/actions/push'
 
 export async function getShopDetailsByOwner(ownerId: string) {
   const supabase = createClient()
@@ -177,7 +178,6 @@ export async function updateOrderStatusDB(orderId: string, status: string, userI
   // Send push notification to rider if marked ready
   if (status === 'ready' && order?.rider_id) {
     try {
-      const { sendOrderPushAction } = await import('@/app/actions/push');
       await sendOrderPushAction(
         order.rider_id, 
         '🍔 Order Ready for Pickup!', 
