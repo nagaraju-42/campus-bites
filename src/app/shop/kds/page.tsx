@@ -52,11 +52,20 @@ export default function KDSPage() {
           permStatus = await PushNotifications.requestPermissions();
         }
         if (permStatus.receive === 'granted') {
+          // Add temporary listener just to ensure we catch the token if it's generated now
+          PushNotifications.addListener('registration', async (token) => {
+            const supabase = createClient()
+            await supabase.from('profiles').update({ fcm_token: token.value }).eq('id', user.id)
+            setPushEnabled(true);
+            toast.success('Native Push Notifications enabled!');
+          });
+          
           await PushNotifications.register();
+          
+          // Fallback if listener is too slow or cached
           setPushEnabled(true);
-          toast.success('Native Push Notifications enabled!');
         } else {
-          toast.error(`Push permission status: ${permStatus.receive}`);
+          toast.error(`Android blocked the prompt. Go to phone Settings -> Apps -> CampusShop -> Permissions and allow Notifications.`);
         }
       } else {
         const success = await registerPushNotifications(user.id)

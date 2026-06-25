@@ -85,11 +85,16 @@ export default function Rider2DashboardPage() {
           permStatus = await PushNotifications.requestPermissions();
         }
         if (permStatus.receive === 'granted') {
+          PushNotifications.addListener('registration', async (token) => {
+            const supabase = createClient()
+            await supabase.from('profiles').update({ fcm_token: token.value }).eq('id', user.id)
+            setPushEnabled(true);
+            toast.success('Native Push Notifications enabled!');
+          });
           await PushNotifications.register();
           setPushEnabled(true);
-          toast.success('Native Push Notifications enabled!');
         } else {
-          toast.error(`Push permission status: ${permStatus.receive}`);
+          toast.error(`Android blocked the prompt. Go to phone Settings -> Apps -> CampusShop -> Permissions and allow Notifications.`);
         }
       } else {
         const success = await registerPushNotifications(user.id)
