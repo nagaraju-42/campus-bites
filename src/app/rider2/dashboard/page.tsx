@@ -57,9 +57,21 @@ export default function Rider2DashboardPage() {
 
   // Check push permission on mount
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      setPushEnabled(true)
-    }
+    const checkPushState = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { PushNotifications } = await import('@capacitor/push-notifications');
+          const permStatus = await PushNotifications.checkPermissions();
+          if (permStatus.receive === 'granted') setPushEnabled(true);
+        } else {
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            setPushEnabled(true);
+          }
+        }
+      } catch (e) {}
+    };
+    checkPushState();
   }, [])
 
   const handleEnablePush = async () => {
@@ -77,7 +89,7 @@ export default function Rider2DashboardPage() {
           setPushEnabled(true);
           toast.success('Native Push Notifications enabled!');
         } else {
-          toast.error('Push permission denied.');
+          toast.error(`Push permission status: ${permStatus.receive}`);
         }
       } else {
         const success = await registerPushNotifications(user.id)
