@@ -27,8 +27,8 @@ export async function sendOrderPushAction(userId: string, title: string, body: s
         type: 'alert'
       });
 
-      const fcm = getFCM();
-      if (fcm) {
+      try {
+        const fcm = getFCM();
         await fcm.send({
           token: profile.fcm_token,
           notification: { title, body },
@@ -43,11 +43,11 @@ export async function sendOrderPushAction(userId: string, title: string, body: s
           message: `FCM returned success!`,
           type: 'alert'
         });
-      } else {
+      } catch (fcmError: any) {
         await supabase.from('notifications').insert({
           user_id: userId,
           title: 'DEBUG: FCM Not Initialized',
-          message: `getFCM returned null`,
+          message: fcmError.message,
           type: 'alert'
         });
       }

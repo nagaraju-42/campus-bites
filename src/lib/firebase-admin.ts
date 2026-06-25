@@ -1,10 +1,9 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
-export function getFCM() {
+export function getFCM(): any {
   if (!process.env.FIREBASE_PROJECT_ID) {
-    console.warn('FIREBASE_PROJECT_ID is missing. FCM Push will be disabled.');
-    return null;
+    throw new Error('FIREBASE_PROJECT_ID is missing in process.env');
   }
   
   if (!getApps().length) {
@@ -17,15 +16,14 @@ export function getFCM() {
         }),
       });
       console.log('Firebase Admin SDK Initialized Successfully');
-    } catch (error) {
-      console.error('Firebase Admin Initialization Error:', error);
-      return null;
+    } catch (error: any) {
+      throw new Error(`Firebase Admin Initialization Error: ${error.message}`);
     }
   }
 
   try {
     return getMessaging();
-  } catch (error) {
-    return null;
+  } catch (error: any) {
+    throw new Error(`getMessaging Error: ${error.message}`);
   }
 }
