@@ -33,13 +33,30 @@ export default function KDSPage() {
   const handleEnablePush = async () => {
     if (!user) return
     try {
-      const success = await registerPushNotifications(user.id)
-      if (success) {
-        setPushEnabled(true)
-        toast.success('Background notifications enabled!')
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+        if (permStatus.receive === 'granted') {
+          await PushNotifications.register();
+          setPushEnabled(true);
+          toast.success('Native Push Notifications enabled!');
+        } else {
+          toast.error('Push permission denied.');
+        }
+      } else {
+        const success = await registerPushNotifications(user.id)
+        if (success) {
+          setPushEnabled(true)
+          toast.success('Web Push Notifications enabled!')
+        }
       }
     } catch (err: any) {
       console.warn('Push registration skipped:', err.message)
+      toast.error('Failed to enable push.')
     }
   }
 
