@@ -45,7 +45,6 @@ export async function POST(req: Request) {
         priority: 'high' as const,
         notification: {
           sound: 'default', // Using default sound. Custom sounds require specific Android channel setup.
-          channelId: 'kds_alarms', // Optional: We can create this channel in the Android app for loud alarms
         }
       }
     };

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
             notification: { title, body },
             android: {
               priority: 'high',
-              notification: { sound: 'default', channelId: 'kds_alarms' }
+              notification: { sound: 'default' }
             }
           });
           fcmPushSuccess = true;
