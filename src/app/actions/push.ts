@@ -10,54 +10,37 @@ export async function sendOrderPushAction(userId: string, title: string, body: s
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
     
-    await supabase.from('notifications').insert({
-      user_id: userId,
-      title: 'DEBUG: Push Action Started',
-      message: `Action hit for ${userId}`,
-      type: 'alert'
-    });
-
     const { data: profile } = await supabase.from('profiles').select('fcm_token').eq('id', userId).single();
     
     if (profile?.fcm_token) {
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        title: 'DEBUG: Token Found',
-        message: `Token: ${profile.fcm_token.substring(0, 10)}...`,
-        type: 'alert'
-      });
-
       try {
-        const fcm = getFCM();
-        await fcm.send({
-          token: profile.fcm_token,
-          notification: { title, body },
-          android: {
-            priority: 'high',
-            notification: { sound: 'default' }
-          }
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://campusbites.vercel.app';
+        
+        // Use the API route that is verified to have correct env vars on Vercel
+        await fetch(`${baseUrl}/api/fcm/trigger`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            title: title,
+            message: body
+          })
         });
+
         await supabase.from('notifications').insert({
           user_id: userId,
-          title: 'DEBUG: FCM Sent Successfully',
-          message: `FCM returned success!`,
+          title: 'DEBUG: FCM Sent via API',
+          message: `Triggered API route successfully`,
           type: 'alert'
         });
       } catch (fcmError: any) {
         await supabase.from('notifications').insert({
           user_id: userId,
-          title: 'DEBUG: FCM Not Initialized',
+          title: 'DEBUG: FCM API Failed',
           message: fcmError.message,
           type: 'alert'
         });
       }
-    } else {
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        title: 'DEBUG: No Token',
-        message: `Profile has no fcm_token`,
-        type: 'alert'
-      });
     }
   } catch (error: any) {
     console.error('Failed to send order push:', error);
