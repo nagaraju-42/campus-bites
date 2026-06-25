@@ -80,6 +80,27 @@ export default function KDSPage() {
     }
   }
 
+  const handleTestPush = async () => {
+    if (!user) return;
+    toast('Sending test push... Close the app now!', { icon: '🚀', duration: 4000 });
+    try {
+      // Delay it by 5 seconds so they have time to close the app
+      setTimeout(async () => {
+        await fetch('/api/fcm/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            title: 'Test Notification 🚀',
+            message: 'If you hear a sound, it is working perfectly!'
+          })
+        });
+      }, 5000);
+    } catch (e) {
+      toast.error('Failed to send test push');
+    }
+  }
+
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })), 1000)
     return () => clearInterval(timer)
@@ -177,11 +198,10 @@ export default function KDSPage() {
 
           <div className="flex items-center gap-2 mt-1">
             <button
-              onClick={handleEnablePush}
-              disabled={pushEnabled}
+              onClick={pushEnabled ? handleTestPush : handleEnablePush}
               className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition ${pushEnabled ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600'}`}
             >
-              {pushEnabled ? <><Bell size={14} /> Push On</> : <><BellOff size={14} /> Enable Push</>}
+              {pushEnabled ? <><Bell size={14} /> Test Push</> : <><BellOff size={14} /> Enable Push</>}
             </button>
             {isWakeSupported && (
               <button
