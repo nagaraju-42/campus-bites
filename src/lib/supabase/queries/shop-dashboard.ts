@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { Order } from '@/types'
-import { sendOrderPushAction } from '@/app/actions/push'
+
 
 export async function getShopDetailsByOwner(ownerId: string) {
   const supabase = createClient()
@@ -178,11 +178,15 @@ export async function updateOrderStatusDB(orderId: string, status: string, userI
   // Send push notification to rider if marked ready
   if (status === 'ready' && order?.rider_id) {
     try {
-      await sendOrderPushAction(
-        order.rider_id, 
-        '🍔 Order Ready for Pickup!', 
-        `Order is ready at the shop. Please pick it up.`
-      );
+      await fetch('/api/fcm/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: order.rider_id,
+          title: '🍔 Order Ready for Pickup!',
+          message: 'Order is ready at the shop. Please pick it up.'
+        })
+      });
     } catch (e) {
       console.error("Push error:", e);
     }
