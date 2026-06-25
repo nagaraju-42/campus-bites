@@ -239,13 +239,13 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
           return;
         }
 
-        await PushNotifications.register();
-
         PushNotifications.addListener('registration', async (token) => {
           console.log('FCM Token:', token.value);
           const supabase = createClient()
           await supabase.from('profiles').update({ fcm_token: token.value }).eq('id', user.id)
         });
+
+        await PushNotifications.register();
 
         PushNotifications.addListener('registrationError', (error) => {
           console.error('Error on registration: ' + JSON.stringify(error));
