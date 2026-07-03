@@ -7,10 +7,13 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 
+import { Menu } from 'lucide-react'
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // Auth Guard
   useEffect(() => {
@@ -68,17 +71,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isLoginPage = pathname === '/admin/login'
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-50 flex font-sans">
+    <div className="min-h-screen bg-[#0F172A] text-slate-50 flex flex-col md:flex-row font-sans overflow-x-hidden">
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#1E293B', color: '#fff' } }} />
       
       {!isLoginPage && (
-        <div className="w-64 flex-shrink-0 border-r border-slate-800 bg-[#0F172A]">
-          <AdminSidebar />
-        </div>
+        <>
+          {/* Mobile Header */}
+          <div className="md:hidden flex items-center justify-between p-4 bg-[#0F172A] border-b border-slate-800 z-30">
+            <h1 className="text-xl font-display font-bold text-white tracking-wide">
+              DineNDeliver<span className="text-[#F97316]">Admin</span>
+            </h1>
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="text-slate-300 hover:text-white"
+            >
+              <Menu size={28} />
+            </button>
+          </div>
+
+          {/* Off-canvas overlay */}
+          {isSidebarOpen && (
+            <div 
+              className="md:hidden fixed inset-0 bg-black/60 z-40"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+
+          {/* Sidebar Drawer */}
+          <div className={`fixed md:relative inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out bg-[#0F172A] border-r border-slate-800 ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          }`}>
+            <AdminSidebar onClose={() => setIsSidebarOpen(false)} />
+          </div>
+        </>
       )}
 
-      <main className={`flex-1 ${!isLoginPage ? 'p-8 h-screen overflow-y-auto' : ''}`}>
-        {children}
+      <main className={`flex-1 flex flex-col ${!isLoginPage ? 'h-screen md:h-screen overflow-y-auto' : ''}`}>
+        <div className={!isLoginPage ? 'p-4 md:p-8 flex-1' : ''}>
+          {children}
+        </div>
       </main>
     </div>
   )

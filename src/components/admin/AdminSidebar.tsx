@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart, Store, Users, Banknote, LogOut, Tag, MessageSquare, Link2, Bell } from 'lucide-react'
+import { BarChart, Store, Users, Banknote, LogOut, Tag, MessageSquare, Link2, Bell, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 
@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   { href: '/admin/support', label: 'Support Inbox', Icon: MessageSquare },
 ]
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user } = useAuthStore()
@@ -32,8 +32,17 @@ export default function AdminSidebar() {
   }
 
   return (
-    <div className="h-full flex flex-col pt-6 pb-4 bg-[#0F172A]">
-      <div className="px-6 mb-8">
+    <div className="h-full flex flex-col pt-6 pb-4 bg-[#0F172A] relative overflow-y-auto hide-scrollbar">
+      {onClose && (
+        <button 
+          onClick={onClose} 
+          className="md:hidden absolute top-4 right-4 text-slate-400 hover:text-white"
+        >
+          <X size={24} />
+        </button>
+      )}
+      
+      <div className="px-6 mb-8 pr-12">
         <h1 className="text-2xl font-display font-bold text-white tracking-wide">
           DineNDeliver<span className="text-[#F97316]">Admin</span>
         </h1>
@@ -47,6 +56,7 @@ export default function AdminSidebar() {
             <Link
               key={href}
               href={href}
+              onClick={() => onClose && onClose()}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all font-bold text-sm ${
                 isActive
                   ? 'bg-[#1E293B] text-white'
