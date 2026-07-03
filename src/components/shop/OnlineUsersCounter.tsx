@@ -1,32 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { usePresenceStore } from '@/store/presenceStore'
 import { Users } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function OnlineUsersCounter({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
-  const [onlineCount, setOnlineCount] = useState<number>(0)
-
-  useEffect(() => {
-    const supabase = createClient()
-    
-    // Subscribe to the same channel
-    const channel = supabase.channel('online-users')
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState()
-        // state is an object where keys are the presence keys (sessionIds)
-        const uniqueUsers = Object.keys(state).length
-        setOnlineCount(uniqueUsers)
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
+  const onlineCount = usePresenceStore((state) => state.onlineCount)
 
   return (
     <motion.div 
