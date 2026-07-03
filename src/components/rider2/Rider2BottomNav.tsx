@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Navigation, Wallet, User, Phone } from 'lucide-react'
+import { Map, Navigation, Wallet, User, Phone, Clock } from 'lucide-react'
 import { useRiderStore } from '@/store/riderStore'
 
 const NAV_ITEMS = [
   { href: '/rider2/dashboard', label: 'Dashboard', Icon: Map },
   { href: '/rider2/active', label: 'Active', Icon: Navigation },
+  { href: '/rider2/history', label: 'History', Icon: Clock },
   { href: '/rider2/wallet', label: 'Wallet', Icon: Wallet },
   { href: '/rider2/contacts', label: 'Contacts', Icon: Phone },
   { href: '/rider2/profile', label: 'Profile', Icon: User },
