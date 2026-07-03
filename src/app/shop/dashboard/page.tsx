@@ -16,6 +16,8 @@ import { createClient } from '@/lib/supabase/client'
 import WhatsAppQRShare from '@/components/shop/WhatsAppQRShare'
 import FinancialsWidget from '@/components/shop/FinancialsWidget'
 
+import OnlineUsersCounter from '@/components/shop/OnlineUsersCounter'
+
 type TimeRange = 'today' | 'yesterday' | 'week' | 'month' | 'all_time'
 
 // Dynamic chart data will be calculated from real orders
@@ -171,6 +173,8 @@ export default function ShopDashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <OnlineUsersCounter />
+          
           <button 
             onClick={() => setIsNotificationsOpen(true)}
             className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-200 relative hover:bg-gray-50 transition"

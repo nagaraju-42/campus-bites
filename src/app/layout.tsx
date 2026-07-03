@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import MaintenanceGuard from "@/components/shared/MaintenanceGuard";
+import PresenceTracker from "@/components/shared/PresenceTracker";
 
 // Removed Geist font imports
 
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <MaintenanceGuard>
           <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+          <PresenceTracker />
           {children}
         </MaintenanceGuard>
       </body>
