@@ -162,6 +162,22 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
     }
   }, [])
 
+  // Auto-unlock audio for background tabs on first interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      const { initRiderAudio } = require('@/store/riderStore')
+      initRiderAudio()
+      window.removeEventListener('click', unlockAudio)
+      window.removeEventListener('touchstart', unlockAudio)
+    }
+    window.addEventListener('click', unlockAudio)
+    window.addEventListener('touchstart', unlockAudio)
+    return () => {
+      window.removeEventListener('click', unlockAudio)
+      window.removeEventListener('touchstart', unlockAudio)
+    }
+  }, [])
+
   // 1. Auth Guard
   useEffect(() => {
     async function checkAuth() {
@@ -396,7 +412,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className={`min-h-screen flex flex-col pb-20 max-w-[430px] mx-auto shadow-xl relative ${isAlarmRinging ? 'ringing-rider-container bg-green-50' : 'bg-gray-50 border-x border-gray-100'}`}>
+    <div className={`min-h-screen flex flex-col pb-20 w-full max-w-[430px] mx-auto overflow-x-hidden shadow-xl relative ${isAlarmRinging ? 'ringing-rider-container bg-green-50' : 'bg-gray-50 border-x border-gray-100'}`}>
       <GamifiedProgressBar />
       <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
 

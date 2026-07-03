@@ -111,7 +111,15 @@ export default function ActiveDeliveryPage() {
     try {
       const supabase = createClient()
       const failReason = `Failed Delivery: ${reason}`
-      await supabase.from('orders').update({ status: 'cancelled', cancellation_reason: failReason }).eq('id', order!.id)
+      const appendReason = order!.special_note ? `${order!.special_note} | Rider Cancel: ${failReason}` : `Rider Cancel: ${failReason}`
+      
+      const { error } = await supabase.from('orders').update({ status: 'cancelled', special_note: appendReason }).eq('id', order!.id)
+      
+      if (error) {
+        console.error("Supabase update error:", error)
+        toast.error('Failed to update order status')
+        return
+      }
       
       removeActiveDelivery(order!.id)
       removePickedUpOrder(order!.id)
