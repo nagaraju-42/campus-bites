@@ -1,0 +1,84 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps || npm install
+
+      - name: Install Capacitor CLI globally
+        run: npm install -g @capacitor/cli
+
+      - name: Clean existing incomplete android folder
+        run: rm -rf android
+
+      - name: Init Capacitor and Android
+        run: |
+          npx cap init "Campus Bites" "com.campusbites.app" --web-dir public --force
+          npm install @capacitor/android
+          npx cap add android
+        env:
+          CAPACITOR_WEB_DIR: public
+
+      - name: Modify capacitor.config to point to Vercel
+        run: |
+          cat << 'EOF' > capacitor.config.ts
+          import { CapacitorConfig } from '@capacitor/cli';
+          const config: CapacitorConfig = {
+            appId: 'com.campusbites.app',
+            appName: 'Campus Bites',
+            webDir: 'public',
+            server: {
+              url: 'https://campusbites.vercel.app',
+              cleartext: true
+            }
+          };
+          export default config;
+          EOF
+          npx cap sync android
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: campus-bites-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Commit APK to repository
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p apks
+          cp android/app/build/outputs/apk/debug/app-debug.apk apks/CampusBites.apk
+          git add apks/CampusBites.apk
+          git commit -m "chore: auto-generated APK from CI [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin ${GITHUB_REF##*/}
+          git push origin HEAD:${GITHUB_REF##*/}
