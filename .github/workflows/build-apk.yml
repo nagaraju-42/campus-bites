@@ -60,7 +60,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
 
       - name: Build APK
         run: |
@@ -84,3 +84,4 @@ jobs:
           git commit -m "chore: auto-generated APK from CI [skip ci]" || echo "No changes to commit"
           git pull --rebase origin ${GITHUB_REF##*/}
           git push origin HEAD:${GITHUB_REF##*/}
+
