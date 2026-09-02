@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Campus Bites 🍔
 
-## Getting Started
+A full-stack college canteen application built with Next.js, Supabase, and Capacitor.
+
+## 🔗 Important Deployment Links
+
+> **Note for Developers**: If you are pushing code to GitHub and wondering why the live site isn't updating, please read this section!
+
+### Active Production URL (Automatically Updates)
+✅ **[https://campus-bites-teal.vercel.app](https://campus-bites-teal.vercel.app)**
+* **Status**: Connected to this GitHub repository.
+* **Behavior**: Every time code is pushed to the `main` branch, Vercel automatically builds and deploys the changes to this URL. You should use this URL to see your latest code changes (e.g. `/admin/settings`).
+
+### Legacy URL (Does NOT Automatically Update)
+❌ **[https://campusbites.vercel.app](https://campusbites.vercel.app)**
+* **Status**: **NOT** connected to this GitHub repository.
+* **Behavior**: This domain is hosted on a completely different Vercel account. Pushing code to this GitHub repo will **never** update this URL. If you want this URL to work again, you must log into the specific Vercel account that owns it and manually connect it to this GitHub repository.
+
+## 📱 Android APK Generation
+
+This project uses **Capacitor** to wrap the Next.js web application into an Android `.apk` file.
+
+* **How it works**: A GitHub Action is configured in `.github/workflows/build-apk.yml`.
+* **When it runs**: Every time code is pushed to the `main` branch, GitHub cloud servers will automatically compile the Android app using Java 21.
+* **Where to find it**: Once the GitHub Action finishes, it automatically commits the generated APK file back into this repository inside the `apks/` folder (`apks/CampusBites.apk`).
+
+## 🛠 Getting Started Locally
 
 First, run the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
