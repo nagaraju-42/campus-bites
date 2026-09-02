@@ -67,7 +67,7 @@ export default function StudentHomePage() {
   const [orderMode, setOrderMode] = useState<'delivery' | 'dinein'>('delivery')
   const [deliveryLocations, setDeliveryLocations] = useState<string[]>(cachedLocations)
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
-  const [offersBannerEnabled, setOffersBannerEnabled] = useState(true)
+  const [offersBannerEnabled, setOffersBannerEnabled] = useState(false)
   const fetchedRef = useRef(false)
 
   useEffect(() => {

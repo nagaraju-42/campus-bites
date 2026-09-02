@@ -384,11 +384,11 @@ export async function getOffersBannerEnabled(): Promise<boolean> {
     .eq('key', 'offers_banner')
     .single()
     
-  if (!data || data.value === null) return true // default to true
+  if (!data || data.value === null) return false // default to false
   try {
     return JSON.parse(data.value)
   } catch (e) {
-    return true
+    return false
   }
 }
 

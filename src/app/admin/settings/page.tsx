@@ -21,7 +21,7 @@ export default function AdminSettingsPage() {
     rider_mode: true,
     dine_in_enabled: false,
     maintenance_mode: false,
-    offers_banner_enabled: true
+    offers_banner_enabled: false
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
