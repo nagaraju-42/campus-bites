@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Settings, Save, Plus, Trash2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getDeliveryLocations, setDeliveryLocations, getBusyModeAudits, wipeBusyModeAudits } from '@/lib/supabase/queries/admin'
+import { getDeliveryLocations, setDeliveryLocations, getBusyModeAudits, wipeBusyModeAudits, getOffersBannerEnabled, setOffersBannerEnabled } from '@/lib/supabase/queries/admin'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
@@ -13,13 +13,15 @@ type AppSettings = {
   rider_mode: boolean
   dine_in_enabled: boolean
   maintenance_mode?: boolean
+  offers_banner_enabled?: boolean
 }
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<AppSettings>({
     rider_mode: true,
     dine_in_enabled: false,
-    maintenance_mode: false
+    maintenance_mode: false,
+    offers_banner_enabled: true
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -53,6 +55,9 @@ export default function AdminSettingsPage() {
         const locs = await getDeliveryLocations()
         setLocations(locs)
 
+        const bannerEnabled = await getOffersBannerEnabled()
+        setSettings(s => ({ ...s, offers_banner_enabled: bannerEnabled }))
+
         const auditLogs = await getBusyModeAudits()
         setAudits(auditLogs)
       } catch (err) {
@@ -79,6 +84,9 @@ export default function AdminSettingsPage() {
       if (error) throw error
 
       await setDeliveryLocations(locations)
+      if (settings.offers_banner_enabled !== undefined) {
+        await setOffersBannerEnabled(settings.offers_banner_enabled)
+      }
 
       toast.success('Global Settings Saved!')
     } catch (err) {
@@ -223,28 +231,51 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-6 shadow-xl">
+      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-6 shadow-xl mb-6">
         <h2 className="text-xl font-bold text-white mb-6">Store Operations</h2>
         
-        <div className="flex items-center justify-between p-5 bg-slate-800/50 rounded-2xl border border-slate-700/50">
-          <div>
-            <h3 className="font-bold text-lg text-white">Dine-In Enabled (Global)</h3>
-            <p className="text-sm text-slate-400 mt-1 max-w-lg">
-              When ON, the student app will show a toggle for "Dine-In" vs "Delivery" and prompt for a table number.
-            </p>
-          </div>
-          <button 
-            onClick={() => setSettings(s => ({ ...s, dine_in_enabled: !s.dine_in_enabled }))}
-            className={`relative w-16 h-8 rounded-full transition-colors duration-300 ease-in-out shrink-0 ${
-              settings.dine_in_enabled ? 'bg-[#F97316]' : 'bg-slate-600'
-            }`}
-          >
-            <div 
-              className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
-                settings.dine_in_enabled ? 'translate-x-8' : 'translate-x-0'
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-5 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+            <div>
+              <h3 className="font-bold text-lg text-white">Dine-In Enabled (Global)</h3>
+              <p className="text-sm text-slate-400 mt-1 max-w-lg">
+                When ON, the student app will show a toggle for "Dine-In" vs "Delivery" and prompt for a table number.
+              </p>
+            </div>
+            <button 
+              onClick={() => setSettings(s => ({ ...s, dine_in_enabled: !s.dine_in_enabled }))}
+              className={`relative w-16 h-8 rounded-full transition-colors duration-300 ease-in-out shrink-0 ${
+                settings.dine_in_enabled ? 'bg-[#F97316]' : 'bg-slate-600'
               }`}
-            />
-          </button>
+            >
+              <div 
+                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+                  settings.dine_in_enabled ? 'translate-x-8' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between p-5 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+            <div>
+              <h3 className="font-bold text-lg text-white">Show Offers Banner</h3>
+              <p className="text-sm text-slate-400 mt-1 max-w-lg">
+                When ON, students will see the "Great food, great deals!" promotional banner on the home page.
+              </p>
+            </div>
+            <button 
+              onClick={() => setSettings(s => ({ ...s, offers_banner_enabled: !s.offers_banner_enabled }))}
+              className={`relative w-16 h-8 rounded-full transition-colors duration-300 ease-in-out shrink-0 ${
+                settings.offers_banner_enabled ? 'bg-[#F97316]' : 'bg-slate-600'
+              }`}
+            >
+              <div 
+                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+                  settings.offers_banner_enabled ? 'translate-x-8' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 

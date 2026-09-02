@@ -67,6 +67,7 @@ export default function StudentHomePage() {
   const [orderMode, setOrderMode] = useState<'delivery' | 'dinein'>('delivery')
   const [deliveryLocations, setDeliveryLocations] = useState<string[]>(cachedLocations)
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const [offersBannerEnabled, setOffersBannerEnabled] = useState(true)
   const fetchedRef = useRef(false)
 
   useEffect(() => {
@@ -114,6 +115,17 @@ export default function StudentHomePage() {
             setDeliveryLocations(locs)
             storeSetLocations(locs)  // persist
           } catch (e) {}
+        }
+
+        const { data: bannerData } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'offers_banner')
+          .single()
+        if (bannerData && bannerData.value !== null) {
+          try {
+            setOffersBannerEnabled(JSON.parse(bannerData.value))
+          } catch(e) {}
         }
 
         markFetched()  // stamp the timestamp for TTL
@@ -319,51 +331,53 @@ export default function StudentHomePage() {
         </div>
 
         {/* ── Offers Banner ── */}
-        <div className="bg-[#FEF3E8] rounded-2xl p-4 flex items-center justify-between relative overflow-hidden border border-orange-100">
-          {/* Left content */}
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* % badge */}
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="2" width="20" height="20" rx="5" fill="#EA580C"/>
-                <text x="12" y="16" textAnchor="middle" fontSize="11" fontWeight="bold" fill="white" fontFamily="Inter, sans-serif">%</text>
+        {offersBannerEnabled && (
+          <div className="bg-[#FEF3E8] rounded-2xl p-4 flex items-center justify-between relative overflow-hidden border border-orange-100">
+            {/* Left content */}
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              {/* % badge */}
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="2" width="20" height="20" rx="5" fill="#EA580C"/>
+                  <text x="12" y="16" textAnchor="middle" fontSize="11" fontWeight="bold" fill="white" fontFamily="Inter, sans-serif">%</text>
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 text-[14px] leading-tight">Great food, great deals!</p>
+                <p className="text-gray-500 text-[11px] leading-snug mt-0.5">
+                  Enjoy exclusive offers and save more<br />on your favorite shops.
+                </p>
+                <Link href="/student/offers">
+                  <button className="mt-2 bg-[#EA580C] text-white text-[12px] font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-orange-700 transition-colors">
+                    View Offers
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                  </button>
+                </Link>
+              </div>
+            </div>
+            {/* Right – Shopping bag illustration */}
+            <div className="shrink-0 ml-2">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Bag body */}
+                <rect x="16" y="30" width="48" height="42" rx="8" fill="#EA580C"/>
+                {/* Bag handle */}
+                <path d="M28 30V24C28 17.373 33.373 12 40 12C46.627 12 52 17.373 52 24V30" stroke="#EA580C" strokeWidth="5" strokeLinecap="round" fill="none"/>
+                {/* Bag handle inner */}
+                <path d="M28 30V24C28 17.373 33.373 12 40 12C46.627 12 52 17.373 52 24V30" stroke="#C2410C" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                {/* % on bag */}
+                <circle cx="35" cy="50" r="4" fill="white" opacity="0.9"/>
+                <circle cx="45" cy="62" r="4" fill="white" opacity="0.9"/>
+                <line x1="29" y1="65" x2="51" y2="45" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9"/>
+                {/* Sparkles */}
+                <circle cx="64" cy="24" r="3" fill="#FBBF24"/>
+                <circle cx="60" cy="18" r="1.5" fill="#FBBF24" opacity="0.7"/>
+                <circle cx="70" cy="30" r="1.5" fill="#FBBF24" opacity="0.7"/>
               </svg>
             </div>
-            <div className="min-w-0">
-              <p className="font-bold text-gray-900 text-[14px] leading-tight">Great food, great deals!</p>
-              <p className="text-gray-500 text-[11px] leading-snug mt-0.5">
-                Enjoy exclusive offers and save more<br />on your favorite shops.
-              </p>
-              <Link href="/student/offers">
-                <button className="mt-2 bg-[#EA580C] text-white text-[12px] font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-orange-700 transition-colors">
-                  View Offers
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
-              </Link>
-            </div>
           </div>
-          {/* Right – Shopping bag illustration */}
-          <div className="shrink-0 ml-2">
-            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Bag body */}
-              <rect x="16" y="30" width="48" height="42" rx="8" fill="#EA580C"/>
-              {/* Bag handle */}
-              <path d="M28 30V24C28 17.373 33.373 12 40 12C46.627 12 52 17.373 52 24V30" stroke="#EA580C" strokeWidth="5" strokeLinecap="round" fill="none"/>
-              {/* Bag handle inner */}
-              <path d="M28 30V24C28 17.373 33.373 12 40 12C46.627 12 52 17.373 52 24V30" stroke="#C2410C" strokeWidth="3" strokeLinecap="round" fill="none"/>
-              {/* % on bag */}
-              <circle cx="35" cy="50" r="4" fill="white" opacity="0.9"/>
-              <circle cx="45" cy="62" r="4" fill="white" opacity="0.9"/>
-              <line x1="29" y1="65" x2="51" y2="45" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9"/>
-              {/* Sparkles */}
-              <circle cx="64" cy="24" r="3" fill="#FBBF24"/>
-              <circle cx="60" cy="18" r="1.5" fill="#FBBF24" opacity="0.7"/>
-              <circle cx="70" cy="30" r="1.5" fill="#FBBF24" opacity="0.7"/>
-            </svg>
-          </div>
-        </div>
+        )}
 
         {/* ── Nearby Shops ── */}
         <div className="pt-1">

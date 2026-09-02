@@ -376,3 +376,41 @@ export async function wipeOrderAuditLogs() {
     
   if (error) throw new Error(error.message)
 }
+export async function getOffersBannerEnabled(): Promise<boolean> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'offers_banner')
+    .single()
+    
+  if (!data || data.value === null) return true // default to true
+  try {
+    return JSON.parse(data.value)
+  } catch (e) {
+    return true
+  }
+}
+
+export async function setOffersBannerEnabled(enabled: boolean) {
+  const supabase = createClient()
+  
+  const { data: existing } = await supabase
+    .from('app_settings')
+    .select('key')
+    .eq('key', 'offers_banner')
+    .single()
+    
+  if (existing) {
+    const { error } = await supabase
+      .from('app_settings')
+      .update({ value: JSON.stringify(enabled) })
+      .eq('key', 'offers_banner')
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await supabase
+      .from('app_settings')
+      .insert({ key: 'offers_banner', value: JSON.stringify(enabled) })
+    if (error) throw new Error(error.message)
+  }
+}
