@@ -31,7 +31,9 @@ jobs:
 
       - name: Init Capacitor and Android
         run: |
-          npx cap init "Campus Bites" "com.campusbites.app" --web-dir public 
+          mkdir -p public
+          echo '<!DOCTYPE html><html><head></head><body></body></html>' > public/index.html
+          npx cap init "Campus Bites" "com.campusbites.app" --web-dir public
           npm install @capacitor/android
           npx cap add android
         env:
