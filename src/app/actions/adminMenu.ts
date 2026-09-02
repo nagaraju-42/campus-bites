@@ -3,8 +3,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 const getSupabaseAdmin = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co')
+  const supabaseServiceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder')
   
   if (!supabaseServiceKey) {
     throw new Error('Service role key is missing on Vercel!')
@@ -85,3 +85,4 @@ export async function adminImportMenuItems(targetShopId: string, sourceItemIds: 
 
   if (insertError) throw new Error(insertError.message)
 }
+

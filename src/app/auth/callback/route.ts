@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'),
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
@@ -31,3 +31,4 @@ export async function GET(request: Request) {
   // URL to redirect to after sign in process completes
   return NextResponse.redirect(`${requestUrl.origin}/complete-profile`)
 }
+

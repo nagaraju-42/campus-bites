@@ -6,8 +6,8 @@ import { getFCM } from '@/lib/firebase-admin'
 export async function sendOrderPushAction(userId: string, title: string, body: string) {
   try {
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'),
+      process.env.SUPABASE_SERVICE_ROLE_KEY || (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder')
     );
     
     const { data: profile } = await supabase.from('profiles').select('fcm_token').eq('id', userId).single();
@@ -46,3 +46,4 @@ export async function sendOrderPushAction(userId: string, title: string, body: s
     console.error('Failed to send order push:', error);
   }
 }
+

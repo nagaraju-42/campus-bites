@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function GET() {
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
+  );
   // Fetch all order_items where partner_shop_id is null
   const { data: itemsToFix } = await supabaseAdmin.from('order_items').select('*').is('partner_shop_id', null);
   
@@ -40,3 +39,5 @@ export async function GET() {
     orders: data || []
   });
 }
+
+
