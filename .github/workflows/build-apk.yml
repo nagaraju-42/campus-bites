@@ -82,6 +82,8 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk apks/CampusBites.apk
           git add apks/CampusBites.apk
           git commit -m "chore: auto-generated APK from CI [skip ci]" || echo "No changes to commit"
-          git pull --rebase origin ${GITHUB_REF##*/}
-          git push origin HEAD:${GITHUB_REF##*/}
+          git stash
+          git pull --rebase origin main
+          git push origin HEAD:main
+
 
