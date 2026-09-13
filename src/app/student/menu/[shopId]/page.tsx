@@ -410,11 +410,12 @@ export default function MenuPage() {
             </div>
           )}
 
-          {/* ── Zomato-style list layout ── */}
+          {/* ── Zomato-style list layout (WITH IMAGES) ── */}
           <div className="bg-white">
             {Object.entries(groupedMenu).map(([category, menuItems]) => {
               const filteredItems = menuItems
                 .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .filter(item => !!item.image_url) // ONLY ITEMS WITH IMAGES
                 .sort((a, b) => {
                   if (a.is_available === b.is_available) return 0
                   return a.is_available ? -1 : 1
@@ -521,19 +522,13 @@ export default function MenuPage() {
                           {/* ── RIGHT: Image + ADD button ── */}
                           <div className="shrink-0 relative pb-3">
                             <div className="w-[118px] h-[118px] rounded-2xl overflow-hidden bg-gray-100 relative">
-                              {item.image_url ? (
-                                <Image
-                                  src={item.image_url}
-                                  alt={item.name}
-                                  fill
-                                  className="object-cover img-cinematic"
-                                  sizes="118px"
-                                />
-                              ) : (
-                                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
-                                  <span className="text-4xl">🍲</span>
-                                </div>
-                              )}
+                              <Image
+                                src={item.image_url!}
+                                alt={item.name}
+                                fill
+                                className="object-cover img-cinematic"
+                                sizes="118px"
+                              />
 
                               {/* Sold out overlay */}
                               {!item.is_available && (
@@ -598,11 +593,122 @@ export default function MenuPage() {
                   })}
 
                   {/* Solid divider after each category */}
-                  <div className="mx-4 mt-4 border-b border-gray-100" />
+                  <div className="h-3 bg-gray-100 w-full mt-4" />
                 </div>
               )
             })}
+          </div>
 
+          {/* ── Renuka-style list layout (WITHOUT IMAGES) ── */}
+          <div className="bg-[#F6EBD8] pt-6 pb-20 mt-2">
+            {Object.entries(groupedMenu).map(([category, menuItems]) => {
+              const filteredItems = menuItems
+                .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .filter(item => !item.image_url) // ONLY ITEMS WITHOUT IMAGES
+                .sort((a, b) => {
+                  if (a.is_available === b.is_available) return 0
+                  return a.is_available ? -1 : 1
+                })
+              if (filteredItems.length === 0) return null
+
+              return (
+                <div key={`renuka-${category}`} id={`renuka-category-${category}`} className="mb-10">
+                  {/* Category heading */}
+                  <div className="flex items-center justify-center gap-4 px-4 mb-6">
+                    <div className="border-b-2 border-dashed border-[#C54932] opacity-60 flex-1" />
+                    <h2 className="text-2xl font-black text-[#C54932] tracking-wide" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>{category}</h2>
+                    <div className="border-b-2 border-dashed border-[#C54932] opacity-60 flex-1" />
+                  </div>
+
+                  {/* Items list */}
+                  <div className="px-4 flex flex-col gap-0">
+                    {filteredItems.map((item, itemIdx) => {
+                      const qty = getItemQuantity(item.id)
+                      
+                      return (
+                        <div key={item.id} className={`pt-4 pb-4 border-b border-dashed border-[#D1BFA5] last:border-0 ${!item.is_available ? 'opacity-60' : ''}`}>
+                          {/* Veg/NonVeg Badge */}
+                          <div className="mb-2">
+                            {item.is_veg ? (
+                              <span className="bg-[#4D6840] text-white px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">VEG</span>
+                            ) : (
+                              <span className="bg-[#C54932] text-white px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">NON VEG</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 pr-4">
+                               <h3 className="text-[#332214] font-bold text-[16px] leading-tight mb-1">{item.name}</h3>
+                               {item.variants && item.variants.length > 0 ? (
+                                 <div className="flex items-center gap-2 mt-1">
+                                    <button
+                                      onClick={() => setSelectedVariantItem(item)}
+                                      className="text-[11px] font-bold text-[#C54932] bg-[#F6EBD8] px-1.5 py-0.5 rounded border border-[#C54932]/30 inline-flex items-center gap-0.5"
+                                    >
+                                      {item.variants[0].name} <ChevronDown size={10} />
+                                    </button>
+                                    <p className="text-[#C54932] font-semibold text-[14px]">₹{item.variants[0].price}</p>
+                                 </div>
+                               ) : (
+                                 <p className="text-[#C54932] font-semibold text-[14px] mt-1">₹{item.price}</p>
+                               )}
+                               
+                               {/* Partner tag */}
+                               {(item as any).partner_shop_name && (
+                                  <span className="mt-1 text-[10px] font-semibold text-[#7C3AED] bg-white/40 px-2 py-0.5 rounded-full inline-block">
+                                    by {(item as any).partner_shop_name}
+                                  </span>
+                               )}
+                            </div>
+
+                            <div className="shrink-0 pt-1">
+                               {(!item.is_available || !isShopAccessible) ? (
+                                  <div className="h-8 px-5 bg-[#e4d6bf] rounded-full flex items-center justify-center">
+                                    <span className="text-[#8c7a65] font-bold text-[11px]">N/A</span>
+                                  </div>
+                               ) : qty === 0 ? (
+                                  <button
+                                    onClick={() => {
+                                      if (item.variants && item.variants.length > 0) {
+                                        setSelectedVariantItem(item)
+                                      } else {
+                                        handleAddToCart(item)
+                                      }
+                                    }}
+                                    className="bg-[#C54932] hover:bg-[#a83c20] active:scale-95 transition-transform text-white px-6 py-1.5 rounded-full text-[12px] font-bold tracking-widest shadow-sm"
+                                  >
+                                    ADD
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center justify-between bg-[#C54932] rounded-full shadow-sm px-1.5 h-8 w-[80px]">
+                                    <button
+                                      onClick={() => {
+                                        if (item.variants && item.variants.length > 0) setSelectedVariantItem(item)
+                                        else updateQuantity(item.id, qty - 1)
+                                      }}
+                                      className="w-6 h-6 flex items-center justify-center rounded-full active:bg-[#a83c20] transition text-white"
+                                    >
+                                      <Minus size={13} />
+                                    </button>
+                                    <span className="text-white font-extrabold text-sm">{qty}</span>
+                                    <button
+                                      onClick={() => handleAddToCart(item)}
+                                      className="w-6 h-6 flex items-center justify-center rounded-full active:bg-[#a83c20] transition text-white"
+                                    >
+                                      <Plus size={13} />
+                                    </button>
+                                  </div>
+                               )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
             {/* Offers banner at the bottom */}
             <div className="mx-4 my-4 bg-[#FEF3E8] rounded-2xl p-4 border border-orange-100 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -626,7 +732,6 @@ export default function MenuPage() {
                 </button>
               </Link>
             </div>
-          </div>
         </>
       )}
 
