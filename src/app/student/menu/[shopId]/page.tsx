@@ -411,198 +411,201 @@ export default function MenuPage() {
           )}
 
           {/* ── Zomato-style list layout (WITH IMAGES) ── */}
-          <div className="bg-white">
-            {Object.entries(groupedMenu).map(([category, menuItems]) => {
-              const filteredItems = menuItems
-                .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                .filter(item => !!item.image_url) // ONLY ITEMS WITH IMAGES
-                .sort((a, b) => {
-                  if (a.is_available === b.is_available) return 0
-                  return a.is_available ? -1 : 1
-                })
-              if (filteredItems.length === 0) return null
+          {Object.values(groupedMenu).some(items => items.some(i => !!i.image_url && i.name.toLowerCase().includes(searchQuery.toLowerCase()))) && (
+            <div className="bg-white">
+              {Object.entries(groupedMenu).map(([category, menuItems]) => {
+                const filteredItems = menuItems
+                  .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter(item => !!item.image_url) // ONLY ITEMS WITH IMAGES
+                  .sort((a, b) => {
+                    if (a.is_available === b.is_available) return 0
+                    return a.is_available ? -1 : 1
+                  })
+                if (filteredItems.length === 0) return null
 
-              return (
-                <div key={category} id={`category-${category}`}>
-                  {/* Category heading */}
-                  <div className="px-4 pt-5 pb-3">
-                    <h2 className="text-[17px] font-extrabold text-gray-900">{category}</h2>
-                  </div>
+                return (
+                  <div key={category} id={`category-${category}`}>
+                    {/* Category heading */}
+                    <div className="px-4 pt-5 pb-3">
+                      <h2 className="text-[17px] font-extrabold text-gray-900">{category}</h2>
+                    </div>
 
-                  {/* Items list */}
-                  {filteredItems.map((item, itemIdx) => {
-                    const qty = getItemQuantity(item.id)
-                    const isHighlyReordered = item.is_featured === true
+                    {/* Items list */}
+                    {filteredItems.map((item, itemIdx) => {
+                      const qty = getItemQuantity(item.id)
+                      const isHighlyReordered = item.is_featured === true
 
-                    return (
-                      <div key={item.id}>
-                        {/* ── Single item row ── */}
-                        <div className={`px-4 py-4 flex gap-3 items-start ${!item.is_available ? 'opacity-60' : ''}`}>
+                      return (
+                        <div key={item.id}>
+                          {/* ── Single item row ── */}
+                          <div className={`px-4 py-4 flex gap-3 items-start ${!item.is_available ? 'opacity-60' : ''}`}>
 
-                          {/* ── LEFT: Info ── */}
-                          <div className="flex-1 min-w-0 flex flex-col">
+                            {/* ── LEFT: Info ── */}
+                            <div className="flex-1 min-w-0 flex flex-col">
 
-                            {/* Veg / Non-veg + chilli indicators */}
-                            <div className="flex items-center gap-1.5 mb-1.5">
-                              {item.is_veg ? (
-                                <div className="w-4 h-4 border-2 border-[#1BA672] rounded-sm flex items-center justify-center shrink-0">
-                                  <div className="w-2 h-2 bg-[#1BA672] rounded-full" />
+                              {/* Veg / Non-veg + chilli indicators */}
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                {item.is_veg ? (
+                                  <div className="w-4 h-4 border-2 border-[#1BA672] rounded-sm flex items-center justify-center shrink-0">
+                                    <div className="w-2 h-2 bg-[#1BA672] rounded-full" />
+                                  </div>
+                                ) : (
+                                  <div className="w-4 h-4 border-2 border-[#E23744] rounded-sm flex items-center justify-center shrink-0">
+                                    <svg width="8" height="7" viewBox="0 0 8 7">
+                                      <polygon points="4,1 7,6 1,6" fill="#E23744"/>
+                                    </svg>
+                                  </div>
+                                )}
+                                {!item.is_veg && (
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 2C9 2 7 5 7 8c0 4 3 8 5 10 2-2 5-6 5-10 0-3-2-6-5-6z" fill="#E23744"/>
+                                    <path d="M12 2C13 4 15 3 16 2" stroke="#15803D" strokeWidth="1.5" strokeLinecap="round"/>
+                                  </svg>
+                                )}
+                              </div>
+
+                              {/* Item name */}
+                              <h3 className="text-[16px] font-bold text-gray-900 leading-snug">
+                                {item.name}
+                              </h3>
+
+                              {/* "Highly reordered" bar */}
+                              {isHighlyReordered && (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <div className="h-1.5 w-16 bg-[#1BA672] rounded-full" />
+                                  <span className="text-[11px] font-semibold text-gray-500">Highly reordered</span>
+                                </div>
+                              )}
+
+                              {/* Partner shop tag */}
+                              {(item as any).partner_shop_name && (
+                                <span className="mt-1 text-[10px] font-semibold text-[#7C3AED] bg-[#F5F3FF] px-1.5 py-0.5 rounded-full inline-block w-fit">
+                                  by {(item as any).partner_shop_name}
+                                </span>
+                              )}
+
+                              {/* Price */}
+                              {item.variants && item.variants.length > 0 ? (
+                                <div className="mt-1.5">
+                                  <button
+                                    onClick={() => setSelectedVariantItem(item)}
+                                    className="text-[11px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
+                                  >
+                                    {item.variants[0].name} <ChevronDown size={10} />
+                                  </button>
+                                  <p className="text-gray-900 font-bold text-[15px] mt-0.5">₹{item.variants[0].price}</p>
                                 </div>
                               ) : (
-                                <div className="w-4 h-4 border-2 border-[#E23744] rounded-sm flex items-center justify-center shrink-0">
-                                  <svg width="8" height="7" viewBox="0 0 8 7">
-                                    <polygon points="4,1 7,6 1,6" fill="#E23744"/>
-                                  </svg>
-                                </div>
+                                <p className="text-gray-900 font-bold text-[15px] mt-1.5">₹{item.price}</p>
                               )}
-                              {!item.is_veg && (
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                                  <path d="M12 2C9 2 7 5 7 8c0 4 3 8 5 10 2-2 5-6 5-10 0-3-2-6-5-6z" fill="#E23744"/>
-                                  <path d="M12 2C13 4 15 3 16 2" stroke="#15803D" strokeWidth="1.5" strokeLinecap="round"/>
-                                </svg>
+
+                              {/* Description — truncated like Zomato */}
+                              {item.description && (
+                                <DescriptionWithMore text={item.description} />
                               )}
-                            </div>
 
-                            {/* Item name */}
-                            <h3 className="text-[16px] font-bold text-gray-900 leading-snug">
-                              {item.name}
-                            </h3>
-
-                            {/* "Highly reordered" bar */}
-                            {isHighlyReordered && (
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <div className="h-1.5 w-16 bg-[#1BA672] rounded-full" />
-                                <span className="text-[11px] font-semibold text-gray-500">Highly reordered</span>
-                              </div>
-                            )}
-
-                            {/* Partner shop tag */}
-                            {(item as any).partner_shop_name && (
-                              <span className="mt-1 text-[10px] font-semibold text-[#7C3AED] bg-[#F5F3FF] px-1.5 py-0.5 rounded-full inline-block w-fit">
-                                by {(item as any).partner_shop_name}
-                              </span>
-                            )}
-
-                            {/* Price */}
-                            {item.variants && item.variants.length > 0 ? (
-                              <div className="mt-1.5">
-                                <button
-                                  onClick={() => setSelectedVariantItem(item)}
-                                  className="text-[11px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
-                                >
-                                  {item.variants[0].name} <ChevronDown size={10} />
-                                </button>
-                                <p className="text-gray-900 font-bold text-[15px] mt-0.5">₹{item.variants[0].price}</p>
-                              </div>
-                            ) : (
-                              <p className="text-gray-900 font-bold text-[15px] mt-1.5">₹{item.price}</p>
-                            )}
-
-                            {/* Description — truncated like Zomato */}
-                            {item.description && (
-                              <DescriptionWithMore text={item.description} />
-                            )}
-
-                            {/* Bookmark + Share icons */}
-                            <div className="flex items-center gap-2 mt-3">
-                              <button className="w-8 h-8 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition active:scale-90">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                                </svg>
-                              </button>
-                              <button className="w-8 h-8 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition active:scale-90">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* ── RIGHT: Image + ADD button ── */}
-                          <div className="shrink-0 relative pb-3">
-                            <div className="w-[118px] h-[118px] rounded-2xl overflow-hidden bg-gray-100 relative">
-                              <Image
-                                src={item.image_url!}
-                                alt={item.name}
-                                fill
-                                className="object-cover img-cinematic"
-                                sizes="118px"
-                              />
-
-                              {/* Sold out overlay */}
-                              {!item.is_available && (
-                                <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
-                                  <span className="text-white font-bold text-[10px] bg-red-500 px-2 py-1 rounded-full uppercase">Sold Out</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* ADD / counter button — overlaid at bottom of image */}
-                            <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-[90px]">
-                              {(!item.is_available || !isShopAccessible) ? (
-                                <div className="h-8 bg-gray-100 rounded-lg flex items-center justify-center shadow-sm">
-                                  <span className="text-gray-400 font-bold text-[10px]">N/A</span>
-                                </div>
-                              ) : qty === 0 ? (
-                                <button
-                                  onClick={() => {
-                                    if (item.variants && item.variants.length > 0) {
-                                      setSelectedVariantItem(item)
-                                    } else {
-                                      handleAddToCart(item)
-                                    }
-                                  }}
-                                  className="w-full h-9 bg-white border-2 border-[#E23744] rounded-xl flex items-center justify-center gap-1 font-extrabold text-[14px] text-[#E23744] shadow-md active:scale-95 transition-transform"
-                                >
-                                  ADD
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E23744" strokeWidth="3" strokeLinecap="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                              {/* Bookmark + Share icons */}
+                              <div className="flex items-center gap-2 mt-3">
+                                <button className="w-8 h-8 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition active:scale-90">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                                   </svg>
                                 </button>
-                              ) : (
-                                <div className="w-full h-9 flex items-center justify-between bg-[#E23744] rounded-xl shadow-md px-1.5">
+                                <button className="w-8 h-8 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition active:scale-90">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* ── RIGHT: Image + ADD button ── */}
+                            <div className="shrink-0 relative pb-3">
+                              <div className="w-[118px] h-[118px] rounded-2xl overflow-hidden bg-gray-100 relative">
+                                <Image
+                                  src={item.image_url!}
+                                  alt={item.name}
+                                  fill
+                                  className="object-cover img-cinematic"
+                                  sizes="118px"
+                                />
+
+                                {/* Sold out overlay */}
+                                {!item.is_available && (
+                                  <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
+                                    <span className="text-white font-bold text-[10px] bg-red-500 px-2 py-1 rounded-full uppercase">Sold Out</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* ADD / counter button — overlaid at bottom of image */}
+                              <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-[90px]">
+                                {(!item.is_available || !isShopAccessible) ? (
+                                  <div className="h-8 bg-gray-100 rounded-lg flex items-center justify-center shadow-sm">
+                                    <span className="text-gray-400 font-bold text-[10px]">N/A</span>
+                                  </div>
+                                ) : qty === 0 ? (
                                   <button
                                     onClick={() => {
-                                      if (item.variants && item.variants.length > 0) setSelectedVariantItem(item)
-                                      else updateQuantity(item.id, qty - 1)
+                                      if (item.variants && item.variants.length > 0) {
+                                        setSelectedVariantItem(item)
+                                      } else {
+                                        handleAddToCart(item)
+                                      }
                                     }}
-                                    className="w-6 h-6 flex items-center justify-center rounded-lg active:bg-red-700 transition"
+                                    className="w-full h-9 bg-white border-2 border-[#E23744] rounded-xl flex items-center justify-center gap-1 font-extrabold text-[14px] text-[#E23744] shadow-md active:scale-95 transition-transform"
                                   >
-                                    <Minus size={13} className="text-white" />
+                                    ADD
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E23744" strokeWidth="3" strokeLinecap="round">
+                                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
                                   </button>
-                                  <span className="text-white font-extrabold text-sm">{qty}</span>
-                                  <button
-                                    onClick={() => handleAddToCart(item)}
-                                    className="w-6 h-6 flex items-center justify-center rounded-lg active:bg-red-700 transition"
-                                  >
-                                    <Plus size={13} className="text-white" />
-                                  </button>
-                                </div>
-                              )}
+                                ) : (
+                                  <div className="w-full h-9 flex items-center justify-between bg-[#E23744] rounded-xl shadow-md px-1.5">
+                                    <button
+                                      onClick={() => {
+                                        if (item.variants && item.variants.length > 0) setSelectedVariantItem(item)
+                                        else updateQuantity(item.id, qty - 1)
+                                      }}
+                                      className="w-6 h-6 flex items-center justify-center rounded-lg active:bg-red-700 transition"
+                                    >
+                                      <Minus size={13} className="text-white" />
+                                    </button>
+                                    <span className="text-white font-extrabold text-sm">{qty}</span>
+                                    <button
+                                      onClick={() => handleAddToCart(item)}
+                                      className="w-6 h-6 flex items-center justify-center rounded-lg active:bg-red-700 transition"
+                                    >
+                                      <Plus size={13} className="text-white" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
+
+                          {/* Dashed divider between items */}
+                          {itemIdx < filteredItems.length - 1 && (
+                            <div className="mx-4 border-b border-dashed border-gray-200" />
+                          )}
                         </div>
+                      )
+                    })}
 
-                        {/* Dashed divider between items */}
-                        {itemIdx < filteredItems.length - 1 && (
-                          <div className="mx-4 border-b border-dashed border-gray-200" />
-                        )}
-                      </div>
-                    )
-                  })}
-
-                  {/* Solid divider after each category */}
-                  <div className="h-3 bg-gray-100 w-full mt-4" />
-                </div>
-              )
-            })}
-          </div>
+                    {/* Solid divider after each category */}
+                    <div className="h-3 bg-gray-100 w-full mt-4" />
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {/* ── Renuka-style list layout (WITHOUT IMAGES) ── */}
-          <div className="bg-[#F6EBD8] pt-6 pb-20 mt-2">
-            {Object.entries(groupedMenu).map(([category, menuItems]) => {
-              const filteredItems = menuItems
+          {Object.values(groupedMenu).some(items => items.some(i => !i.image_url && i.name.toLowerCase().includes(searchQuery.toLowerCase()))) && (
+            <div className="bg-[#F6EBD8] pt-6 pb-20 mt-2">
+              {Object.entries(groupedMenu).map(([category, menuItems]) => {
+                const filteredItems = menuItems
                 .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
                 .filter(item => !item.image_url) // ONLY ITEMS WITHOUT IMAGES
                 .sort((a, b) => {
@@ -709,6 +712,7 @@ export default function MenuPage() {
               )
             })}
           </div>
+          )}
             {/* Offers banner at the bottom */}
             <div className="mx-4 my-4 bg-[#FEF3E8] rounded-2xl p-4 border border-orange-100 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
