@@ -205,6 +205,31 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop;
         })
       }
 
+      // Deterministic shuffle based on shop ID so they don't look identical
+      const shuffle = (array: CarouselSlide[]) => {
+        let seed = 0;
+        for (let i = 0; i < shop.id.length; i++) {
+          seed += shop.id.charCodeAt(i);
+        }
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex != 0) {
+          const x = Math.sin(seed++) * 10000;
+          randomIndex = Math.floor((x - Math.floor(x)) * currentIndex);
+          currentIndex--;
+          [array[currentIndex], array[randomIndex]] = [
+            array[randomIndex], array[currentIndex]];
+        }
+        return array;
+      }
+      
+      if (builtSlides.length > 1 && !shop.cover_image) {
+        shuffle(builtSlides);
+      } else if (builtSlides.length > 2 && shop.cover_image) {
+        const first = builtSlides.shift();
+        shuffle(builtSlides);
+        if (first) builtSlides.unshift(first);
+      }
+
       setSlides(builtSlides)
     }
     fetchData()
