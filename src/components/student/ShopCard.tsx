@@ -159,7 +159,7 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop;
         setRating(avg.toFixed(1))
       }
 
-      // Fetch top menu items with images to build carousel slides
+      // Fetch all menu items with images to build carousel slides
       const { data: menuData } = await supabase
         .from('menu_items')
         .select('name, price, image_url, is_featured, is_available')
@@ -167,7 +167,6 @@ export default function ShopCard({ shop, orderMode = 'delivery' }: { shop: Shop;
         .eq('is_available', true)
         .eq('is_archived', false)
         .order('is_featured', { ascending: false })
-        .limit(5)
 
       // Build slides: cover_image first, then item images
       const builtSlides: CarouselSlide[] = []
