@@ -382,7 +382,6 @@ export default function MenuPage() {
           {categories.length > 0 && (
             <div className="bg-white px-4 py-3 flex gap-2 overflow-x-auto scrollbar-none snap-x border-b border-gray-100">
               {categories.map((cat, i) => {
-                // Map category to emoji - first cat gets fire
                 const emojis = ['🔥', '🍽️', '🥤', '🍟', '🍰', '🥗']
                 const emoji = emojis[i] || '🍴'
                 const isActive = cat === activeCategory
@@ -411,8 +410,8 @@ export default function MenuPage() {
             </div>
           )}
 
-          {/* Menu items grid – 2 columns exactly like reference */}
-          <div className="px-3 py-4 space-y-6">
+          {/* ── Zomato-style list layout ── */}
+          <div className="bg-white">
             {Object.entries(groupedMenu).map(([category, menuItems]) => {
               const filteredItems = menuItems
                 .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -424,62 +423,59 @@ export default function MenuPage() {
 
               return (
                 <div key={category} id={`category-${category}`}>
-                  {/* Section header */}
-                  <div className="flex items-center justify-between mb-3">
+                  {/* Category heading */}
+                  <div className="px-4 pt-5 pb-3">
                     <h2 className="text-[17px] font-extrabold text-gray-900">{category}</h2>
-                    <button className="text-[#EA580C] text-[13px] font-bold flex items-center gap-0.5">
-                      See all
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EA580C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="9 18 15 12 9 6"/>
-                      </svg>
-                    </button>
                   </div>
 
-                  {/* 2-column grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {filteredItems.map((item) => {
-                      const qty = getItemQuantity(item.id)
-                      return (
-                        <div
-                          key={item.id}
-                          className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col ${!item.is_available ? 'opacity-60 grayscale' : ''}`}
-                        >
-                          {/* Image with heart overlay */}
-                          <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
-                            {item.image_url ? (
-                              <Image
-                                src={item.image_url}
-                                alt={item.name}
-                                fill
-                                className="object-cover img-cinematic"
-                                sizes="(max-width: 430px) 50vw, 200px"
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
-                                <span className="text-5xl">🍲</span>
-                              </div>
-                            )}
-                            {/* Heart button – top right */}
-                            <button className="absolute top-2 right-2 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                              </svg>
-                            </button>
-                            {/* Sold out overlay */}
-                            {!item.is_available && (
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                <span className="text-white font-bold text-xs bg-red-500 px-2 py-1 rounded-full uppercase">Sold Out</span>
-                              </div>
-                            )}
-                          </div>
+                  {/* Items list */}
+                  {filteredItems.map((item, itemIdx) => {
+                    const qty = getItemQuantity(item.id)
+                    const isHighlyReordered = item.is_featured === true
 
-                          {/* Item info */}
-                          <div className="p-2.5 flex flex-col flex-1">
-                            <h3 className="font-bold text-gray-900 text-[13px] leading-tight line-clamp-2">
+                    return (
+                      <div key={item.id}>
+                        {/* ── Single item row ── */}
+                        <div className={`px-4 py-4 flex gap-3 items-start ${!item.is_available ? 'opacity-60' : ''}`}>
+
+                          {/* ── LEFT: Info ── */}
+                          <div className="flex-1 min-w-0 flex flex-col">
+
+                            {/* Veg / Non-veg + chilli indicators */}
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              {item.is_veg ? (
+                                <div className="w-4 h-4 border-2 border-[#1BA672] rounded-sm flex items-center justify-center shrink-0">
+                                  <div className="w-2 h-2 bg-[#1BA672] rounded-full" />
+                                </div>
+                              ) : (
+                                <div className="w-4 h-4 border-2 border-[#E23744] rounded-sm flex items-center justify-center shrink-0">
+                                  <svg width="8" height="7" viewBox="0 0 8 7">
+                                    <polygon points="4,1 7,6 1,6" fill="#E23744"/>
+                                  </svg>
+                                </div>
+                              )}
+                              {!item.is_veg && (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                  <path d="M12 2C9 2 7 5 7 8c0 4 3 8 5 10 2-2 5-6 5-10 0-3-2-6-5-6z" fill="#E23744"/>
+                                  <path d="M12 2C13 4 15 3 16 2" stroke="#15803D" strokeWidth="1.5" strokeLinecap="round"/>
+                                </svg>
+                              )}
+                            </div>
+
+                            {/* Item name */}
+                            <h3 className="text-[16px] font-bold text-gray-900 leading-snug">
                               {item.name}
                             </h3>
 
-                            {/* Partner shop tag (purple like reference) */}
+                            {/* "Highly reordered" bar */}
+                            {isHighlyReordered && (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <div className="h-1.5 w-16 bg-[#1BA672] rounded-full" />
+                                <span className="text-[11px] font-semibold text-gray-500">Highly reordered</span>
+                              </div>
+                            )}
+
+                            {/* Partner shop tag */}
                             {(item as any).partner_shop_name && (
                               <span className="mt-1 text-[10px] font-semibold text-[#7C3AED] bg-[#F5F3FF] px-1.5 py-0.5 rounded-full inline-block w-fit">
                                 by {(item as any).partner_shop_name}
@@ -488,24 +484,70 @@ export default function MenuPage() {
 
                             {/* Price */}
                             {item.variants && item.variants.length > 0 ? (
-                              <div className="mt-1">
+                              <div className="mt-1.5">
                                 <button
                                   onClick={() => setSelectedVariantItem(item)}
-                                  className="text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
+                                  className="text-[11px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
                                 >
                                   {item.variants[0].name} <ChevronDown size={10} />
                                 </button>
-                                <p className="text-gray-900 font-bold text-[14px] mt-1">{formatCurrency(item.variants[0].price)}</p>
+                                <p className="text-gray-900 font-bold text-[15px] mt-0.5">₹{item.variants[0].price}</p>
                               </div>
                             ) : (
-                              <p className="text-gray-900 font-bold text-[14px] mt-1">{formatCurrency(item.price)}</p>
+                              <p className="text-gray-900 font-bold text-[15px] mt-1.5">₹{item.price}</p>
                             )}
 
-                            {/* ADD / +/- button exactly like reference */}
-                            <div className="mt-2">
+                            {/* Description — truncated like Zomato */}
+                            {item.description && (
+                              <DescriptionWithMore text={item.description} />
+                            )}
+
+                            {/* Bookmark + Share icons */}
+                            <div className="flex items-center gap-2 mt-3">
+                              <button className="w-8 h-8 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition active:scale-90">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                                </svg>
+                              </button>
+                              <button className="w-8 h-8 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition active:scale-90">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* ── RIGHT: Image + ADD button ── */}
+                          <div className="shrink-0 relative pb-3">
+                            <div className="w-[118px] h-[118px] rounded-2xl overflow-hidden bg-gray-100 relative">
+                              {item.image_url ? (
+                                <Image
+                                  src={item.image_url}
+                                  alt={item.name}
+                                  fill
+                                  className="object-cover img-cinematic"
+                                  sizes="118px"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
+                                  <span className="text-4xl">🍲</span>
+                                </div>
+                              )}
+
+                              {/* Sold out overlay */}
+                              {!item.is_available && (
+                                <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
+                                  <span className="text-white font-bold text-[10px] bg-red-500 px-2 py-1 rounded-full uppercase">Sold Out</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* ADD / counter button — overlaid at bottom of image */}
+                            <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-[90px]">
                               {(!item.is_available || !isShopAccessible) ? (
-                                <div className="w-full h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 font-bold text-[11px]">
-                                  UNAVAILABLE
+                                <div className="h-8 bg-gray-100 rounded-lg flex items-center justify-center shadow-sm">
+                                  <span className="text-gray-400 font-bold text-[10px]">N/A</span>
                                 </div>
                               ) : qty === 0 ? (
                                 <button
@@ -516,28 +558,28 @@ export default function MenuPage() {
                                       handleAddToCart(item)
                                     }
                                   }}
-                                  className="w-full h-9 bg-white text-[#16A34A] border border-[#16A34A] rounded-full flex items-center justify-center gap-1.5 font-bold text-[13px] hover:bg-green-50 transition active:scale-95"
+                                  className="w-full h-9 bg-white border-2 border-[#E23744] rounded-xl flex items-center justify-center gap-1 font-extrabold text-[14px] text-[#E23744] shadow-md active:scale-95 transition-transform"
                                 >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round">
+                                  ADD
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E23744" strokeWidth="3" strokeLinecap="round">
                                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                                   </svg>
-                                  ADD
                                 </button>
                               ) : (
-                                <div className="w-full h-9 flex items-center justify-between bg-[#16A34A] rounded-full shadow-sm px-2">
+                                <div className="w-full h-9 flex items-center justify-between bg-[#E23744] rounded-xl shadow-md px-1.5">
                                   <button
                                     onClick={() => {
                                       if (item.variants && item.variants.length > 0) setSelectedVariantItem(item)
                                       else updateQuantity(item.id, qty - 1)
                                     }}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full active:bg-green-700 transition"
+                                    className="w-6 h-6 flex items-center justify-center rounded-lg active:bg-red-700 transition"
                                   >
                                     <Minus size={13} className="text-white" />
                                   </button>
-                                  <span className="text-white font-bold text-sm">{qty}</span>
+                                  <span className="text-white font-extrabold text-sm">{qty}</span>
                                   <button
                                     onClick={() => handleAddToCart(item)}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full active:bg-green-700 transition"
+                                    className="w-6 h-6 flex items-center justify-center rounded-lg active:bg-red-700 transition"
                                   >
                                     <Plus size={13} className="text-white" />
                                   </button>
@@ -546,15 +588,23 @@ export default function MenuPage() {
                             </div>
                           </div>
                         </div>
-                      )
-                    })}
-                  </div>
+
+                        {/* Dashed divider between items */}
+                        {itemIdx < filteredItems.length - 1 && (
+                          <div className="mx-4 border-b border-dashed border-gray-200" />
+                        )}
+                      </div>
+                    )
+                  })}
+
+                  {/* Solid divider after each category */}
+                  <div className="mx-4 mt-4 border-b border-gray-100" />
                 </div>
               )
             })}
 
-            {/* Offers banner at the bottom (like reference image) */}
-            <div className="mt-2 bg-[#FEF3E8] rounded-2xl p-4 border border-orange-100 flex items-center justify-between gap-3">
+            {/* Offers banner at the bottom */}
+            <div className="mx-4 my-4 bg-[#FEF3E8] rounded-2xl p-4 border border-orange-100 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-10 h-10 bg-[#EA580C] rounded-xl flex items-center justify-center shrink-0">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -564,7 +614,7 @@ export default function MenuPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-gray-900 text-[13px] leading-tight">Order more, save more!</p>
-                  <p className="text-gray-500 text-[11px] mt-0.5">Exciting offers & deals on your favourite shops 🎉</p>
+                  <p className="text-gray-500 text-[11px] mt-0.5">Exciting offers &amp; deals on your favourite shops 🎉</p>
                 </div>
               </div>
               <Link href="/student/offers">
@@ -666,6 +716,32 @@ export default function MenuPage() {
   )
 }
 
+// ── Description with "...more" toggle — exactly like Zomato ──────────────────
+function DescriptionWithMore({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const MAX = 80
+  const isLong = text.length > MAX
+
+  return (
+    <p className="text-[13px] text-gray-500 mt-1.5 leading-snug">
+      {isLong && !expanded ? (
+        <>
+          {text.slice(0, MAX)}
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(true) }}
+            className="text-gray-800 font-semibold ml-0.5"
+          >
+            ...more
+          </button>
+        </>
+      ) : (
+        text
+      )}
+    </p>
+  )
+}
+
+// ── Menu loading skeleton ─────────────────────────────────────────────────────
 function MenuSkeleton() {
   return (
     <div className="max-w-[430px] mx-auto">
@@ -680,15 +756,17 @@ function MenuSkeleton() {
           </div>
         </div>
       </div>
-      <div className="px-3 mt-6 grid grid-cols-2 gap-3">
+      <div className="bg-white mt-3">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-            <div className="aspect-square bg-gray-200 animate-pulse" />
-            <div className="p-3 space-y-2">
-              <div className="h-3 bg-gray-200 rounded animate-pulse" />
-              <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
-              <div className="h-8 bg-gray-200 rounded-full animate-pulse mt-2" />
+          <div key={i} className="px-4 py-4 flex gap-3 items-start border-b border-dashed border-gray-100">
+            <div className="flex-1 space-y-2">
+              <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-1/4" />
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-full" />
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3" />
             </div>
+            <div className="w-[118px] h-[118px] bg-gray-200 rounded-2xl animate-pulse shrink-0" />
           </div>
         ))}
       </div>

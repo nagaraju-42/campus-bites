@@ -54,6 +54,7 @@ export default function StudentHomePage() {
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [shops, setShops] = useState<Shop[]>(cachedShops)
   const [filteredShops, setFilteredShops] = useState<Shop[]>(cachedShops)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState('All')
   const [dbCategories, setDbCategories] = useState<any[]>(
     cachedCategories.length > 0
@@ -83,15 +84,18 @@ export default function StudentHomePage() {
     // Always fetch fresh data in background to ensure 'is_open' statuses are perfectly synced
     async function fetchData() {
       try {
-        const [shopsData] = await Promise.all([
-          getApprovedShops(),
-          getActivePromotions()
-        ])
+        // Fetch shops first — this is critical. Promotions failure must NOT block shops.
+        console.log('Fetching shops...')
+        const shopsData = await getApprovedShops()
+        console.log('Shops fetched:', shopsData)
 
         const sortedShops = shopsData.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
         setShops(sortedShops)
         setFilteredShops(sortedShops)
         storeSetShops(sortedShops)  // persist to localStorage
+
+        // Promotions fetch is optional — never crash the page if it fails
+        try { await getActivePromotions() } catch (_) {}
 
         const supabase = createClient()
         const { data: catData } = await supabase
@@ -130,8 +134,9 @@ export default function StudentHomePage() {
 
         markFetched()  // stamp the timestamp for TTL
         if (user?.id) fetchFavorites(user.id)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load data:', err)
+        setErrorMsg(err.message || String(err))
       } finally {
         setIsLoading(false)
       }
@@ -396,6 +401,12 @@ export default function StudentHomePage() {
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-[170px] bg-gray-200 rounded-2xl animate-pulse" />
               ))}
+            </div>
+          ) : errorMsg ? (
+            <div className="text-center py-10 text-red-500">
+              <p className="text-4xl mb-2">⚠️</p>
+              <p className="font-medium">Error fetching shops:</p>
+              <p className="text-sm mt-2">{errorMsg}</p>
             </div>
           ) : filteredShops.length === 0 ? (
             <div className="text-center py-10 text-gray-400">
