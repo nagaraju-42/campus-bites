@@ -81,7 +81,7 @@ const serwist = new Serwist({
 
     // ── 5. App icons / public assets ─────────────────────────────────────────
     {
-      matcher: /\.(png|jpg|jpeg|webp|svg|ico|gif)$/,
+      matcher: /\.(png|jpg|jpeg|webp|svg|ico|gif|mp4|webm)$/,
       handler: new CacheFirst({
         cacheName: "dnd-public-images",
         plugins: [
