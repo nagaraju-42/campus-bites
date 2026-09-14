@@ -101,6 +101,9 @@ export default function Shop1Dashboard() {
           <p className="text-gray-400 font-medium">Live Order Dashboard (Replica)</p>
         </div>
         <div className="flex gap-4">
+          <a href="/shop/dashboard" className="px-4 py-2 bg-gray-800 rounded-lg text-sm font-bold text-gray-300 hover:bg-gray-700 transition">
+            Advanced Settings ⚙️
+          </a>
           <button 
             onClick={() => {
               initShopAudio()

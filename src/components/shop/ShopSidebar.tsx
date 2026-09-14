@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 const NAV_ITEMS = [
-  { href: '/shop/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/shop1', label: 'Live Orders (Simple)', Icon: LayoutDashboard, isHighlighted: true },
+  { href: '/shop/dashboard', label: 'Advanced Dashboard', Icon: LayoutDashboard },
   { href: '/shop/orders', label: 'Orders', Icon: ClipboardList },
   { href: '/shop/kds', label: 'Kitchen (KDS)', Icon: Monitor },
   { href: '/shop/menu', label: 'Menu', Icon: Utensils },
