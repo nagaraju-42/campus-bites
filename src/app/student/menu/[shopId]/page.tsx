@@ -105,6 +105,10 @@ export default function MenuPage() {
   }, [groupedMenu, activeTab, showSearch])
 
   const handleAddToCart = (item: MenuItem, variantName?: string, variantPrice?: number) => {
+    if (!item.is_available) {
+      toast.error(`${item.name} is currently out of stock!`)
+      return
+    }
     if (!isShopAccessible) {
       toast.error(`This shop is currently closed.`)
       return
