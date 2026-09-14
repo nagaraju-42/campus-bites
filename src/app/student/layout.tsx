@@ -192,7 +192,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     )
   }
 
-  const hideNav = pathname.includes('/track') || pathname.includes('/checkout')
+  const hideNav = pathname.includes('/track') || pathname.includes('/checkout') || pathname.includes('/cart')
 
   return (
     <div className="relative min-h-screen bg-gray-50">

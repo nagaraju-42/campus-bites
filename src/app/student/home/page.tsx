@@ -293,47 +293,7 @@ export default function StudentHomePage() {
           </div>
         </div>
 
-        {/* ── Category Pills ── */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-none snap-x pb-1">
-          {dbCategories.map((cat) => {
-            const isActive = activeCategory === cat.name
-            return (
-              <button
-                key={cat.name}
-                onClick={() => setActiveCategory(cat.name)}
-                className={`flex items-center gap-1.5 flex-shrink-0 cursor-pointer px-3.5 py-2 rounded-full border transition-all snap-start text-[13px] font-semibold ${
-                  isActive
-                    ? 'bg-[#EA580C] border-[#EA580C] text-white shadow-sm'
-                    : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {cat.name === 'All' && isActive ? (
-                  /* Grid dots icon for active All */
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <rect x="1" y="1" width="5" height="5" rx="1" fill="white"/>
-                    <rect x="10" y="1" width="5" height="5" rx="1" fill="white"/>
-                    <rect x="1" y="10" width="5" height="5" rx="1" fill="white"/>
-                    <rect x="10" y="10" width="5" height="5" rx="1" fill="white"/>
-                  </svg>
-                ) : cat.name === 'All' ? (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <rect x="1" y="1" width="5" height="5" rx="1" fill="#EA580C"/>
-                    <rect x="10" y="1" width="5" height="5" rx="1" fill="#EA580C"/>
-                    <rect x="1" y="10" width="5" height="5" rx="1" fill="#EA580C"/>
-                    <rect x="10" y="10" width="5" height="5" rx="1" fill="#EA580C"/>
-                  </svg>
-                ) : (
-                  <img
-                    src={cat.icon_url}
-                    alt={cat.name}
-                    className="w-5 h-5 object-contain"
-                  />
-                )}
-                {cat.name}
-              </button>
-            )
-          })}
-        </div>
+
 
         {/* ── Video Ad Banner ── */}
         <div className="rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.08)] relative w-full h-[150px] bg-black group">
