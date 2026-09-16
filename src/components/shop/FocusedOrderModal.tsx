@@ -13,11 +13,17 @@ export default function FocusedOrderModal() {
   const { user } = useAuthStore()
   const { focusedOrderId, setFocusedOrderId, orders, updateOrderStatus } = useShopOrdersStore()
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isRejecting, setIsRejecting] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
 
   if (!focusedOrderId) return null
 
   const order = orders.find(o => o.id === focusedOrderId)
-  const closeModal = () => setFocusedOrderId(null)
+  const closeModal = () => {
+    setFocusedOrderId(null)
+    setIsRejecting(false)
+    setRejectReason('')
+  }
 
   const handleUpdateStatus = async (newStatus: any) => {
     if (!order) return
@@ -29,10 +35,28 @@ export default function FocusedOrderModal() {
       toast.success(`Order marked as ${newStatus}`)
       
       if (newStatus === 'delivered' || newStatus === 'completed') {
-        setFocusedOrderId(null)
+        closeModal()
       }
     } catch (err) {
       toast.error('Failed to update status')
+      console.error(err)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleRejectOrder = async () => {
+    if (!order || !user || !rejectReason.trim()) return
+    setIsUpdating(true)
+    try {
+      const { cancelOrderAsShop } = await import('@/lib/supabase/queries/shop-dashboard')
+      await cancelOrderAsShop(order.id, user.id, rejectReason)
+
+      updateOrderStatus(order.id, 'cancelled')
+      toast.success('Order cancelled successfully')
+      closeModal()
+    } catch (err) {
+      toast.error('Failed to cancel order')
       console.error(err)
     } finally {
       setIsUpdating(false)
@@ -214,15 +238,54 @@ export default function FocusedOrderModal() {
         {/* Action Buttons */}
         {order && (
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-10px_20px_rgba(0,0,0,0.03)]">
-            {order.status === 'pending' && (
-              <button
-                disabled={isUpdating}
-                onClick={() => handleUpdateStatus('preparing')}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/20 text-lg transition active:scale-95 flex items-center justify-center gap-2"
-              >
-                Accept Order
-              </button>
+            {order.status === 'pending' && !isRejecting && (
+              <div className="flex gap-3">
+                <button
+                  disabled={isUpdating}
+                  onClick={() => setIsRejecting(true)}
+                  className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 font-bold py-3.5 rounded-2xl transition active:scale-95 text-center"
+                >
+                  Reject
+                </button>
+                <button
+                  disabled={isUpdating}
+                  onClick={() => handleUpdateStatus('preparing')}
+                  className="flex-[2] bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/20 text-lg transition active:scale-95 text-center"
+                >
+                  Accept Order
+                </button>
+              </div>
             )}
+            
+            {order.status === 'pending' && isRejecting && (
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
+                <input 
+                  type="text" 
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Reason for cancellation..." 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    disabled={isUpdating}
+                    onClick={() => setIsRejecting(false)}
+                    className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl transition active:scale-95"
+                  >
+                    Back
+                  </button>
+                  <button
+                    disabled={isUpdating || !rejectReason.trim()}
+                    onClick={handleRejectOrder}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition active:scale-95 disabled:opacity-50"
+                  >
+                    Confirm Reject
+                  </button>
+                </div>
+              </div>
+            )}
+
             {order.status === 'preparing' && (
               <button
                 disabled={isUpdating}
