@@ -11,7 +11,7 @@ const supabaseAdmin = createClient(
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userId, title, message } = body;
+    const { userId, title, message, data } = body;
 
     if (!userId || !title || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -22,38 +22,63 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'FCM not configured' }, { status: 200 });
     }
 
-    // 1. Fetch user's FCM token
-    const { data: profile, error } = await supabaseAdmin
+    const tokens = new Set<string>();
+
+    // 1. Fetch user's main profile token
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('fcm_token')
       .eq('id', userId)
       .single();
+    
+    if (profile?.fcm_token) tokens.add(profile.fcm_token);
 
-    if (error || !profile?.fcm_token) {
-      console.log(`No FCM token found for user ${userId}`);
+    // 2. Fetch all APK devices for this shop owner
+    const { data: devices } = await supabaseAdmin
+      .from('apk_devices')
+      .select('fcm_token')
+      .eq('shop_owner_id', userId);
+      
+    if (devices) {
+      devices.forEach(d => d.fcm_token && tokens.add(d.fcm_token));
+    }
+
+    // 3. Fetch all admins' FCM tokens
+    const { data: admins } = await supabaseAdmin
+      .from('profiles')
+      .select('fcm_token')
+      .eq('role', 'admin');
+
+    if (admins) {
+      admins.forEach(a => a.fcm_token && tokens.add(a.fcm_token));
+    }
+
+    if (tokens.size === 0) {
+      console.log(`No FCM tokens found for user ${userId} or admins`);
       return NextResponse.json({ message: 'No FCM token found, skipping push' }, { status: 200 });
     }
 
-    // 2. Send FCM Push Notification
+    // 4. Send FCM Push Notification to all collected tokens
     const payload = {
-      token: profile.fcm_token,
       notification: {
         title,
         body: message,
       },
+      data: data || {}, // Pass orderId or other deep-link data here
       android: {
         priority: 'high' as const,
         notification: {
           channelId: 'campus_orders_v2',
           sound: 'bell_alarm'
         }
-      }
+      },
+      tokens: Array.from(tokens)
     };
 
-    const response = await fcm.send(payload);
-    console.log('Successfully sent FCM push:', response);
+    const response = await fcm.sendEachForMulticast(payload);
+    console.log(`Successfully sent ${response.successCount} FCM pushes. Failed: ${response.failureCount}`);
 
-    return NextResponse.json({ success: true, messageId: response });
+    return NextResponse.json({ success: true, count: response.successCount });
 
   } catch (error: any) {
     console.error('Error triggering FCM:', error);

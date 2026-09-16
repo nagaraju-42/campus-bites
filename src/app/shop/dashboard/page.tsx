@@ -17,6 +17,7 @@ import WhatsAppQRShare from '@/components/shop/WhatsAppQRShare'
 import FinancialsWidget from '@/components/shop/FinancialsWidget'
 
 import OnlineUsersCounter from '@/components/shop/OnlineUsersCounter'
+import SimpleKDS from '@/components/shop/SimpleKDS'
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'month' | 'all_time'
 
@@ -40,6 +41,10 @@ export default function ShopDashboardPage() {
   const [isStatsLoading, setIsStatsLoading] = useState(false)
   const [ridersList, setRidersList] = useState<any[]>([])
   const [pendingHandoffs, setPendingHandoffs] = useState<any[]>([])
+  
+  // NEW: Toggle for Simple vs Complex Dashboard
+  const [viewMode, setViewMode] = useState<'simple' | 'complex'>('simple')
+  const { orders: activeOrders, updateOrderStatus } = useShopOrdersStore()
 
   useEffect(() => {
     if (!user || !shopId) return
@@ -173,10 +178,15 @@ export default function ShopDashboardPage() {
             <p className="text-gray-500 font-medium text-sm">Welcome back, {shopName}</p>
           </div>
           
-          <a href="/shop1" className="hidden sm:flex bg-[#EA580C] hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-bold items-center gap-2 shadow-md transition transform hover:scale-105">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            Switch to Live Orders (Simple)
-          </a>
+          <button 
+            onClick={() => setViewMode(viewMode === 'simple' ? 'complex' : 'simple')}
+            className="flex bg-[#EA580C] hover:bg-orange-600 text-white px-4 py-3 rounded-xl text-sm font-bold items-center gap-2 shadow-md transition transform hover:scale-105"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            {viewMode === 'simple' ? 'Switch to Full Dashboard' : 'Switch to Simple KDS'}
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -219,7 +229,7 @@ export default function ShopDashboardPage() {
       </div>
 
       {/* Pending Handoffs Alert */}
-      {pendingHandoffs.length > 0 && (
+      {viewMode === 'complex' && pendingHandoffs.length > 0 && (
         <div className="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm">
           <div className="flex items-center gap-3">
             <AlertCircle size={24} className="text-amber-500 flex-shrink-0" />
@@ -234,10 +244,14 @@ export default function ShopDashboardPage() {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-gray-900">Performance Summary</h2>
+      {viewMode === 'simple' ? (
+        <SimpleKDS />
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-gray-900">Performance Summary</h2>
           <div className="relative">
             <select 
               value={timeRange}
@@ -341,8 +355,11 @@ export default function ShopDashboardPage() {
         </div>
 
       </div>
+      </>
+      )}
       
       <NotificationsTray isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
     </div>
   )
 }
+

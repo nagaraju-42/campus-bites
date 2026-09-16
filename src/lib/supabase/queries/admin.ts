@@ -60,6 +60,29 @@ export async function getPlatformMetrics(): Promise<PlatformMetrics> {
   }
 }
 
+export async function getLateOrders() {
+  const supabase = createClient()
+  const twentyMinsAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString()
+  
+  const { data } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      shops!orders_shop_id_fkey (
+        name,
+        owner_id,
+        profiles!shops_owner_id_fkey (
+          phone
+        )
+      )
+    `)
+    .in('status', ['pending', 'preparing'])
+    .lt('placed_at', twentyMinsAgo)
+    .order('placed_at', { ascending: true })
+
+  return data || []
+}
+
 export async function getAllShops() {
   const supabase = createClient()
   const { data, error } = await supabase

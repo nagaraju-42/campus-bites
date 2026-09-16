@@ -50,7 +50,7 @@ export default function ShopLoginPage() {
       if (redirectTo) {
         router.replace(redirectTo)
       } else {
-        router.replace('/shop1')
+        router.replace('/shop/dashboard')
       }
     } catch (err: any) {
       toast.error(err.message || 'Login failed. Check credentials.')

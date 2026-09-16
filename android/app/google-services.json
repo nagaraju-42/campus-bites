@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "179385378580",
+    "project_id": "dinendeliver-41b5e",
+    "storage_bucket": "dinendeliver-41b5e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179385378580:android:011f6e1b60add96d440401",
+        "android_client_info": {
+          "package_name": "com.campusbites.rider"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAg3ZrG3Jx0-Rkg1NZFJi7GcOEtWKsyAqs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179385378580:android:1d7e551ab1d28d21440401",
+        "android_client_info": {
+          "package_name": "com.campusbites.shop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAg3ZrG3Jx0-Rkg1NZFJi7GcOEtWKsyAqs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
