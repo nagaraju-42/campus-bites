@@ -22,7 +22,7 @@ import { PushNotifications } from '@capacitor/push-notifications'
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const isKDS = pathname === '/shop/kds'
+  const isKDS = pathname === '/shop/kds' || pathname === '/shop/live'
   
   const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
   const { setShopId, addOrder, updateOrderStatus, isAlarmRinging } = useShopOrdersStore()
@@ -191,9 +191,9 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
         // Create the custom channel before registering
         try {
           await PushNotifications.createChannel({
-            id: 'campus_orders_v2',
-            name: 'Campus Orders v2',
-            description: 'New order notifications',
+            id: 'campus_orders_v3',
+            name: 'Campus Orders Alerts',
+            description: 'Critical new order notifications',
             importance: 5, // 5 = MAX importance
             visibility: 1, // 1 = PUBLIC
             sound: 'bell_alarm', // Matches bell_alarm.mp3 in res/raw/

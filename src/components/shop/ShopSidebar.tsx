@@ -37,7 +37,7 @@ export default function ShopSidebar() {
       </div>
 
       <nav className="flex-1 px-4 space-y-2 mt-4">
-        <Link href="/shop1" className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl shadow-lg shadow-orange-500/30 hover:scale-[1.02] transition-transform">
+        <Link href="/shop/live" className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl shadow-lg shadow-orange-500/30 hover:scale-[1.02] transition-transform">
           <div className="flex items-center gap-2">
             <span className="font-black text-sm">Live Orders (Simple)</span>
           </div>
