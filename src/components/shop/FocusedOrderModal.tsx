@@ -6,39 +6,41 @@ import { X, User, Phone, MapPin, CheckCircle, ChefHat, Bike, PhoneCall, ReceiptT
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
+import { updateOrderStatusDB } from '@/lib/supabase/queries/shop-dashboard'
+import { useAuthStore } from '@/store/authStore'
 
 export default function FocusedOrderModal() {
+  const { user } = useAuthStore()
   const { focusedOrderId, setFocusedOrderId, orders, updateOrderStatus } = useShopOrdersStore()
   const [isUpdating, setIsUpdating] = useState(false)
 
   if (!focusedOrderId) return null
 
   const order = orders.find(o => o.id === focusedOrderId)
+  const closeModal = () => setFocusedOrderId(null)
 
   const handleUpdateStatus = async (newStatus: any) => {
     if (!order) return
     setIsUpdating(true)
     try {
-      await fetch(`/api/orders/${order.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      })
+      await updateOrderStatusDB(order.id, newStatus, user?.id)
+      
       updateOrderStatus(order.id, newStatus)
       toast.success(`Order marked as ${newStatus}`)
       
-      if (newStatus === 'completed') {
+      if (newStatus === 'delivered' || newStatus === 'completed') {
         setFocusedOrderId(null)
       }
     } catch (err) {
       toast.error('Failed to update status')
+      console.error(err)
     } finally {
       setIsUpdating(false)
     }
   }
 
   // Helper for Status Tracker
-  const stages = ['pending', 'preparing', 'ready', 'completed'];
+  const stages = ['pending', 'preparing', 'ready', 'delivered'];
   const currentStageIndex = stages.indexOf(order?.status || 'pending');
 
   return (
@@ -75,41 +77,45 @@ export default function FocusedOrderModal() {
                 {/* Horizontal Status Tracker */}
                 <div className="relative">
                   {/* Background Line */}
-                  <div className="absolute top-[18px] left-[10%] right-[10%] h-1.5 bg-gray-100 -z-0 rounded-full"></div>
+                  <div className="absolute top-[18px] left-[15%] right-[15%] h-1.5 bg-gray-100 -z-0 rounded-full"></div>
                   {/* Active Line Progress */}
                   <div 
-                    className="absolute top-[18px] left-[10%] h-1.5 bg-orange-500 -z-0 transition-all duration-500 rounded-full"
-                    style={{ width: `${Math.max(0, (currentStageIndex / 3) * 80)}%` }}
+                    className="absolute top-[18px] left-[15%] h-1.5 bg-orange-500 -z-0 transition-all duration-500 rounded-full"
+                    style={{ width: `${Math.max(0, (Math.min(currentStageIndex, 2) / 2) * 70)}%` }}
                   ></div>
 
-                  <div className="flex justify-between items-center z-10 relative px-2">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] bg-white ${currentStageIndex >= 0 ? 'border-green-500 text-green-500' : 'border-gray-200 text-gray-300'}`}>
+                  <div className="flex justify-between items-center z-10 relative px-4">
+                    <button 
+                      disabled={isUpdating}
+                      className="flex flex-col items-center gap-2 transition active:scale-95"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] bg-white ${currentStageIndex >= 0 ? 'border-green-500 text-green-500 shadow-sm' : 'border-gray-200 text-gray-300'}`}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
                       </div>
                       <span className={`text-[11px] font-bold ${currentStageIndex >= 0 ? 'text-gray-800' : 'text-gray-400'}`}>Received</span>
-                    </div>
+                    </button>
 
-                    <div className="flex flex-col items-center gap-2">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] ${currentStageIndex >= 1 ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-200 text-gray-300'}`}>
+                    <button 
+                      onClick={() => handleUpdateStatus('preparing')}
+                      disabled={isUpdating || currentStageIndex >= 1}
+                      className="flex flex-col items-center gap-2 transition active:scale-95"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] ${currentStageIndex >= 1 ? 'bg-orange-500 border-orange-500 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-300 hover:border-orange-300'}`}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>
                       </div>
                       <span className={`text-[11px] font-bold ${currentStageIndex >= 1 ? 'text-gray-800' : 'text-gray-400'}`}>Preparing</span>
-                    </div>
+                    </button>
 
-                    <div className="flex flex-col items-center gap-2">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] bg-white ${currentStageIndex >= 2 ? 'border-blue-500 text-blue-500' : 'border-gray-200 text-gray-300'}`}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="17" r="3"></circle><circle cx="17" cy="17" r="3"></circle><path d="M14 17h-4"></path><path d="M3 17h1"></path><path d="M20 17h1"></path><path d="M14 14H3V7c0-1.1.9-2 2-2h6l3 4z"></path><path d="M14 14h5l1-3h-6"></path></svg>
-                      </div>
-                      <span className={`text-[11px] font-bold text-center leading-tight ${currentStageIndex >= 2 ? 'text-gray-800' : 'text-gray-400'}`}>Out for<br/>Delivery</span>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] bg-white ${currentStageIndex >= 3 ? 'border-gray-400 text-gray-500' : 'border-gray-200 text-gray-300'}`}>
+                    <button 
+                      onClick={() => handleUpdateStatus('delivered')}
+                      disabled={isUpdating || currentStageIndex >= 2}
+                      className="flex flex-col items-center gap-2 transition active:scale-95"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] bg-white ${currentStageIndex >= 2 ? 'border-gray-400 text-gray-500 shadow-sm' : 'border-gray-200 text-gray-300 hover:border-gray-400'}`}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                       </div>
-                      <span className={`text-[11px] font-bold ${currentStageIndex >= 3 ? 'text-gray-800' : 'text-gray-400'}`}>Delivered</span>
-                    </div>
+                      <span className={`text-[11px] font-bold ${currentStageIndex >= 2 ? 'text-gray-800' : 'text-gray-400'}`}>Delivered</span>
+                    </button>
                   </div>
                 </div>
               </div>

@@ -56,31 +56,47 @@ export default function SimpleKDS() {
             onClick={() => setFocusedOrderId(order.id)}
             className="bg-white p-5 rounded-3xl shadow-sm border border-gray-200 flex flex-col gap-4 hover:shadow-md transition text-left w-full"
           >
-            <div className="flex items-center gap-3 w-full border-b border-gray-100 pb-3">
-              <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center font-bold text-xl">
-                {(order.student?.full_name || 'U').charAt(0)}
+            <div className="flex items-center justify-between w-full border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center font-bold text-xl shrink-0">
+                  {(order.student?.full_name || 'U').charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 text-lg leading-tight">
+                    {order.student?.full_name || 'Unknown'} <span className="text-gray-400 text-sm ml-1">#{order.order_number}</span>
+                  </h3>
+                  <p className="text-sm font-medium text-gray-500">
+                    {formatDate(order.placed_at)}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900 text-lg leading-tight">
-                  {order.student?.full_name || 'Unknown'} <span className="text-gray-400 text-sm ml-1">#{order.order_number}</span>
-                </h3>
-                <p className="text-sm font-medium text-gray-500">
-                  {formatDate(order.placed_at)}
-                </p>
-              </div>
+              
+              {/* Direct Call Button on Dashboard */}
+              {order.student?.phone && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `tel:${order.student!.phone}`;
+                  }}
+                  className="bg-green-100 hover:bg-green-200 text-green-700 p-3 rounded-full transition active:scale-95 shrink-0"
+                  title="Call Student"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                </button>
+              )}
             </div>
 
-            {/* Horizontal Status Tracker */}
+            {/* Horizontal Status Tracker - 3 Stages */}
             <div className="relative py-4">
               {/* Background Line */}
-              <div className="absolute top-[32px] left-[10%] right-[10%] h-1.5 bg-gray-100 -z-0 rounded-full"></div>
+              <div className="absolute top-[32px] left-[15%] right-[15%] h-1.5 bg-gray-100 -z-0 rounded-full"></div>
               {/* Active Line Progress */}
               <div 
-                className="absolute top-[32px] left-[10%] h-1.5 bg-orange-500 -z-0 transition-all duration-500 rounded-full"
-                style={{ width: `${Math.max(0, (stageIndex / 3) * 80)}%` }}
+                className="absolute top-[32px] left-[15%] h-1.5 bg-orange-500 -z-0 transition-all duration-500 rounded-full"
+                style={{ width: `${Math.max(0, (Math.min(stageIndex, 2) / 2) * 70)}%` }}
               ></div>
 
-              <div className="flex justify-between items-center z-10 relative px-2">
+              <div className="flex justify-between items-center z-10 relative px-4">
                 <div className="flex flex-col items-center gap-1.5">
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center border-[3px] ${stageIndex >= 0 ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-200 text-gray-300'}`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -97,16 +113,9 @@ export default function SimpleKDS() {
 
                 <div className="flex flex-col items-center gap-1.5">
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center border-[3px] ${stageIndex >= 2 ? 'bg-blue-500 border-blue-500 text-white' : 'bg-white border-gray-200 text-gray-300'}`}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="17" r="3"></circle><circle cx="17" cy="17" r="3"></circle><path d="M14 17h-4"></path><path d="M3 17h1"></path><path d="M20 17h1"></path><path d="M14 14H3V7c0-1.1.9-2 2-2h6l3 4z"></path><path d="M14 14h5l1-3h-6"></path></svg>
-                  </div>
-                  <span className={`text-[10px] font-bold ${stageIndex >= 2 ? 'text-gray-800' : 'text-gray-400'}`}>Out for Delivery</span>
-                </div>
-
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center border-[3px] ${stageIndex >= 3 ? 'bg-gray-400 border-gray-400 text-white' : 'bg-white border-gray-200 text-gray-300'}`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   </div>
-                  <span className={`text-[10px] font-bold ${stageIndex >= 3 ? 'text-gray-800' : 'text-gray-400'}`}>Delivered</span>
+                  <span className={`text-[10px] font-bold ${stageIndex >= 2 ? 'text-gray-800' : 'text-gray-400'}`}>Delivered</span>
                 </div>
               </div>
             </div>
