@@ -55,12 +55,13 @@ export default function FocusedOrderModal() {
     }
   }
 
-  const handleRejectOrder = async () => {
-    if (!order || !user || !rejectReason.trim()) return
+  const handleRejectOrder = async (reason?: string) => {
+    const finalReason = reason || rejectReason.trim() || 'Cancelled by shop'
+    if (!order || !user || !finalReason) return
     setIsUpdating(true)
     try {
       const { cancelOrderAsShop } = await import('@/lib/supabase/queries/shop-dashboard')
-      await cancelOrderAsShop(order.id, user.id, rejectReason)
+      await cancelOrderAsShop(order.id, user.id, finalReason)
 
       updateOrderStatus(order.id, 'cancelled')
       toast.success('Order cancelled successfully')
@@ -253,14 +254,14 @@ export default function FocusedOrderModal() {
                 <button
                   disabled={isUpdating}
                   onClick={() => setIsRejecting(true)}
-                  className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 font-bold py-3.5 rounded-2xl transition active:scale-95 text-center"
+                  className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 font-bold py-3.5 rounded-2xl transition active:scale-95 text-center text-lg"
                 >
                   Reject
                 </button>
                 <button
                   disabled={isUpdating}
                   onClick={() => handleUpdateStatus('preparing')}
-                  className="flex-[2] bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/20 text-lg transition active:scale-95 text-center"
+                  className="flex-[2] bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/20 text-xl transition active:scale-95 text-center"
                 >
                   Accept Order
                 </button>
@@ -268,29 +269,36 @@ export default function FocusedOrderModal() {
             )}
             
             {order.status === 'pending' && isRejecting && (
-              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
-                <input 
-                  type="text" 
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Reason for cancellation..." 
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-                  autoFocus
-                />
+              <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
+                <p className="text-center font-bold text-red-600 mb-1">Confirm Rejection</p>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <button 
+                    onClick={() => { setRejectReason('Out of Stock'); handleRejectOrder('Item is out of stock'); }}
+                    className="bg-red-50 text-red-700 py-3 rounded-xl font-semibold text-sm active:scale-95"
+                  >
+                    Out of Stock
+                  </button>
+                  <button 
+                    onClick={() => { setRejectReason('Too Busy'); handleRejectOrder('Shop is too busy right now'); }}
+                    className="bg-red-50 text-red-700 py-3 rounded-xl font-semibold text-sm active:scale-95"
+                  >
+                    Too Busy
+                  </button>
+                </div>
                 <div className="flex gap-2">
                   <button
                     disabled={isUpdating}
                     onClick={() => setIsRejecting(false)}
-                    className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl transition active:scale-95"
+                    className="flex-[1] bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl transition active:scale-95 text-lg"
                   >
                     Back
                   </button>
                   <button
-                    disabled={isUpdating || !rejectReason.trim()}
-                    onClick={handleRejectOrder}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition active:scale-95 disabled:opacity-50"
+                    disabled={isUpdating}
+                    onClick={() => handleRejectOrder('Cancelled by shop owner')}
+                    className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-xl transition active:scale-95 text-lg shadow-lg shadow-red-500/20"
                   >
-                    Confirm Reject
+                    Just Reject
                   </button>
                 </div>
               </div>
@@ -300,16 +308,16 @@ export default function FocusedOrderModal() {
               <button
                 disabled={isUpdating}
                 onClick={() => handleUpdateStatus('ready')}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 text-lg transition active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/20 text-xl transition active:scale-95 flex items-center justify-center gap-2"
               >
-                Mark as Ready / Out
+                Mark as Ready
               </button>
             )}
             {(order.status === 'ready' || order.status === 'assigned' || order.status === 'out_for_delivery') && (
               <button
                 disabled={isUpdating}
                 onClick={() => handleUpdateStatus('delivered')}
-                className="w-full bg-gray-900 hover:bg-black text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-gray-900/20 text-lg transition flex items-center justify-center gap-2 active:scale-95"
+                className="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl shadow-lg shadow-gray-900/20 text-xl transition flex items-center justify-center gap-2 active:scale-95"
               >
                 Mark Delivered
               </button>
