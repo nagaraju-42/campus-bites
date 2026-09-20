@@ -267,7 +267,7 @@ export default function RiderLayout({ children }: { children: React.ReactNode })
         // Create the custom channel before registering
         try {
           await PushNotifications.createChannel({
-            id: 'campus_orders_v4',
+            id: 'campus_orders_v5',
             name: 'Campus Orders v3',
             description: 'New order notifications',
             importance: 5, // 5 = MAX importance
