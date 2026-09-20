@@ -8,6 +8,8 @@ interface ShopOrdersState {
   isLive: boolean
   shopId: string | null
   setShopId: (id: string | null) => void
+  focusedOrderId: string | null
+  setFocusedOrderId: (id: string | null) => void
   setOrders: (orders: Order[]) => void
   addOrder: (order: Order) => void
   updateOrderStatus: (orderId: string, status: Order['status']) => void
@@ -26,8 +28,10 @@ export const useShopOrdersStore = create<ShopOrdersState>((set, get) => ({
   orders: [],
   isLive: false,
   shopId: null,
+  focusedOrderId: null,
 
   setShopId: (id) => set({ shopId: id }),
+  setFocusedOrderId: (id) => set({ focusedOrderId: id }),
   setOrders: (orders) => set({ orders }),
   
   addOrder: (newOrder) => set((state) => {

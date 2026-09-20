@@ -28,6 +28,9 @@ interface CartState {
   getPlatformFee: () => number
   getGrandTotal: () => number
   setCart: (shopId: string, items: CartItem[]) => void
+
+  deliveryTip: number
+  setDeliveryTip: (amount: number) => void
 }
 
 export const useCartStore = create<CartState>()(
@@ -35,6 +38,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       shopId: null,
+      deliveryTip: 0,
 
       addItem: (newItem) => {
         const { items, shopId } = get()
@@ -84,7 +88,7 @@ export const useCartStore = create<CartState>()(
         set({ shopId, items })
       },
 
-      clearCart: () => set({ items: [], shopId: null }),
+      clearCart: () => set({ items: [], shopId: null, deliveryTip: 0 }),
 
       getTotalItems: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
 
@@ -96,7 +100,9 @@ export const useCartStore = create<CartState>()(
       getPlatformFee: () => 0,
 
       getGrandTotal: () =>
-        get().getTotalPrice() + get().getDeliveryFee() + get().getPlatformFee(),
+        get().getTotalPrice() + get().getDeliveryFee() + get().getPlatformFee() + get().deliveryTip,
+        
+      setDeliveryTip: (amount) => set({ deliveryTip: amount }),
     }),
     {
       name: 'campusbites-cart', // key in localStorage

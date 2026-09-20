@@ -5,8 +5,8 @@ import { revalidatePath } from 'next/cache'
 
 // Use service role key to bypass RLS for admin actions
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'),
+  (process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder')
 )
 
 export async function adminAddFakeReview(shopId: string, name: string, rating: number, comment: string) {
@@ -42,3 +42,4 @@ export async function adminGetReviews(shopId: string) {
   if (error) throw new Error(error.message)
   return data
 }
+

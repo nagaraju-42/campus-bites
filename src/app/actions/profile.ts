@@ -3,8 +3,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 export async function updateUserProfilePhoneAction(userId: string, phone: string, role: string, shopName?: string) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co')
+  const supabaseServiceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder')
 
   // We use the service role key to bypass RLS, which ensures the update works flawlessly
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
@@ -31,3 +31,4 @@ export async function updateUserProfilePhoneAction(userId: string, phone: string
     if (shopError) throw new Error(shopError.message)
   }
 }
+

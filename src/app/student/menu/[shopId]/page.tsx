@@ -105,6 +105,10 @@ export default function MenuPage() {
   }, [groupedMenu, activeTab, showSearch])
 
   const handleAddToCart = (item: MenuItem, variantName?: string, variantPrice?: number) => {
+    if (!item.is_available) {
+      toast.error(`${item.name} is currently out of stock!`)
+      return
+    }
     if (!isShopAccessible) {
       toast.error(`This shop is currently closed.`)
       return
@@ -161,6 +165,10 @@ export default function MenuPage() {
   }
 
   if (isLoading) return <MenuSkeleton />
+
+  const isRenukaTheme = shop?.name.toLowerCase().includes('renuka') || shop?.name.toLowerCase().includes('street 11');
+  const isBakeryTheme = shop?.name.toLowerCase().includes('baker') || shop?.name.toLowerCase().includes('sweet') || shop?.name.toLowerCase().includes('softy');
+  const theme = isRenukaTheme ? 'renuka' : isBakeryTheme ? 'bakery' : 'default';
 
   const categories = Object.keys(groupedMenu)
 
@@ -382,7 +390,6 @@ export default function MenuPage() {
           {categories.length > 0 && (
             <div className="bg-white px-4 py-3 flex gap-2 overflow-x-auto scrollbar-none snap-x border-b border-gray-100">
               {categories.map((cat, i) => {
-                // Map category to emoji - first cat gets fire
                 const emojis = ['🔥', '🍽️', '🥤', '🍟', '🍰', '🥗']
                 const emoji = emojis[i] || '🍴'
                 const isActive = cat === activeCategory
@@ -411,150 +418,260 @@ export default function MenuPage() {
             </div>
           )}
 
-          {/* Menu items grid – 2 columns exactly like reference */}
-          <div className="px-3 py-4 space-y-6">
-            {Object.entries(groupedMenu).map(([category, menuItems]) => {
-              const filteredItems = menuItems
-                .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                .sort((a, b) => {
-                  if (a.is_available === b.is_available) return 0
-                  return a.is_available ? -1 : 1
-                })
-              if (filteredItems.length === 0) return null
+          {/* ── Dynamic Themed List Layout ── */}
+          
+          {/* Default / Zomato Theme */}
+          {theme === 'default' && (
+            <div className="bg-white">
+              {Object.entries(groupedMenu).map(([category, menuItems]) => {
+                const filteredItems = menuItems
+                  .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .sort((a, b) => {
+                    if (a.is_available === b.is_available) return 0
+                    return a.is_available ? -1 : 1
+                  });
+                if (filteredItems.length === 0) return null;
 
-              return (
-                <div key={category} id={`category-${category}`}>
-                  {/* Section header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-[17px] font-extrabold text-gray-900">{category}</h2>
-                    <button className="text-[#EA580C] text-[13px] font-bold flex items-center gap-0.5">
-                      See all
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EA580C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="9 18 15 12 9 6"/>
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* 2-column grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {filteredItems.map((item) => {
-                      const qty = getItemQuantity(item.id)
+                return (
+                  <div key={category} id={`category-${category}`}>
+                    <div className="px-4 pt-5 pb-3">
+                      <h2 className="text-[17px] font-extrabold text-gray-900">{category}</h2>
+                    </div>
+                    {filteredItems.map((item, itemIdx) => {
+                      const qty = getItemQuantity(item.id);
                       return (
-                        <div
-                          key={item.id}
-                          className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col ${!item.is_available ? 'opacity-60 grayscale' : ''}`}
-                        >
-                          {/* Image with heart overlay */}
-                          <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
-                            {item.image_url ? (
-                              <Image
-                                src={item.image_url}
-                                alt={item.name}
-                                fill
-                                className="object-cover img-cinematic"
-                                sizes="(max-width: 430px) 50vw, 200px"
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
-                                <span className="text-5xl">🍲</span>
-                              </div>
-                            )}
-                            {/* Heart button – top right */}
-                            <button className="absolute top-2 right-2 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                              </svg>
-                            </button>
-                            {/* Sold out overlay */}
-                            {!item.is_available && (
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                <span className="text-white font-bold text-xs bg-red-500 px-2 py-1 rounded-full uppercase">Sold Out</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Item info */}
-                          <div className="p-2.5 flex flex-col flex-1">
-                            <h3 className="font-bold text-gray-900 text-[13px] leading-tight line-clamp-2">
-                              {item.name}
-                            </h3>
-
-                            {/* Partner shop tag (purple like reference) */}
-                            {(item as any).partner_shop_name && (
-                              <span className="mt-1 text-[10px] font-semibold text-[#7C3AED] bg-[#F5F3FF] px-1.5 py-0.5 rounded-full inline-block w-fit">
-                                by {(item as any).partner_shop_name}
-                              </span>
-                            )}
-
-                            {/* Price */}
-                            {item.variants && item.variants.length > 0 ? (
-                              <div className="mt-1">
-                                <button
-                                  onClick={() => setSelectedVariantItem(item)}
-                                  className="text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
-                                >
-                                  {item.variants[0].name} <ChevronDown size={10} />
-                                </button>
-                                <p className="text-gray-900 font-bold text-[14px] mt-1">{formatCurrency(item.variants[0].price)}</p>
-                              </div>
-                            ) : (
-                              <p className="text-gray-900 font-bold text-[14px] mt-1">{formatCurrency(item.price)}</p>
-                            )}
-
-                            {/* ADD / +/- button exactly like reference */}
-                            <div className="mt-2">
-                              {(!item.is_available || !isShopAccessible) ? (
-                                <div className="w-full h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 font-bold text-[11px]">
-                                  UNAVAILABLE
-                                </div>
-                              ) : qty === 0 ? (
-                                <button
-                                  onClick={() => {
-                                    if (item.variants && item.variants.length > 0) {
-                                      setSelectedVariantItem(item)
-                                    } else {
-                                      handleAddToCart(item)
-                                    }
-                                  }}
-                                  className="w-full h-9 bg-white text-[#16A34A] border border-[#16A34A] rounded-full flex items-center justify-center gap-1.5 font-bold text-[13px] hover:bg-green-50 transition active:scale-95"
-                                >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                                  </svg>
-                                  ADD
-                                </button>
+                        <div key={item.id}>
+                          <div className={`px-4 py-4 flex gap-3 items-start ${!item.is_available ? 'opacity-60' : ''}`}>
+                            <div className="flex-1 min-w-0 flex flex-col">
+                              <h3 className="text-[16px] font-bold text-gray-900 leading-snug">{item.name}</h3>
+                              {item.variants && item.variants.length > 0 ? (
+                                <p className="text-gray-900 font-bold text-[15px] mt-0.5">₹{item.variants[0].price}</p>
                               ) : (
-                                <div className="w-full h-9 flex items-center justify-between bg-[#16A34A] rounded-full shadow-sm px-2">
-                                  <button
-                                    onClick={() => {
-                                      if (item.variants && item.variants.length > 0) setSelectedVariantItem(item)
-                                      else updateQuantity(item.id, qty - 1)
-                                    }}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full active:bg-green-700 transition"
-                                  >
-                                    <Minus size={13} className="text-white" />
-                                  </button>
-                                  <span className="text-white font-bold text-sm">{qty}</span>
-                                  <button
-                                    onClick={() => handleAddToCart(item)}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full active:bg-green-700 transition"
-                                  >
-                                    <Plus size={13} className="text-white" />
-                                  </button>
-                                </div>
+                                <p className="text-gray-900 font-bold text-[15px] mt-1.5">₹{item.price}</p>
+                              )}
+                              {item.description && (
+                                <p className="text-gray-500 text-xs mt-1 line-clamp-2">{item.description}</p>
                               )}
                             </div>
+                            <div className="shrink-0 relative pb-3">
+                              {item.image_url ? (
+                                <div className="w-[118px] h-[118px] rounded-2xl overflow-hidden bg-gray-100 relative">
+                                  <Image src={item.image_url!} alt={item.name} fill className="object-cover img-cinematic" sizes="118px" />
+                                </div>
+                              ) : (
+                                <div className="w-[118px] h-[118px] rounded-2xl overflow-hidden bg-gray-100 relative flex justify-center items-center">
+                                  <span className="text-3xl">🍲</span>
+                                </div>
+                              )}
+                              <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-[90px]">
+                                {qty === 0 ? (
+                                  <button onClick={() => handleAddToCart(item)} className="w-full h-9 bg-white border-2 border-[#E23744] rounded-xl flex items-center justify-center gap-1 font-extrabold text-[14px] text-[#E23744] shadow-md">
+                                    ADD
+                                  </button>
+                                ) : (
+                                  <div className="w-full h-9 flex items-center justify-between bg-[#E23744] rounded-xl shadow-md px-1.5">
+                                    <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Minus size={13} /></button>
+                                    <span className="text-white font-extrabold text-sm">{qty}</span>
+                                    <button onClick={() => handleAddToCart(item)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Plus size={13} /></button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
+                          {itemIdx < filteredItems.length - 1 && <div className="mx-4 border-b border-gray-200" />}
                         </div>
-                      )
+                      );
                     })}
+                    <div className="h-3 bg-gray-100 w-full mt-4" />
                   </div>
-                </div>
-              )
-            })}
+                );
+              })}
+            </div>
+          )}
 
-            {/* Offers banner at the bottom (like reference image) */}
-            <div className="mt-2 bg-[#FEF3E8] rounded-2xl p-4 border border-orange-100 flex items-center justify-between gap-3">
+                    {/* Renuka Theme (Split layout) */}
+          {theme === 'renuka' && (
+            <div className="bg-[#F6EAD5] min-h-screen">
+              
+              {/* Top part: Items WITH images (Zomato-style layout but matching theme) */}
+              <div className="bg-white pb-6 pt-2 shadow-sm rounded-b-3xl">
+                {Object.entries(groupedMenu).map(([category, menuItems]) => {
+                  const itemsWithImages = menuItems
+                    .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(item => !!item.image_url)
+                    .sort((a, b) => (a.is_available === b.is_available ? 0 : a.is_available ? -1 : 1));
+                  
+                  if (itemsWithImages.length === 0) return null;
+
+                  return (
+                    <div key={`renuka-img-${category}`} id={`category-${category}`}>
+                      <div className="px-4 pt-5 pb-3">
+                        <h2 className="text-[17px] font-extrabold text-gray-900">{category}</h2>
+                      </div>
+                      {itemsWithImages.map((item, itemIdx) => {
+                        const qty = getItemQuantity(item.id);
+                        return (
+                          <div key={item.id}>
+                            <div className={`px-4 py-4 flex gap-3 items-start ${!item.is_available ? 'opacity-60' : ''}`}>
+                              <div className="flex-1 min-w-0 flex flex-col">
+                                <h3 className="text-[16px] font-bold text-gray-900 leading-snug">{item.name}</h3>
+                                {item.variants && item.variants.length > 0 ? (
+                                  <p className="text-gray-900 font-bold text-[15px] mt-0.5">₹{item.variants[0].price}</p>
+                                ) : (
+                                  <p className="text-gray-900 font-bold text-[15px] mt-1.5">₹{item.price}</p>
+                                )}
+                                {item.description && (
+                                  <p className="text-gray-500 text-xs mt-1 line-clamp-2">{item.description}</p>
+                                )}
+                              </div>
+                              <div className="shrink-0 relative pb-3">
+                                <div className="relative w-[118px] h-[118px] rounded-2xl overflow-hidden bg-gray-100">
+                                  <Image src={item.image_url!} alt={item.name} fill className="object-cover img-cinematic" sizes="118px" />
+                                </div>
+                                <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-[90px]">
+                                  {qty === 0 ? (
+                                    <button onClick={() => handleAddToCart(item)} className="w-full h-9 bg-white border-2 border-[#E23744] rounded-xl flex items-center justify-center gap-1 font-extrabold text-[14px] text-[#E23744] shadow-md">
+                                      ADD
+                                    </button>
+                                  ) : (
+                                    <div className="w-full h-9 flex items-center justify-between bg-[#E23744] rounded-xl shadow-md px-1.5">
+                                      <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Minus size={13} /></button>
+                                      <span className="text-white font-extrabold text-sm">{qty}</span>
+                                      <button onClick={() => handleAddToCart(item)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Plus size={13} /></button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            {itemIdx < itemsWithImages.length - 1 && <div className="mx-4 border-b border-gray-200" />}
+                          </div>
+                        );
+                      })}
+                      <div className="h-3 bg-gray-100 w-full mt-4" />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Bottom part: Items WITHOUT images (Text-only Renuka layout) */}
+              <div className="pt-8 pb-20">
+                {Object.entries(groupedMenu).map(([category, menuItems]) => {
+                  const itemsWithoutImages = menuItems
+                    .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(item => !item.image_url)
+                    .sort((a, b) => (a.is_available === b.is_available ? 0 : a.is_available ? -1 : 1));
+                  
+                  if (itemsWithoutImages.length === 0) return null;
+
+                  return (
+                    <div key={`renuka-text-${category}`} className="mb-10">
+                      <div className="flex items-center justify-center gap-4 px-4 mb-6">
+                        <div className="border-b-2 border-dashed border-[#C54932] opacity-60 flex-1" />
+                        <h2 className="text-3xl font-black text-[#C54932] tracking-wide" style={{ fontFamily: '"Comic Sans MS", "Chalkboard SE", "Marker Felt", sans-serif' }}>{category}</h2>
+                        <div className="border-b-2 border-dashed border-[#C54932] opacity-60 flex-1" />
+                      </div>
+                      <div className="px-4 flex flex-col gap-0">
+                        {itemsWithoutImages.map((item, itemIdx) => {
+                          const qty = getItemQuantity(item.id);
+                          return (
+                            <div key={item.id} className={`pt-4 pb-4 border-b border-dashed border-[#D1BFA5] last:border-0 ${!item.is_available ? 'opacity-60' : ''}`}>
+                              <div className="mb-2">
+                                {item.is_veg ? (
+                                  <span className="bg-[#4D6840] text-white px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">VEG</span>
+                                ) : (
+                                  <span className="bg-[#C54932] text-white px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">NON VEG</span>
+                                )}
+                              </div>
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 pr-4">
+                                  <h3 className="text-[#332214] font-bold text-[16px] leading-tight mb-1">{item.name}</h3>
+                                  {item.variants && item.variants.length > 0 ? (
+                                    <p className="text-[#C54932] font-semibold text-[14px] mt-1">₹{item.variants[0].price}</p>
+                                  ) : (
+                                    <p className="text-[#C54932] font-semibold text-[14px] mt-1">₹{item.price}</p>
+                                  )}
+                                </div>
+                                <div className="shrink-0 pt-1">
+                                  {qty === 0 ? (
+                                    <button onClick={() => handleAddToCart(item)} className="bg-[#C54932] hover:bg-[#a83c20] text-white px-6 py-1.5 rounded-full text-[12px] font-bold tracking-widest shadow-sm">
+                                      ADD
+                                    </button>
+                                  ) : (
+                                    <div className="flex items-center justify-between bg-[#C54932] rounded-full shadow-sm px-1.5 h-8 w-[80px]">
+                                      <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-6 h-6 flex items-center justify-center rounded-full text-white"><Minus size={13} /></button>
+                                      <span className="text-white font-extrabold text-sm">{qty}</span>
+                                      <button onClick={() => handleAddToCart(item)} className="w-6 h-6 flex items-center justify-center rounded-full text-white"><Plus size={13} /></button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+{/* Bakery Theme */}
+          {theme === 'bakery' && (
+            <div className="bg-[#FFF0F5] pt-6 pb-20 mt-2 min-h-screen">
+              {Object.entries(groupedMenu).map(([category, menuItems]) => {
+                const filteredItems = menuItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                if (filteredItems.length === 0) return null;
+                return (
+                  <div key={`bakery-${category}`} id={`category-${category}`} className="mb-10 px-4">
+                    <div className="mb-6">
+                      <h2 className="text-2xl italic text-[#D81B60]" style={{ fontFamily: 'Georgia, serif' }}>{category}</h2>
+                      <div className="w-12 h-1 bg-[#D81B60] mt-2 rounded-full" />
+                    </div>
+                    <div className="flex flex-col gap-4">
+                      {filteredItems.map((item) => {
+                        const qty = getItemQuantity(item.id);
+                        return (
+                          <div key={item.id} className={`bg-white p-4 rounded-2xl shadow-sm border border-[#FFE4E1] flex gap-4 ${!item.is_available ? 'opacity-60' : ''}`}>
+                            {item.image_url ? (
+                               <div className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-[#FFE4E1]">
+                                 <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="80px" />
+                               </div>
+                            ) : (
+                               <div className="w-20 h-20 shrink-0 rounded-xl bg-[#FFE4E1] flex items-center justify-center">
+                                 <span className="text-3xl">🍰</span>
+                               </div>
+                            )}
+                            <div className="flex-1 flex flex-col justify-between">
+                               <div>
+                                 <h3 className="text-[#880E4F] font-bold text-[16px] leading-tight" style={{ fontFamily: 'Georgia, serif' }}>{item.name}</h3>
+                                 <p className="text-[#D81B60] font-bold text-[14px] mt-1">₹{item.price}</p>
+                               </div>
+                               <div className="self-end">
+                                 {qty === 0 ? (
+                                   <button onClick={() => handleAddToCart(item)} className="bg-[#D81B60] text-white px-5 py-1.5 rounded-lg text-[12px] font-bold shadow-md">
+                                     ADD
+                                   </button>
+                                 ) : (
+                                   <div className="flex items-center justify-between bg-[#D81B60] rounded-lg shadow-md px-1.5 h-7 w-[75px]">
+                                     <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-6 h-6 flex items-center justify-center text-white"><Minus size={12} /></button>
+                                     <span className="text-white font-extrabold text-sm">{qty}</span>
+                                     <button onClick={() => handleAddToCart(item)} className="w-6 h-6 flex items-center justify-center text-white"><Plus size={12} /></button>
+                                   </div>
+                                 )}
+                               </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+            {/* Offers banner at the bottom */}
+            <div className="mx-4 my-4 bg-[#FEF3E8] rounded-2xl p-4 border border-orange-100 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-10 h-10 bg-[#EA580C] rounded-xl flex items-center justify-center shrink-0">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -564,7 +681,7 @@ export default function MenuPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-gray-900 text-[13px] leading-tight">Order more, save more!</p>
-                  <p className="text-gray-500 text-[11px] mt-0.5">Exciting offers & deals on your favourite shops 🎉</p>
+                  <p className="text-gray-500 text-[11px] mt-0.5">Exciting offers &amp; deals on your favourite shops 🎉</p>
                 </div>
               </div>
               <Link href="/student/offers">
@@ -576,7 +693,6 @@ export default function MenuPage() {
                 </button>
               </Link>
             </div>
-          </div>
         </>
       )}
 
@@ -666,6 +782,32 @@ export default function MenuPage() {
   )
 }
 
+// ── Description with "...more" toggle — exactly like Zomato ──────────────────
+function DescriptionWithMore({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const MAX = 80
+  const isLong = text.length > MAX
+
+  return (
+    <p className="text-[13px] text-gray-500 mt-1.5 leading-snug">
+      {isLong && !expanded ? (
+        <>
+          {text.slice(0, MAX)}
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(true) }}
+            className="text-gray-800 font-semibold ml-0.5"
+          >
+            ...more
+          </button>
+        </>
+      ) : (
+        text
+      )}
+    </p>
+  )
+}
+
+// ── Menu loading skeleton ─────────────────────────────────────────────────────
 function MenuSkeleton() {
   return (
     <div className="max-w-[430px] mx-auto">
@@ -680,15 +822,17 @@ function MenuSkeleton() {
           </div>
         </div>
       </div>
-      <div className="px-3 mt-6 grid grid-cols-2 gap-3">
+      <div className="bg-white mt-3">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-            <div className="aspect-square bg-gray-200 animate-pulse" />
-            <div className="p-3 space-y-2">
-              <div className="h-3 bg-gray-200 rounded animate-pulse" />
-              <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
-              <div className="h-8 bg-gray-200 rounded-full animate-pulse mt-2" />
+          <div key={i} className="px-4 py-4 flex gap-3 items-start border-b border-dashed border-gray-100">
+            <div className="flex-1 space-y-2">
+              <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-1/4" />
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-full" />
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3" />
             </div>
+            <div className="w-[118px] h-[118px] bg-gray-200 rounded-2xl animate-pulse shrink-0" />
           </div>
         ))}
       </div>

@@ -54,6 +54,7 @@ export default function StudentHomePage() {
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [shops, setShops] = useState<Shop[]>(cachedShops)
   const [filteredShops, setFilteredShops] = useState<Shop[]>(cachedShops)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState('All')
   const [dbCategories, setDbCategories] = useState<any[]>(
     cachedCategories.length > 0
@@ -67,6 +68,7 @@ export default function StudentHomePage() {
   const [orderMode, setOrderMode] = useState<'delivery' | 'dinein'>('delivery')
   const [deliveryLocations, setDeliveryLocations] = useState<string[]>(cachedLocations)
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const [offersBannerEnabled, setOffersBannerEnabled] = useState(false)
   const fetchedRef = useRef(false)
 
   useEffect(() => {
@@ -82,15 +84,18 @@ export default function StudentHomePage() {
     // Always fetch fresh data in background to ensure 'is_open' statuses are perfectly synced
     async function fetchData() {
       try {
-        const [shopsData] = await Promise.all([
-          getApprovedShops(),
-          getActivePromotions()
-        ])
+        // Fetch shops first — this is critical. Promotions failure must NOT block shops.
+        console.log('Fetching shops...')
+        const shopsData = await getApprovedShops()
+        console.log('Shops fetched:', shopsData)
 
         const sortedShops = shopsData.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
         setShops(sortedShops)
         setFilteredShops(sortedShops)
         storeSetShops(sortedShops)  // persist to localStorage
+
+        // Promotions fetch is optional — never crash the page if it fails
+        try { await getActivePromotions() } catch (_) {}
 
         const supabase = createClient()
         const { data: catData } = await supabase
@@ -116,10 +121,22 @@ export default function StudentHomePage() {
           } catch (e) {}
         }
 
+        const { data: bannerData } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'offers_banner')
+          .single()
+        if (bannerData && bannerData.value !== null) {
+          try {
+            setOffersBannerEnabled(JSON.parse(bannerData.value))
+          } catch(e) {}
+        }
+
         markFetched()  // stamp the timestamp for TTL
         if (user?.id) fetchFavorites(user.id)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load data:', err)
+        setErrorMsg(err.message || String(err))
       } finally {
         setIsLoading(false)
       }
@@ -276,94 +293,76 @@ export default function StudentHomePage() {
           </div>
         </div>
 
-        {/* ── Category Pills ── */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-none snap-x pb-1">
-          {dbCategories.map((cat) => {
-            const isActive = activeCategory === cat.name
-            return (
-              <button
-                key={cat.name}
-                onClick={() => setActiveCategory(cat.name)}
-                className={`flex items-center gap-1.5 flex-shrink-0 cursor-pointer px-3.5 py-2 rounded-full border transition-all snap-start text-[13px] font-semibold ${
-                  isActive
-                    ? 'bg-[#EA580C] border-[#EA580C] text-white shadow-sm'
-                    : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {cat.name === 'All' && isActive ? (
-                  /* Grid dots icon for active All */
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <rect x="1" y="1" width="5" height="5" rx="1" fill="white"/>
-                    <rect x="10" y="1" width="5" height="5" rx="1" fill="white"/>
-                    <rect x="1" y="10" width="5" height="5" rx="1" fill="white"/>
-                    <rect x="10" y="10" width="5" height="5" rx="1" fill="white"/>
-                  </svg>
-                ) : cat.name === 'All' ? (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <rect x="1" y="1" width="5" height="5" rx="1" fill="#EA580C"/>
-                    <rect x="10" y="1" width="5" height="5" rx="1" fill="#EA580C"/>
-                    <rect x="1" y="10" width="5" height="5" rx="1" fill="#EA580C"/>
-                    <rect x="10" y="10" width="5" height="5" rx="1" fill="#EA580C"/>
-                  </svg>
-                ) : (
-                  <img
-                    src={cat.icon_url}
-                    alt={cat.name}
-                    className="w-5 h-5 object-contain"
-                  />
-                )}
-                {cat.name}
-              </button>
-            )
-          })}
+
+
+        {/* ── Video Ad Banner ── */}
+        <div className="rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.08)] relative w-full h-[150px] bg-black group">
+          <video 
+            src="/ads/promo.mp4" 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover opacity-95 group-hover:scale-105 transition-transform duration-700"
+          />
+          <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-bold text-white uppercase tracking-wider">
+            Ad
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+          <div className="absolute bottom-3 left-3 text-white">
+            <p className="font-black text-[16px] leading-tight drop-shadow-md">Delicious bites inside</p>
+            <p className="text-[12px] font-medium opacity-90 drop-shadow-md">Order from your favorite campus shops</p>
+          </div>
         </div>
 
         {/* ── Offers Banner ── */}
-        <div className="bg-[#FEF3E8] rounded-2xl p-4 flex items-center justify-between relative overflow-hidden border border-orange-100">
-          {/* Left content */}
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* % badge */}
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="2" width="20" height="20" rx="5" fill="#EA580C"/>
-                <text x="12" y="16" textAnchor="middle" fontSize="11" fontWeight="bold" fill="white" fontFamily="Inter, sans-serif">%</text>
+        {offersBannerEnabled && (
+          <div className="bg-[#FEF3E8] rounded-2xl p-4 flex items-center justify-between relative overflow-hidden border border-orange-100">
+            {/* Left content */}
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              {/* % badge */}
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="2" width="20" height="20" rx="5" fill="#EA580C"/>
+                  <text x="12" y="16" textAnchor="middle" fontSize="11" fontWeight="bold" fill="white" fontFamily="Inter, sans-serif">%</text>
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 text-[14px] leading-tight">Great food, great deals!</p>
+                <p className="text-gray-500 text-[11px] leading-snug mt-0.5">
+                  Enjoy exclusive offers and save more<br />on your favorite shops.
+                </p>
+                <Link href="/student/offers">
+                  <button className="mt-2 bg-[#EA580C] text-white text-[12px] font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-orange-700 transition-colors">
+                    View Offers
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                  </button>
+                </Link>
+              </div>
+            </div>
+            {/* Right – Shopping bag illustration */}
+            <div className="shrink-0 ml-2">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Bag body */}
+                <rect x="16" y="30" width="48" height="42" rx="8" fill="#EA580C"/>
+                {/* Bag handle */}
+                <path d="M28 30V24C28 17.373 33.373 12 40 12C46.627 12 52 17.373 52 24V30" stroke="#EA580C" strokeWidth="5" strokeLinecap="round" fill="none"/>
+                {/* Bag handle inner */}
+                <path d="M28 30V24C28 17.373 33.373 12 40 12C46.627 12 52 17.373 52 24V30" stroke="#C2410C" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                {/* % on bag */}
+                <circle cx="35" cy="50" r="4" fill="white" opacity="0.9"/>
+                <circle cx="45" cy="62" r="4" fill="white" opacity="0.9"/>
+                <line x1="29" y1="65" x2="51" y2="45" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9"/>
+                {/* Sparkles */}
+                <circle cx="64" cy="24" r="3" fill="#FBBF24"/>
+                <circle cx="60" cy="18" r="1.5" fill="#FBBF24" opacity="0.7"/>
+                <circle cx="70" cy="30" r="1.5" fill="#FBBF24" opacity="0.7"/>
               </svg>
             </div>
-            <div className="min-w-0">
-              <p className="font-bold text-gray-900 text-[14px] leading-tight">Great food, great deals!</p>
-              <p className="text-gray-500 text-[11px] leading-snug mt-0.5">
-                Enjoy exclusive offers and save more<br />on your favorite shops.
-              </p>
-              <Link href="/student/offers">
-                <button className="mt-2 bg-[#EA580C] text-white text-[12px] font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-orange-700 transition-colors">
-                  View Offers
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
-              </Link>
-            </div>
           </div>
-          {/* Right – Shopping bag illustration */}
-          <div className="shrink-0 ml-2">
-            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Bag body */}
-              <rect x="16" y="30" width="48" height="42" rx="8" fill="#EA580C"/>
-              {/* Bag handle */}
-              <path d="M28 30V24C28 17.373 33.373 12 40 12C46.627 12 52 17.373 52 24V30" stroke="#EA580C" strokeWidth="5" strokeLinecap="round" fill="none"/>
-              {/* Bag handle inner */}
-              <path d="M28 30V24C28 17.373 33.373 12 40 12C46.627 12 52 17.373 52 24V30" stroke="#C2410C" strokeWidth="3" strokeLinecap="round" fill="none"/>
-              {/* % on bag */}
-              <circle cx="35" cy="50" r="4" fill="white" opacity="0.9"/>
-              <circle cx="45" cy="62" r="4" fill="white" opacity="0.9"/>
-              <line x1="29" y1="65" x2="51" y2="45" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9"/>
-              {/* Sparkles */}
-              <circle cx="64" cy="24" r="3" fill="#FBBF24"/>
-              <circle cx="60" cy="18" r="1.5" fill="#FBBF24" opacity="0.7"/>
-              <circle cx="70" cy="30" r="1.5" fill="#FBBF24" opacity="0.7"/>
-            </svg>
-          </div>
-        </div>
+        )}
 
         {/* ── Nearby Shops ── */}
         <div className="pt-1">
@@ -382,6 +381,12 @@ export default function StudentHomePage() {
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-[170px] bg-gray-200 rounded-2xl animate-pulse" />
               ))}
+            </div>
+          ) : errorMsg ? (
+            <div className="text-center py-10 text-red-500">
+              <p className="text-4xl mb-2">⚠️</p>
+              <p className="font-medium">Error fetching shops:</p>
+              <p className="text-sm mt-2">{errorMsg}</p>
             </div>
           ) : filteredShops.length === 0 ? (
             <div className="text-center py-10 text-gray-400">

@@ -116,8 +116,8 @@ export default function AdminShopsPage() {
             <div key={shop.id} className="bg-[#1E293B] rounded-2xl border border-slate-700/50 p-6 flex flex-col shadow-lg relative overflow-hidden group">
               <div className={`absolute top-0 left-0 w-1 h-full ${shop.is_open ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
               
-              <div className="flex flex-col xl:flex-row justify-between items-start mb-4 pl-2 gap-4">
-                <div className="flex items-center gap-3">
+              <div className="flex justify-between items-start mb-4 pl-2 gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 flex-shrink-0 overflow-hidden border border-slate-700/50">
                     {shop.logo_url ? (
                       <img src={shop.logo_url} alt="" className="w-full h-full object-cover" />
@@ -125,7 +125,7 @@ export default function AdminShopsPage() {
                       <Store size={24} />
                     )}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-white text-lg leading-tight truncate">{shop.name}</h3>
                     <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                       {shop.is_open ? (
@@ -138,7 +138,7 @@ export default function AdminShopsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5 justify-start xl:justify-end">
+                <div className="flex gap-1.5 flex-shrink-0">
                   <button
                     onClick={() => handleEditClick(shop)}
                     className="text-slate-400 hover:text-white p-2 bg-slate-800 rounded-lg transition"

@@ -41,8 +41,17 @@ export default function ShopLoginPage() {
         throw new Error('Access denied. Student accounts cannot access the shop portal.')
       }
 
-      toast.success('Welcome back to CampusShop! 👋')
-      router.replace('/shop/dashboard')
+      toast.success('Welcome back to CampusShop! 🚀')
+      
+      // Check for URL redirect param (e.g. ?redirectTo=/shop1)
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectTo = urlParams.get('redirectTo');
+      
+      if (redirectTo) {
+        router.replace(redirectTo)
+      } else {
+        router.replace('/shop/dashboard')
+      }
     } catch (err: any) {
       toast.error(err.message || 'Login failed. Check credentials.')
     } finally {

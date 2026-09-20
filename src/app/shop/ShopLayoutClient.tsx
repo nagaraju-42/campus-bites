@@ -8,19 +8,21 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
 import { getShopDetailsByOwner } from '@/lib/supabase/queries/shop-dashboard'
-import { AlertCircle, ShieldAlert } from 'lucide-react'
+import { AlertCircle, ShieldAlert, Smartphone, Volume2 } from 'lucide-react'
 import ShopSidebar from '@/components/shop/ShopSidebar'
 import ShopBottomNav from '@/components/shop/ShopBottomNav'
 import AdminImpersonationBanner from '@/components/admin/AdminImpersonationBanner'
 import CompleteProfileOverlay from '@/components/shared/CompleteProfileOverlay'
+import FocusedOrderModal from '@/components/shop/FocusedOrderModal'
 import { motion, AnimatePresence } from 'framer-motion'
-import { stopShopAlarm } from '@/store/shopOrdersStore'
+import { stopShopAlarm, initShopAudio } from '@/store/shopOrdersStore'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
+
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const isKDS = pathname === '/shop/kds'
+  const isKDS = pathname === '/shop/kds' || pathname === '/shop/live'
   
   const { user, setUser, setLoading, isLoading, clearAuth } = useAuthStore()
   const { setShopId, addOrder, updateOrderStatus, isAlarmRinging } = useShopOrdersStore()
@@ -29,8 +31,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   // Auto-unlock audio for background tabs on first interaction
   useEffect(() => {
     const unlockAudio = () => {
-      const { initShopAudio } = require('@/store/shopOrdersStore')
       initShopAudio()
+      setAudioUnlocked(true)
       window.removeEventListener('click', unlockAudio)
       window.removeEventListener('touchstart', unlockAudio)
     }
@@ -52,6 +54,14 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
   // Global Cancellation Alert State
   const [cancellationAlert, setCancellationAlert] = useState<{ orderNumber: string, reason: string } | null>(null)
+
+  // Audio unlock state - Android WebView blocks audio until user taps
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
+
+  // APK Device Registration Modal
+  const [showDeviceModal, setShowDeviceModal] = useState(false)
+  const [deviceName, setDeviceName] = useState('')
+  const [savingDevice, setSavingDevice] = useState(false)
 
   // Inject PWA manifest link into document head + register service worker
   useEffect(() => {
@@ -163,14 +173,27 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id, token: token.value })
           });
+
+          // APK Device Tracker: show modal if no device name saved yet
+          const savedDeviceName = localStorage.getItem('apk_device_name')
+          if (!savedDeviceName) {
+            setShowDeviceModal(true)
+          } else {
+            // Update last_seen_at silently
+            fetch('/api/apk/register-device', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id, deviceName: savedDeviceName, fcmToken: token.value })
+            }).catch(() => {})
+          }
         });
 
         // Create the custom channel before registering
         try {
           await PushNotifications.createChannel({
             id: 'campus_orders_v3',
-            name: 'Campus Orders v3',
-            description: 'New order notifications',
+            name: 'Campus Orders Alerts (v3)',
+            description: 'Critical new order notifications',
             importance: 5, // 5 = MAX importance
             visibility: 1, // 1 = PUBLIC
             sound: 'bell_alarm', // Matches bell_alarm.mp3 in res/raw/
@@ -186,6 +209,18 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           console.error('Error on registration: ' + JSON.stringify(error));
         });
 
+        // Handle tapping on a push notification
+        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+          console.log('Push action performed:', notification);
+          const data = notification.notification.data;
+          if (data && data.orderId) {
+            // Set focused order ID so the dashboard opens it immediately
+            useShopOrdersStore.getState().setFocusedOrderId(data.orderId);
+            // Ensure audio stops if they click the notification
+            stopShopAlarm();
+          }
+        });
+
       } catch (err) {
         console.error("FCM Setup Failed", err)
       }
@@ -193,6 +228,25 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
     registerFCM()
   }, [user?.id])
+
+  // Global Audio Unlocker (Fallback for missed banner)
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (!audioUnlocked) {
+        initShopAudio()
+        setAudioUnlocked(true)
+        document.removeEventListener('touchstart', unlockAudio)
+        document.removeEventListener('click', unlockAudio)
+      }
+    }
+    document.addEventListener('touchstart', unlockAudio, { once: true })
+    document.addEventListener('click', unlockAudio, { once: true })
+    
+    return () => {
+      document.removeEventListener('touchstart', unlockAudio)
+      document.removeEventListener('click', unlockAudio)
+    }
+  }, [audioUnlocked])
 
   // 2. Fetch Shop Details & Setup Realtime
   useEffect(() => {
@@ -380,6 +434,86 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     <div className={`min-h-screen flex flex-col md:flex-row ${isKDS ? 'bg-slate-900' : 'bg-[#EFF6FF]'} ${isAlarmRinging ? 'ringing-shop-container' : ''}`}>
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
 
+      {/* 🔔 Sound Unlock Banner — critical for Android APK WebView audio */}
+      <AnimatePresence>
+        {!audioUnlocked && Capacitor.isNativePlatform() && !isLoginPage && (
+          <motion.div
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -60, opacity: 0 }}
+            className="fixed top-0 left-0 right-0 z-[200] bg-orange-500 text-white px-4 py-3 flex items-center justify-center gap-3 shadow-lg cursor-pointer"
+            onClick={() => {
+              initShopAudio()
+              setAudioUnlocked(true)
+            }}
+          >
+            <Volume2 size={20} className="animate-pulse" />
+            <span className="font-bold text-sm">TAP HERE to enable bell alarm sound</span>
+            <Volume2 size={20} className="animate-pulse" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 📱 APK Device Name Modal — shown on first APK launch */}
+      <AnimatePresence>
+        {showDeviceModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 z-[300] flex items-center justify-center p-6 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl"
+            >
+              <div className="flex flex-col items-center text-center mb-6">
+                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                  <Smartphone size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Name This Device</h2>
+                <p className="text-gray-500 text-sm mt-2">
+                  Give this tablet/phone a name so you can identify it in the admin panel (e.g. "Amogha Counter Tablet")
+                </p>
+              </div>
+              <input
+                type="text"
+                placeholder="e.g. Amogha Counter Tablet"
+                value={deviceName}
+                onChange={e => setDeviceName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none text-gray-900 font-medium mb-4"
+                autoFocus
+              />
+              <button
+                disabled={!deviceName.trim() || savingDevice}
+                onClick={async () => {
+                  if (!deviceName.trim() || !user?.id) return
+                  setSavingDevice(true)
+                  try {
+                    localStorage.setItem('apk_device_name', deviceName.trim())
+                    await fetch('/api/apk/register-device', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: user.id, deviceName: deviceName.trim() })
+                    })
+                    toast.success(`Device "${deviceName.trim()}" registered!`)
+                    setShowDeviceModal(false)
+                  } catch {
+                    toast.error('Failed to save. Try again.')
+                  } finally {
+                    setSavingDevice(false)
+                  }
+                }}
+                className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl disabled:opacity-50 active:scale-95 transition"
+              >
+                {savingDevice ? 'Saving...' : 'Save Device Name'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {isAlarmRinging && (
           <motion.div
@@ -493,6 +627,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           <ShopBottomNav />
         </div>
       )}
+      
+      <FocusedOrderModal />
     </div>
   )
 }

@@ -5,3 +5,5 @@ export async function GET() {
   if (!publicKey) return new NextResponse("No VAPID Public Key", { status: 500 });
   return new NextResponse(publicKey);
 }
+
+

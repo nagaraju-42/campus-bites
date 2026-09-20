@@ -74,7 +74,7 @@ export async function getShopActiveOrders(shopId: string): Promise<Order[]> {
 
   const { data, error } = await supabase
     .from('orders')
-    .select(`*, order_items (*), student:profiles!orders_student_id_fkey(full_name, phone)`)
+    .select(`*, order_items (*), student:profiles!student_id(full_name, phone)`)
     .or(`shop_id.eq.${shopId},${orderIdsFilter}`)
     .in('status', ['pending', 'preparing', 'ready'])
     .order('placed_at', { ascending: true })
@@ -99,7 +99,7 @@ export async function getShopOrderHistory(shopId: string, limit: number = 50): P
 
   const { data, error } = await supabase
     .from('orders')
-    .select(`*, order_items (*), student:profiles!orders_student_id_fkey(full_name, phone)`)
+    .select(`*, order_items (*), student:profiles!student_id(full_name, phone)`)
     .or(`shop_id.eq.${shopId},${orderIdsFilter}`)
     .in('status', ['delivered', 'cancelled'])
     .order('placed_at', { ascending: false })

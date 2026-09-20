@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       adminUser: null,
       studentProfile: null,
-      isLoading: true,
+      isLoading: false,
       setUser: (user) => set({ user }),
       setAdminUser: (adminUser) => set({ adminUser }),
       setStudentProfile: (profile) => set({ studentProfile: profile }),

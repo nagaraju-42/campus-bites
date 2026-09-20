@@ -10,18 +10,18 @@ export interface Promotion {
 }
 
 export async function getActivePromotions() {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('promotions')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-  
-  if (error) {
-    console.error('Error fetching promotions:', error)
+  try {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('promotions')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+    if (error) return []
+    return data as Promotion[]
+  } catch (_) {
     return []
   }
-  return data as Promotion[]
 }
 
 export async function getPromotionByCode(code: string) {

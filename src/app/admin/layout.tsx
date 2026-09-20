@@ -58,6 +58,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     checkAuth()
   }, [router, pathname, setUser, setLoading])
 
+  // Global Audio Unlock & Realtime Subscription for Admins
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
+  const [isAlarmRinging, setIsAlarmRinging] = useState(false)
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return
+
+    // Unlock audio on first interaction
+    const unlockAudio = async () => {
+      if (!audioUnlocked) {
+        const { initShopAudio } = await import('@/store/shopOrdersStore')
+        initShopAudio()
+        setAudioUnlocked(true)
+        window.removeEventListener('click', unlockAudio)
+        window.removeEventListener('touchstart', unlockAudio)
+      }
+    }
+    window.addEventListener('click', unlockAudio)
+    window.addEventListener('touchstart', unlockAudio)
+
+    // Setup global realtime subscription for all orders
+    const supabase = createClient()
+    const channel = supabase.channel('admin-global-orders')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        async (payload) => {
+          console.log('Admin received global new order!', payload)
+          const { playShopAlarm } = await import('@/store/shopOrdersStore')
+          playShopAlarm()
+          setIsAlarmRinging(true)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      window.removeEventListener('click', unlockAudio)
+      window.removeEventListener('touchstart', unlockAudio)
+      supabase.removeChannel(channel)
+    }
+  }, [user, audioUnlocked])
+
   if (isLoading && !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0F172A]">
@@ -111,6 +153,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </div>
       </main>
+
+      {/* Admin Global Alarm UI */}
+      {isAlarmRinging && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-6 backdrop-blur-sm">
+          <div className="bg-[#1E293B] rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col items-center text-center border-4 border-orange-500">
+            <div className="w-20 h-20 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mb-4 text-4xl animate-bounce">
+              🔥
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Platform Order Alert!</h2>
+            <p className="text-slate-300 mb-6 text-sm">
+              A new order was placed on the platform.
+            </p>
+            <button
+              onClick={async () => {
+                setIsAlarmRinging(false)
+                const { stopShopAlarm } = await import('@/store/shopOrdersStore')
+                stopShopAlarm()
+              }}
+              className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg active:scale-95 transition"
+            >
+              Stop Alarm
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
