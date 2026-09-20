@@ -196,7 +196,7 @@ export default function FocusedOrderModal() {
                         <span className="font-medium text-gray-800">{item.item_name}</span>
                       </div>
                       <span className="font-semibold text-gray-800">
-                        {formatCurrency(item.price_at_time * item.quantity)}
+                        {formatCurrency(item.unit_price * item.quantity)}
                       </span>
                     </div>
                   ))}
