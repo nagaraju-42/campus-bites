@@ -168,7 +168,8 @@ export default function MenuPage() {
 
   const isRenukaTheme = shop?.name.toLowerCase().includes('renuka') || shop?.name.toLowerCase().includes('street 11');
   const isBakeryTheme = shop?.name.toLowerCase().includes('baker') || shop?.name.toLowerCase().includes('sweet') || shop?.name.toLowerCase().includes('softy');
-  const theme = isRenukaTheme ? 'renuka' : isBakeryTheme ? 'bakery' : 'default';
+  let theme = isBakeryTheme ? 'bakery' : 'renuka';
+
 
   const categories = Object.keys(groupedMenu)
 
@@ -558,7 +559,7 @@ export default function MenuPage() {
                 {Object.entries(groupedMenu).map(([category, menuItems]) => {
                   const itemsWithoutImages = menuItems
                     .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .filter(item => !item.image_url)
+                    
                     .sort((a, b) => (a.is_available === b.is_available ? 0 : a.is_available ? -1 : 1));
                   
                   if (itemsWithoutImages.length === 0) return null;
