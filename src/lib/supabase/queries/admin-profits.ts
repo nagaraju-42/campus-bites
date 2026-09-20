@@ -8,7 +8,7 @@ export async function getProfitAnalytics() {
 
   const { data: orders, error } = await supabase
     .from('orders')
-    .select(
+    .select(`
       id,
       shop_id,
       platform_fee,
@@ -21,7 +21,7 @@ export async function getProfitAnalytics() {
         partner_shop_id,
         partner:shops!order_items_partner_shop_id_fkey (name)
       )
-    )
+    `)
     .eq('status', 'delivered')
     .gte('delivered_at', today.toISOString())
 
@@ -45,7 +45,7 @@ export async function getProfitAnalytics() {
       totalPlatformProfit += myProfit
 
       // The shop that actually fulfills the item (partner shop if exists, else main shop)
-      const actualShopName = item.partner?.name || order.shops?.name || 'Unknown Shop'
+      const actualShopName = item.partner?.name || ((order.shops as any)?.name || (Array.isArray(order.shops) ? (order.shops[0] as any)?.name : null)) || 'Unknown Shop'
       const actualShopId = item.partner_shop_id || order.shop_id
       
       const shopProfitPerItem = (item.unit_price - marginPerItem) * item.quantity
