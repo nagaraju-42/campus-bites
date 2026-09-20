@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       android: {
         priority: 'high' as const,
         notification: {
-          channelId: 'campus_orders_v3',
+          channelId: 'campus_orders_v4',
           sound: 'bell_alarm'
         }
       }
