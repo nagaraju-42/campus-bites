@@ -82,18 +82,23 @@ export default function SimpleKDS() {
             </span>
           </h2>
 
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-gray-200 shadow-sm">
-            <span className={`w-2.5 h-2.5 rounded-full ${isLive ? 'bg-green-500' : 'bg-red-500'}`}></span>
-            <span className="font-bold text-sm text-gray-700 hidden sm:inline">{isLive ? 'Accepting Orders' : 'Closed'}</span>
+          <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-gray-200 shadow-sm">
+            <span className={`font-bold text-sm ${isLive ? 'text-green-600' : 'text-red-500'}`}>
+              {isToggling ? '...' : isLive ? 'OPEN' : 'CLOSED'}
+            </span>
             <button 
               onClick={toggleStatus}
               disabled={isToggling}
-              className={`ml-2 px-3 py-1 text-xs font-bold rounded-lg transition ${
-                isToggling ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500' :
-                isLive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'
+              className={`w-14 h-7 rounded-full p-1 transition-colors duration-300 relative focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 ${
+                isToggling ? 'bg-gray-300 cursor-not-allowed' :
+                isLive ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
               }`}
             >
-              {isToggling ? 'Updating...' : isLive ? 'Close Shop' : 'Open Shop'}
+              <div 
+                className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ease-in-out absolute top-1 ${
+                  isLive ? 'translate-x-7' : 'translate-x-0'
+                }`} 
+              />
             </button>
           </div>
         </div>
