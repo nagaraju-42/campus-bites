@@ -8,6 +8,7 @@ import AdminMetricCard from '@/components/admin/AdminMetricCard'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { PlatformMetrics } from '@/types'
 import OnlineUsersCounter from '@/components/shop/OnlineUsersCounter'
+import ProfitAnalytics from '@/components/admin/ProfitAnalytics'
 import { createClient } from '@/lib/supabase/client'
 import { Clock, PhoneCall } from 'lucide-react'
 
