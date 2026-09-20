@@ -6,12 +6,14 @@ import { Clock, User } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
 import { Order } from '@/types'
+import { updateShopStatusDB } from '@/lib/supabase/queries/shop-dashboard'
+import toast from 'react-hot-toast'
 
 export default function SimpleKDS() {
-  const { orders, setFocusedOrderId, shopId } = useShopOrdersStore()
+  const { orders, setFocusedOrderId, shopId, isLive, setLiveStatus } = useShopOrdersStore()
   const [history, setHistory] = useState<Order[]>([])
   const [loadingHistory, setLoadingHistory] = useState(true)
-  const [horizontalScroll, setHorizontalScroll] = useState(false)
+  const [isToggling, setIsToggling] = useState(false)
 
   useEffect(() => {
     if (shopId) {
@@ -23,6 +25,21 @@ export default function SimpleKDS() {
       })
     }
   }, [shopId, orders]) // Refetch history when orders array changes (e.g., an order is completed)
+
+  const toggleStatus = async () => {
+    if (!shopId || isToggling) return
+    setIsToggling(true)
+    const newStatus = !isLive
+    try {
+      await updateShopStatusDB(shopId, newStatus)
+      setLiveStatus(newStatus)
+      toast.success(`Shop is now ${newStatus ? 'OPEN' : 'CLOSED'}`)
+    } catch (err) {
+      toast.error('Failed to update shop status')
+    } finally {
+      setIsToggling(false)
+    }
+  }
 
   // Filter out completed/cancelled orders for the simple KDS
   const activeOrders = orders.filter(o => ['pending', 'preparing', 'ready', 'out_for_delivery'].includes(o.status))
@@ -66,12 +83,17 @@ export default function SimpleKDS() {
           </h2>
 
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-gray-200 shadow-sm">
-            <span className="text-xs font-bold text-gray-500">Scroll</span>
+            <span className={`w-2.5 h-2.5 rounded-full ${isLive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+            <span className="font-bold text-sm text-gray-700 hidden sm:inline">{isLive ? 'Accepting Orders' : 'Closed'}</span>
             <button 
-              onClick={() => setHorizontalScroll(!horizontalScroll)}
-              className={`w-12 h-6 rounded-full p-1 transition-colors ${horizontalScroll ? 'bg-green-500' : 'bg-red-500'}`}
+              onClick={toggleStatus}
+              disabled={isToggling}
+              className={`ml-2 px-3 py-1 text-xs font-bold rounded-lg transition ${
+                isToggling ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500' :
+                isLive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'
+              }`}
             >
-              <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${horizontalScroll ? 'translate-x-6' : 'translate-x-0'}`} />
+              {isToggling ? 'Updating...' : isLive ? 'Close Shop' : 'Open Shop'}
             </button>
           </div>
         </div>
@@ -85,13 +107,13 @@ export default function SimpleKDS() {
             <p className="text-gray-500 font-medium text-center">New orders will appear here automatically.</p>
           </div>
         ) : (
-          <div className={horizontalScroll ? "flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory hide-scrollbar" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeOrders.map(order => {
               const stageIndex = getStageIndex(order.status)
               const isFocused = useShopOrdersStore.getState().focusedOrderId === order.id
               
               return (
-                <div key={order.id} className={horizontalScroll ? "min-w-[85vw] md:min-w-[400px] snap-center shrink-0" : "w-full"}>
+                <div key={order.id} className="w-full">
                   <button
                     onClick={() => setFocusedOrderId(order.id)}
                     className={`p-5 rounded-3xl shadow-sm border flex flex-col gap-4 text-left w-full transition-all duration-200 active:scale-95 active:bg-orange-100 active:shadow-inner
@@ -117,7 +139,7 @@ export default function SimpleKDS() {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.location.href = \`tel:\${order.student!.phone}\`;
+                            window.location.href = `tel:${order.student!.phone}`;
                           }}
                           className="bg-green-100 hover:bg-green-200 text-green-700 p-3 rounded-full transition active:scale-95 shrink-0"
                           title="Call Student"
@@ -134,7 +156,7 @@ export default function SimpleKDS() {
                       {/* Active Line Progress */}
                       <div 
                         className="absolute top-[32px] left-[15%] h-1.5 bg-orange-500 -z-0 transition-all duration-500 rounded-full"
-                        style={{ width: \`\${Math.max(0, (Math.min(stageIndex, 2) / 2) * 70)}%\` }}
+                        style={{ width: `${Math.max(0, (Math.min(stageIndex, 2) / 2) * 70)}%` }}
                       ></div>
 
                       <div className="flex justify-between items-center z-10 relative px-4">

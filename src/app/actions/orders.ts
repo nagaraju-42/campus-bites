@@ -15,13 +15,13 @@ export async function getShopActiveOrdersAdmin(shopId: string) {
     
   const partnerOrderIds = partnerItems?.map(item => item.order_id) || []
   const orderIdsFilter = partnerOrderIds.length > 0 
-    ? \id.in.(\)\ 
+    ? 'id.in.(' + partnerOrderIds.join(',') + ')'
     : 'id.eq.00000000-0000-0000-0000-000000000000'
 
   const { data, error } = await supabaseAdmin
     .from('orders')
     .select('*, order_items (*), student:profiles!student_id(full_name, phone)')
-    .or(\shop_id.eq.\,\\)
+    .or('shop_id.eq.' + shopId + ',' + orderIdsFilter)
     .in('status', ['pending', 'preparing', 'ready', 'out_for_delivery'])
     .order('placed_at', { ascending: true })
     
@@ -37,13 +37,13 @@ export async function getShopOrderHistoryAdmin(shopId: string, limit: number = 5
     
   const partnerOrderIds = partnerItems?.map(item => item.order_id) || []
   const orderIdsFilter = partnerOrderIds.length > 0 
-    ? \id.in.(\)\ 
+    ? 'id.in.(' + partnerOrderIds.join(',') + ')'
     : 'id.eq.00000000-0000-0000-0000-000000000000'
 
   const { data, error } = await supabaseAdmin
     .from('orders')
     .select('*, order_items (*), student:profiles!student_id(full_name, phone)')
-    .or(\shop_id.eq.\,\\)
+    .or('shop_id.eq.' + shopId + ',' + orderIdsFilter)
     .in('status', ['delivered', 'cancelled'])
     .order('placed_at', { ascending: false })
     .limit(limit)
