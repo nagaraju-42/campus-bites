@@ -6,7 +6,8 @@ import { motion } from 'framer-motion'
 import { IndianRupee, ShoppingBag, Users, AlertCircle, Bell, Send, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useShopOrdersStore } from '@/store/shopOrdersStore'
-import { getShopDetailsByOwner, updateShopStatusDB, getShopActiveOrders, getShopOrderHistory, getShopStats, toggleBusyModeDB } from '@/lib/supabase/queries/shop-dashboard'
+import { getShopDetailsByOwner, updateShopStatusDB, getShopStats, toggleBusyModeDB } from '@/lib/supabase/queries/shop-dashboard'
+import { getShopActiveOrdersAdmin, getShopOrderHistoryAdmin } from '@/app/actions/orders'
 import StatCard from '@/components/shop/StatCard'
 import NotificationsTray from '@/components/shared/NotificationsTray'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -59,8 +60,8 @@ export default function ShopDashboardPage() {
         }
 
         const [activeOrders, completed] = await Promise.all([
-          getShopActiveOrders(shopId!),
-          getShopOrderHistory(shopId!, 5)
+          getShopActiveOrdersAdmin(shopId!),
+          getShopOrderHistoryAdmin(shopId!, 5)
         ])
         
         const { data: riders, error: ridersErr } = await createClient()

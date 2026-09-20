@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import { updateOrderStatusDB } from '@/lib/supabase/queries/shop-dashboard'
 import { useAuthStore } from '@/store/authStore'
+import { useEffect } from 'react'
 
 export default function FocusedOrderModal() {
   const { user } = useAuthStore()
@@ -15,10 +16,19 @@ export default function FocusedOrderModal() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [fetchedOrder, setFetchedOrder] = useState<any>(null)
+
+  useEffect(() => {
+    if (focusedOrderId && !orders.find(o => o.id === focusedOrderId)) {
+      import('@/app/actions/orders').then(m => {
+        m.getOrderByIdAdmin(focusedOrderId).then(data => setFetchedOrder(data))
+      })
+    }
+  }, [focusedOrderId, orders])
 
   if (!focusedOrderId) return null
 
-  const order = orders.find(o => o.id === focusedOrderId)
+  const order = orders.find(o => o.id === focusedOrderId) || fetchedOrder
   const closeModal = () => {
     setFocusedOrderId(null)
     setIsRejecting(false)

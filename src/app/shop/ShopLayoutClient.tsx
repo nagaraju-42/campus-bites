@@ -143,7 +143,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       // If they are on login page but already logged in, send to dashboard
       if (isLoginRoute) {
         setLoading(false)
-        router.replace('/shop/dashboard')
+        router.replace('/shop/live')
       }
     }
     checkAuth()
@@ -218,6 +218,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
             useShopOrdersStore.getState().setFocusedOrderId(data.orderId);
             // Ensure audio stops if they click the notification
             stopShopAlarm();
+            // Redirect to Simple KDS
+            router.push('/shop/live');
           }
         });
 
@@ -227,7 +229,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     }
 
     registerFCM()
-  }, [user?.id])
+  }, [user?.id, router])
 
   // Global Audio Unlocker (Fallback for missed banner)
   useEffect(() => {
@@ -272,8 +274,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           setShopIsOpen(shopData.is_open)
           
           // Fix: Fetch initial orders so they don't disappear on direct page load
-          const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
-          const activeOrders = await getShopActiveOrders(shopData.id)
+          const { getShopActiveOrdersAdmin } = await import('@/app/actions/orders')
+          const activeOrders = await getShopActiveOrdersAdmin(shopData.id)
           useShopOrdersStore.getState().setOrders(activeOrders)
 
           setupRealtime(shopData.id)
@@ -295,10 +297,11 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${sid}` },
           async (payload) => {
             // Wait 1s to ensure order_items are inserted
+            // Wait 1s to ensure order_items are inserted
             await new Promise(resolve => setTimeout(resolve, 1000))
-            const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
-            const activeOrders = await getShopActiveOrders(sid)
-            useShopOrdersStore.getState().setOrders(activeOrders)
+            const { getShopActiveOrdersAdmin } = await import('@/app/actions/orders')
+            const freshOrders = await getShopActiveOrdersAdmin(sid)
+            useShopOrdersStore.getState().setOrders(freshOrders)
             
             // Play loud alarm for KDS
             const { playShopAlarm } = require('@/store/shopOrdersStore')
@@ -321,8 +324,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
               }
             }
 
-            const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
-            const activeOrders = await getShopActiveOrders(sid)
+            const { getShopActiveOrdersAdmin } = await import('@/app/actions/orders')
+            const activeOrders = await getShopActiveOrdersAdmin(sid)
             useShopOrdersStore.getState().setOrders(activeOrders)
           }
         )
@@ -351,8 +354,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           async (payload) => {
             // A partner order item was inserted! This means a new partner order has arrived.
             await new Promise(resolve => setTimeout(resolve, 500))
-            const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
-            const activeOrders = await getShopActiveOrders(sid)
+            const { getShopActiveOrdersAdmin } = await import('@/app/actions/orders')
+            const activeOrders = await getShopActiveOrdersAdmin(sid)
             
             // Check if we actually got a new order that isn't in our state yet
             const currentOrders = useShopOrdersStore.getState().orders
@@ -381,12 +384,12 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     
     const pollOrders = async () => {
       try {
-        const { getShopActiveOrders } = await import('@/lib/supabase/queries/shop-dashboard')
+        const { getShopActiveOrdersAdmin } = await import('@/app/actions/orders')
         const currentSid = useShopOrdersStore.getState().shopId;
         if (!currentSid) return;
         
         // Fetch fresh data
-        const activeOrders = await getShopActiveOrders(currentSid)
+        const activeOrders = await getShopActiveOrdersAdmin(currentSid)
         if (!isMounted) return;
         
         const currentOrders = useShopOrdersStore.getState().orders
