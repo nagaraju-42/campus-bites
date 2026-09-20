@@ -288,7 +288,7 @@ export default function MenuPage() {
                 <span className="text-gray-300 text-sm">•</span>
                 <div className="flex items-center gap-1">
                   <span className="text-[12px] text-gray-400">₹</span>
-                  <span className="text-[12px] font-semibold text-gray-700">₹{shop?.delivery_fee || 40} min</span>
+                  <span className="text-[12px] font-semibold text-gray-700">{shop?.min_order_amount || 40} min</span>
                 </div>
               </div>
 

@@ -95,7 +95,7 @@ export const useCartStore = create<CartState>()(
       getTotalPrice: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
 
-      getDeliveryFee: () => 10,
+      getDeliveryFee: () => 0,
 
       getPlatformFee: () => 0,
 
