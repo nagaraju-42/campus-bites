@@ -272,6 +272,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           setShopId(shopData.id)
           setShopIdForWatch(shopData.id)
           setShopIsOpen(shopData.is_open)
+          useShopOrdersStore.getState().setLiveStatus(shopData.is_open)
           
           // Fix: Fetch initial orders so they don't disappear on direct page load
           const { getShopActiveOrdersAdmin } = await import('@/app/actions/orders')

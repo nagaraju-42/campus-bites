@@ -159,6 +159,16 @@ export default function MenuPage() {
     })
   }
 
+  
+  const handleRemoveFromCart = (item: MenuItem) => {
+    if (item.variants && item.variants.length > 0) {
+      setSelectedVariantItem(item);
+      return;
+    }
+    const qty = getItemQuantity(item.id);
+    handleRemoveFromCart(item);
+  }
+
   const handleFavoriteClick = () => {
     if (!user) { router.push('/student/login'); return }
     toggleFavorite(user.id, shopId)
@@ -471,7 +481,7 @@ export default function MenuPage() {
                                   </button>
                                 ) : (
                                   <div className="w-full h-9 flex items-center justify-between bg-[#E23744] rounded-xl shadow-md px-1.5">
-                                    <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Minus size={13} /></button>
+                                    <button onClick={() => handleRemoveFromCart(item)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Minus size={13} /></button>
                                     <span className="text-white font-extrabold text-sm">{qty}</span>
                                     <button onClick={() => handleAddToCart(item)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Plus size={13} /></button>
                                   </div>
@@ -536,7 +546,7 @@ export default function MenuPage() {
                                     </button>
                                   ) : (
                                     <div className="w-full h-9 flex items-center justify-between bg-[#E23744] rounded-xl shadow-md px-1.5">
-                                      <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Minus size={13} /></button>
+                                      <button onClick={() => handleRemoveFromCart(item)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Minus size={13} /></button>
                                       <span className="text-white font-extrabold text-sm">{qty}</span>
                                       <button onClick={() => handleAddToCart(item)} className="w-6 h-6 flex items-center justify-center rounded-lg text-white"><Plus size={13} /></button>
                                     </div>
@@ -599,7 +609,7 @@ export default function MenuPage() {
                                     </button>
                                   ) : (
                                     <div className="flex items-center justify-between bg-[#C54932] rounded-full shadow-sm px-1.5 h-8 w-[80px]">
-                                      <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-6 h-6 flex items-center justify-center rounded-full text-white"><Minus size={13} /></button>
+                                      <button onClick={() => handleRemoveFromCart(item)} className="w-6 h-6 flex items-center justify-center rounded-full text-white"><Minus size={13} /></button>
                                       <span className="text-white font-extrabold text-sm">{qty}</span>
                                       <button onClick={() => handleAddToCart(item)} className="w-6 h-6 flex items-center justify-center rounded-full text-white"><Plus size={13} /></button>
                                     </div>
@@ -654,7 +664,7 @@ export default function MenuPage() {
                                    </button>
                                  ) : (
                                    <div className="flex items-center justify-between bg-[#D81B60] rounded-lg shadow-md px-1.5 h-7 w-[75px]">
-                                     <button onClick={() => updateQuantity(item.id, qty - 1)} className="w-6 h-6 flex items-center justify-center text-white"><Minus size={12} /></button>
+                                     <button onClick={() => handleRemoveFromCart(item)} className="w-6 h-6 flex items-center justify-center text-white"><Minus size={12} /></button>
                                      <span className="text-white font-extrabold text-sm">{qty}</span>
                                      <button onClick={() => handleAddToCart(item)} className="w-6 h-6 flex items-center justify-center text-white"><Plus size={12} /></button>
                                    </div>
